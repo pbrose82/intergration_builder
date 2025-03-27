@@ -6,164 +6,526 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        :root {
+            --alchemy-blue: #0047BB;
+            --alchemy-light-blue: #3F88F6;
+            --alchemy-blue-bg: #E7F0FF;
+            --alchemy-dark: #001952;
+            --alchemy-green: #00A86B;
+            --alchemy-red: #E4002B;
+            --alchemy-grey: #6C757D;
+            --alchemy-light-grey: #F8F9FA;
+        }
+        
         body {
             background-color: #f4f6f9;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            margin: 0;
         }
+        
+        /* Header styles */
+        .header {
+            background-color: white;
+            padding: 15px 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 0;
+        }
+        
+        .header-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        .header-title {
+            color: var(--alchemy-dark);
+            font-weight: 500;
+            font-size: 24px;
+            margin: 0;
+        }
+        
+        /* Platform selection styles */
+        .platform-section {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            padding: 25px;
+        }
+        
+        .platform-card {
+            background-color: white;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .platform-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+        }
+        
         .integration-logo {
             height: 60px;
+            margin-bottom: 15px;
         }
-        .card:hover {
-            transform: translateY(-5px);
-            transition: transform 0.2s;
+        
+        /* Form styles */
+        .integration-form {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 25px;
         }
-        #integrationForm {
-            display: none;
+        
+        .form-title {
+            color: var(--alchemy-dark);
+            font-weight: 600;
+            font-size: 18px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e0e0e0;
         }
-        .select2-container {
-            width: 100% !important;
+        
+        .form-section {
+            margin-bottom: 25px;
+        }
+        
+        .form-label {
+            color: var(--alchemy-dark);
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        
+        .form-control, .form-select, .select2-container--default .select2-selection--single {
+            border-radius: 4px;
+            padding: 10px 15px;
+            border: 1px solid #dee2e6;
+            height: auto;
+        }
+        
+        .select2-container--default .select2-selection--single {
+            padding: 8px 15px;
+        }
+        
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 100%;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: var(--alchemy-light-blue);
+            box-shadow: 0 0 0 3px rgba(63, 136, 246, 0.15);
+        }
+        
+        /* Progress bar */
+        .progress-container {
+            margin-bottom: 25px;
+        }
+        
+        .progress {
+            height: 8px;
+            border-radius: 4px;
+        }
+        
+        .progress-bar {
+            background-color: var(--alchemy-blue);
+        }
+        
+        /* Field mapping styles */
+        .mapping-container {
+            background-color: var(--alchemy-light-grey);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .mapping-row {
+            background-color: white;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 10px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        
+        .mapping-add-btn {
+            background-color: var(--alchemy-light-grey);
+            color: var(--alchemy-blue);
+            border: 1px dashed var(--alchemy-blue);
+            border-radius: 4px;
+            padding: 10px;
+            width: 100%;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+        
+        .mapping-add-btn:hover {
+            background-color: var(--alchemy-blue-bg);
+        }
+        
+        .btn-remove-mapping {
+            color: var(--alchemy-red);
+            background: none;
+            border: none;
+            font-size: 18px;
+        }
+        
+        /* Button styles */
+        .btn-navigation {
+            background-color: white;
+            color: var(--alchemy-dark);
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px 15px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-navigation:hover {
+            background-color: var(--alchemy-light-grey);
+        }
+        
+        .btn-primary {
+            background-color: var(--alchemy-blue);
+            border-color: var(--alchemy-blue);
+            border-radius: 4px;
+            padding: 10px 20px;
+            font-weight: 500;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--alchemy-light-blue);
+            border-color: var(--alchemy-light-blue);
+        }
+        
+        .btn-success {
+            background-color: var(--alchemy-green);
+            border-color: var(--alchemy-green);
+            border-radius: 4px;
+            padding: 10px 20px;
+            font-weight: 500;
+        }
+        
+        .btn-success:hover {
+            opacity: 0.9;
+        }
+        
+        /* Toast notifications */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+        
+        .toast {
+            background-color: white;
+            color: var(--alchemy-dark);
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            max-width: 350px;
+        }
+        
+        .toast-success {
+            border-left: 4px solid var(--alchemy-green);
+        }
+        
+        .toast-error {
+            border-left: 4px solid var(--alchemy-red);
+        }
+        
+        .toast-warning {
+            border-left: 4px solid #f59e0b;
+        }
+        
+        .toast-info {
+            border-left: 4px solid var(--alchemy-blue);
+        }
+        
+        /* Footer styles */
+        .footer {
+            background-color: white;
+            width: 100%;
+            padding: 20px 0;
+            border-top: 1px solid rgba(0, 0, 0, 0.08);
+            text-align: center;
+            margin-top: auto;
+        }
+        
+        .footer-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .copyright {
+            color: var(--alchemy-grey);
+            font-size: 12px;
+            font-weight: 500;
         }
     </style>
 </head>
 <body>
-    <div class="container py-5">
-        <h1 class="text-center mb-4">Alchemy Integration Manager</h1>
-        <p class="text-center text-muted mb-5">Connect Alchemy to your favorite enterprise platforms</p>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-container">
+            <h1 class="header-title">
+                <i class="fas fa-plug me-2"></i>
+                Alchemy Integration Manager
+            </h1>
+        </div>
+    </div>
 
+    <div class="container py-4">
         <!-- Platform Selection -->
-        <div class="row justify-content-center mb-4" id="platformSelection">
-            <div class="col-md-4">
-                <div class="card p-3 text-center" data-platform="sap">
-                    <img src="{{ url_for('static', filename='sap.png') }}" class="integration-logo mb-2" alt="SAP">
-                    <h4>SAP</h4>
-                    <p>Enterprise Resource Planning</p>
-                    <button class="btn btn-primary select-platform">Select SAP</button>
+        <div class="platform-section" id="platformSelection">
+            <h4 class="mb-4 text-center">Select Integration Platform</h4>
+            <div class="row g-4 justify-content-center">
+                <div class="col-md-4 col-lg-3">
+                    <div class="platform-card" data-platform="salesforce">
+                        <img src="static/salesforce.png" class="integration-logo" alt="Salesforce">
+                        <h5>Salesforce</h5>
+                        <p class="text-muted">Customer Relationship Management</p>
+                        <button class="btn btn-primary select-platform mt-auto">Select Salesforce</button>
+                    </div>
                 </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card p-3 text-center" data-platform="salesforce">
-                    <img src="{{ url_for('static', filename='salesforce.png') }}" class="integration-logo mb-2" alt="Salesforce">
-                    <h4>Salesforce</h4>
-                    <p>Customer Relationship Management</p>
-                    <button class="btn btn-primary select-platform">Select Salesforce</button>
+                <div class="col-md-4 col-lg-3">
+                    <div class="platform-card" data-platform="sap">
+                        <img src="static/sap.png" class="integration-logo" alt="SAP">
+                        <h5>SAP</h5>
+                        <p class="text-muted">Enterprise Resource Planning</p>
+                        <button class="btn btn-primary select-platform mt-auto">Select SAP</button>
+                    </div>
+                </div>
+                <div class="col-md-4 col-lg-3">
+                    <div class="platform-card" data-platform="hubspot">
+                        <i class="fas fa-poll fa-3x mb-3 text-primary"></i>
+                        <h5>HubSpot</h5>
+                        <p class="text-muted">Marketing & CRM Platform</p>
+                        <button class="btn btn-primary select-platform mt-auto">Select HubSpot</button>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Integration Config Form -->
-        <form id="integrationForm">
-            <div class="progress mb-4">
-                <div class="progress-bar" style="width: 33%"></div>
-            </div>
-            <div class="row mb-3">
-                <!-- Alchemy Config -->
-                <div class="col-md-6">
-                    <h5>Alchemy Credentials</h5>
-                    <div class="mb-3">
-                        <label class="form-label">Tenant ID</label>
-                        <input type="text" id="alchemyTenantId" class="form-control" placeholder="Enter Tenant ID">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Refresh Token</label>
-                        <input type="text" id="alchemyRefreshToken" class="form-control" placeholder="Enter Refresh Token">
-                    </div>
+        <div class="integration-form" id="integrationForm" style="display:none;">
+            <div class="progress-container">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Configuration Progress</span>
+                    <span class="text-muted" id="progressStep">Step 1 of 3</span>
                 </div>
-
-                <!-- Platform Config -->
-                <div class="col-md-6">
-                    <h5 id="platformConfigTitle">Platform Credentials</h5>
-                    <div id="salesforceConfig">
-                        <div class="mb-3">
-                            <label class="form-label">Instance URL</label>
-                            <input type="text" id="salesforceInstanceUrl" class="form-control">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Client ID</label>
-                            <input type="text" id="salesforceClientId" class="form-control">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Client Secret</label>
-                            <input type="password" id="salesforceClientSecret" class="form-control">
-                        </div>
-                    </div>
-                    <div id="sapConfig" style="display:none;">
-                        <div class="mb-3">
-                            <label class="form-label">Base URL</label>
-                            <input type="text" id="sapBaseUrl" class="form-control">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Client ID</label>
-                            <input type="text" id="sapClientId" class="form-control">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Client Secret</label>
-                            <input type="password" id="sapClientSecret" class="form-control">
-                        </div>
-                    </div>
+                <div class="progress">
+                    <div class="progress-bar" role="progressbar" style="width: 33%" id="progressBar"></div>
                 </div>
             </div>
 
-            <!-- Record Type and Field Mapping -->
-            <div class="row mb-4">
-                <div class="col-md-6">
-                    <label class="form-label">Alchemy Record Type</label>
-                    <select id="recordTypeSelect" class="form-select select2"></select>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Mapped Fields</label>
-                    <div id="fieldMappingContainer"></div>
-                    <button class="btn btn-secondary mt-2" id="addMapping">Add Field Mapping</button>
+            <!-- Step navigation -->
+            <div class="d-flex justify-content-between mb-4">
+                <button id="backBtn" class="btn btn-navigation">
+                    <i class="fas fa-arrow-left me-2"></i>Back
+                </button>
+                <button id="nextBtn" class="btn btn-primary">
+                    Next<i class="fas fa-arrow-right ms-2"></i>
+                </button>
+            </div>
+
+            <!-- Step 1: Credentials -->
+            <div id="step1" class="form-step">
+                <div class="form-title">Connection Credentials</div>
+                
+                <div class="row">
+                    <!-- Alchemy Config -->
+                    <div class="col-md-6">
+                        <div class="form-section">
+                            <h5 class="mb-3">Alchemy Credentials</h5>
+                            <div class="mb-3">
+                                <label class="form-label">Tenant ID</label>
+                                <input type="text" id="alchemyTenantId" class="form-control" placeholder="Enter Tenant ID">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Refresh Token</label>
+                                <div class="input-group">
+                                    <input type="password" id="alchemyRefreshToken" class="form-control" placeholder="Enter Refresh Token">
+                                    <button class="btn btn-outline-secondary" type="button" id="toggleRefreshToken">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Platform Config -->
+                    <div class="col-md-6">
+                        <div class="form-section">
+                            <h5 class="mb-3" id="platformConfigTitle">Platform Credentials</h5>
+                            
+                            <!-- Salesforce Config -->
+                            <div id="salesforceConfig">
+                                <div class="mb-3">
+                                    <label class="form-label">Instance URL</label>
+                                    <input type="text" id="salesforceInstanceUrl" class="form-control" placeholder="https://na01.salesforce.com">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Client ID</label>
+                                    <input type="text" id="salesforceClientId" class="form-control" placeholder="Enter Client ID">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Client Secret</label>
+                                    <div class="input-group">
+                                        <input type="password" id="salesforceClientSecret" class="form-control" placeholder="Enter Client Secret">
+                                        <button class="btn btn-outline-secondary" type="button" id="toggleClientSecret">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- SAP Config -->
+                            <div id="sapConfig" style="display:none;">
+                                <div class="mb-3">
+                                    <label class="form-label">Base URL</label>
+                                    <input type="text" id="sapBaseUrl" class="form-control" placeholder="https://your-sap-instance.com">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Client ID</label>
+                                    <input type="text" id="sapClientId" class="form-control" placeholder="Enter Client ID">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Client Secret</label>
+                                    <input type="password" id="sapClientSecret" class="form-control" placeholder="Enter Client Secret">
+                                </div>
+                            </div>
+                            
+                            <!-- HubSpot Config -->
+                            <div id="hubspotConfig" style="display:none;">
+                                <div class="mb-3">
+                                    <label class="form-label">API Key</label>
+                                    <input type="text" id="hubspotApiKey" class="form-control" placeholder="Enter HubSpot API Key">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Portal ID</label>
+                                    <input type="text" id="hubspotPortalId" class="form-control" placeholder="Enter Portal ID">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div class="d-flex justify-content-between">
-                <button class="btn btn-secondary" id="backBtn">Back</button>
-                <button class="btn btn-success" id="saveBtn">Save Configuration</button>
+            <!-- Step 2: Record Type Selection -->
+            <div id="step2" class="form-step" style="display:none;">
+                <div class="form-title">Record Type Configuration</div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-section">
+                            <div class="mb-3">
+                                <label class="form-label">Alchemy Record Type</label>
+                                <select id="recordTypeSelect" class="form-select">
+                                    <option value="">-- Select Record Type --</option>
+                                </select>
+                                <small class="text-muted">Select the record type you want to integrate with</small>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Record Type Description</label>
+                                <p id="recordTypeDescription" class="form-text text-muted mb-0">
+                                    Select a record type to view its description
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="form-section">
+                            <div class="mb-3">
+                                <label class="form-label">Sync Frequency</label>
+                                <select id="syncFrequency" class="form-select">
+                                    <option value="every15min">Every 15 minutes</option>
+                                    <option value="hourly">Hourly</option>
+                                    <option value="daily" selected>Daily</option>
+                                    <option value="weekly">Weekly</option>
+                                </select>
+                                <small class="text-muted">How often should data be synchronized</small>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Sync Direction</label>
+                                <select id="syncDirection" class="form-select">
+                                    <option value="alchemy-to-platform">One-way: Alchemy → Platform</option>
+                                    <option value="platform-to-alchemy">One-way: Platform → Alchemy</option>
+                                    <option value="bidirectional">Two-way: Bidirectional</option>
+                                </select>
+                                <small class="text-muted">Direction of data flow between systems</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    When you select a record type, available fields will be loaded for mapping in the next step.
+                </div>
             </div>
-        </form>
+
+            <!-- Step 3: Field Mapping -->
+            <div id="step3" class="form-step" style="display:none;">
+                <div class="form-title">Field Mapping Configuration</div>
+                
+                <p class="mb-4">Map fields between Alchemy and the selected platform</p>
+                
+                <div id="fieldMappingContainer" class="mb-4">
+                    <!-- Field mapping rows will be added here -->
+                </div>
+                
+                <button class="mapping-add-btn mb-4" id="addMappingBtn">
+                    <i class="fas fa-plus me-2"></i>Add Field Mapping
+                </button>
+                
+                <div class="d-flex justify-content-between mt-5">
+                    <button id="backToStep2Btn" class="btn btn-navigation">
+                        <i class="fas fa-arrow-left me-2"></i>Back
+                    </button>
+                    <button id="saveBtn" class="btn btn-success">
+                        <i class="fas fa-save me-2"></i>Save Configuration
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <div class="footer-content">
+            <div class="copyright">© ALCHEMY CLOUD, INC. ALL RIGHTS RESERVED.</div>
+        </div>
     </div>
 
     <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-    <script>
-        let selectedPlatform = null;
-
-        $(document).ready(function() {
-            $('.select2').select2();
-
-            $('.select-platform').on('click', function() {
-                selectedPlatform = $(this).closest('.card').data('platform');
-                $('#platformSelection').hide();
-                $('#integrationForm').show();
-                $('#platformConfigTitle').text(`Configure ${selectedPlatform.charAt(0).toUpperCase() + selectedPlatform.slice(1)}`);
-                $('#salesforceConfig, #sapConfig').hide();
-                if (selectedPlatform === 'salesforce') $('#salesforceConfig').show();
-                if (selectedPlatform === 'sap') $('#sapConfig').show();
-            });
-
-            $('#backBtn').on('click', function(e) {
-                e.preventDefault();
-                $('#integrationForm').hide();
-                $('#platformSelection').show();
-            });
-
-            $('#addMapping').on('click', function(e) {
-                e.preventDefault();
-                $('#fieldMappingContainer').append(`
-                    <div class="d-flex gap-2 mb-2">
-                        <input type="text" class="form-control" placeholder="Alchemy Field">
-                        <input type="text" class="form-control" placeholder="Platform Field">
-                    </div>
-                `);
-            });
-
-            $('#saveBtn').on('click', function(e) {
-                e.preventDefault();
-                alert("Save button clicked. Hook this up to your POST API!");
-            });
-        });
-    </script>
+    <script src="static/js/integration.js"></script>
 </body>
 </html>
