@@ -82,8 +82,8 @@ def test_salesforce_connection():
             'message': f'Connection test error: {str(e)}'
         }), 500
 
-@main_bp.route('/save-integration', methods=['POST'])
-def save_integration():
+@main_bp.route('/save-integration-config', methods=['POST'])
+def save_integration_config():
     """
     Save Salesforce integration configuration
     """
@@ -92,21 +92,19 @@ def save_integration():
         
         # Create new integration configuration
         new_integration = SalesforceIntegration(
-            alchemy_base_url=data.get('alchemy_base_url'),
-            alchemy_api_key=data.get('alchemy_api_key'),
-            salesforce_username=data.get('salesforce_username'),
-            sync_frequency=data.get('sync_frequency', 'daily')
+            alchemy_base_url=data['alchemy'].get('tenant'),
+            alchemy_api_key=data['alchemy'].get('refreshToken') or data['alchemy'].get('password'),
+            salesforce_username=data['platformConnection'].get('consumerKey'),  # Replace with what makes sense
+            sync_frequency='manual'  # Can be dynamic later
         )
         
         # Set field mappings if provided
-        if data.get('field_mappings'):
-            new_integration.set_field_mappings(data.get('field_mappings'))
+        if data.get('fieldMappings'):
+            new_integration.set_field_mappings(data['fieldMappings'])
         
-        # Save to database
         db.session.add(new_integration)
         db.session.commit()
         
-        # Serialize and return
         schema = SalesforceIntegrationSchema()
         return jsonify({
             'status': 'success', 
@@ -140,11 +138,6 @@ def sync_data():
             }), 404
         
         # Placeholder for actual sync logic
-        # This would involve:
-        # 1. Fetching data from Alchemy LIMS
-        # 2. Transforming data based on field mappings
-        # 3. Uploading to Salesforce
-        
         return jsonify({
             'status': 'success', 
             'message': 'Data synchronization initiated',
@@ -160,3 +153,41 @@ def sync_data():
             'status': 'error', 
             'message': f'Sync error: {str(e)}'
         }), 500
+
+@main_bp.route('/get-alchemy-tenants', methods=['GET'])
+def get_alchemy_tenants():
+    """
+    Return mocked list of Alchemy tenants
+    """
+    tenants = [
+        {"id": "alchemy-prod", "name": "Alchemy Production"},
+        {"id": "alchemy-dev", "name": "Alchemy Development"},
+        {"id": "alchemy-uat", "name": "Alchemy UAT"}
+    ]
+    return jsonify(tenants)
+
+@main_bp.route('/get-alchemy-fields', methods=['GET'])
+def get_alchemy_fields():
+    """
+    Return mocked Alchemy field metadata
+    """
+    fields = [
+        {"identifier": "sample_id", "name": "Sample ID"},
+        {"identifier": "test_result", "name": "Test Result"},
+        {"identifier": "batch_number", "name": "Batch Number"},
+        {"identifier": "material_name", "name": "Material Name"}
+    ]
+    return jsonify(fields)
+
+@main_bp.route('/get-salesforce-fields', methods=['GET'])
+def get_salesforce_fields():
+    """
+    Return mocked Salesforce field metadata
+    """
+    fields = [
+        {"identifier": "account_id", "name": "Account ID"},
+        {"identifier": "opportunity_name", "name": "Opportunity Name"},
+        {"identifier": "stage", "name": "Stage"},
+        {"identifier": "close_date", "name": "Close Date"}
+    ]
+    return jsonify(fields)
