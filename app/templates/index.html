@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,6 +10,8 @@
         }
         .card {
             transition: transform 0.2s ease-in-out;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         .card:hover {
             transform: translateY(-5px);
@@ -26,7 +27,7 @@
         <p class="text-center text-muted mb-5">Connect Alchemy to your favorite enterprise platforms</p>
         <div class="row justify-content-center">
             <div class="col-md-4">
-                <div class="card p-3 text-center" data-platform="sap">
+                <div class="card p-4 text-center" data-platform="sap">
                     <img src="{{ url_for('static', filename='sap.png') }}" alt="SAP Logo" class="integration-logo mb-3">
                     <h4>SAP</h4>
                     <p>Enterprise Resource Planning</p>
@@ -34,7 +35,7 @@
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="card p-3 text-center" data-platform="salesforce">
+                <div class="card p-4 text-center" data-platform="salesforce">
                     <img src="{{ url_for('static', filename='salesforce.png') }}" alt="Salesforce Logo" class="integration-logo mb-3">
                     <h4>Salesforce</h4>
                     <p>Customer Relationship Management</p>
@@ -43,5 +44,15 @@
             </div>
         </div>
     </div>
+
+    <script>
+        document.querySelectorAll('.select-platform').forEach(button => {
+            button.addEventListener('click', function () {
+                const selectedPlatform = this.closest('.card').dataset.platform;
+                localStorage.setItem('selectedPlatform', selectedPlatform);
+                window.location.href = `/auth/${selectedPlatform}`;
+            });
+        });
+    </script>
 </body>
 </html>
