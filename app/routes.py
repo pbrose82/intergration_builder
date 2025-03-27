@@ -1,5 +1,7 @@
 from flask import current_app
 
+main_bp = Blueprint('main', __name__)
+
 def get_alchemy_token(tenant_id, refresh_token):
     auth_url = f"https://{tenant_id}.alchemy-lims.com/api/auth/token"
     try:
