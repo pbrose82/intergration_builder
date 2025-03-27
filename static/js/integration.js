@@ -59,8 +59,13 @@ $(document).ready(function() {
     });
     
     // Select Platform
-    $('.select-platform').on('click', function() {
+    console.log('Setting up platform selection handlers...');
+    console.log('Number of platform buttons found:', $('.select-platform').length);
+    
+    $('.select-platform').on('click', function(e) {
+        console.log('Platform button clicked!', e);
         selectedPlatform = $(this).closest('.platform-card').data('platform');
+        console.log('Selected platform:', selectedPlatform);
         platformSelection.hide();
         integrationForm.show();
         
