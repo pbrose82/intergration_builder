@@ -1,28 +1,59 @@
 from app import db, ma
 from datetime import datetime
+import json
 
-class IntegrationConfig(db.Model):
+class SalesforceIntegration(db.Model):
     """
-    Database model to store integration configurations
+    Model to store Salesforce integration configurations
     """
-    __tablename__ = 'integration_configs'
+    __tablename__ = 'salesforce_integrations'
     
     id = db.Column(db.Integer, primary_key=True)
-    platform = db.Column(db.String(50), nullable=False)
-    alchemy_config = db.Column(db.Text, nullable=False)
-    platform_connection = db.Column(db.Text, nullable=False)
-    field_mappings = db.Column(db.Text, nullable=True)
+    
+    # Alchemy LIMS Configuration
+    alchemy_base_url = db.Column(db.String(255), nullable=False)
+    alchemy_api_key = db.Column(db.String(255), nullable=False)
+    
+    # Salesforce Connection Details
+    salesforce_username = db.Column(db.String(255), nullable=False)
+    
+    # Field Mapping Configuration
+    field_mappings = db.Column(db.JSON, nullable=True)
+    
+    # Synchronization Settings
+    sync_frequency = db.Column(db.String(50), default='daily')
+    is_active = db.Column(db.Boolean, default=True)
+    
+    # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
+    def set_field_mappings(self, mappings):
+        """
+        Set field mappings as a JSON string
+        
+        Args:
+            mappings (dict): Dictionary of field mappings
+        """
+        self.field_mappings = json.dumps(mappings)
+    
+    def get_field_mappings(self):
+        """
+        Retrieve field mappings
+        
+        Returns:
+            dict: Field mappings
+        """
+        return json.loads(self.field_mappings) if self.field_mappings else {}
+    
     def __repr__(self):
-        return f'<IntegrationConfig {self.platform} - {self.id}>'
+        return f'<SalesforceIntegration {self.id}>'
 
-class IntegrationConfigSchema(ma.SQLAlchemyAutoSchema):
+class SalesforceIntegrationSchema(ma.SQLAlchemyAutoSchema):
     """
-    Marshmallow schema for serializing IntegrationConfig
+    Marshmallow schema for serializing SalesforceIntegration
     """
     class Meta:
-        model = IntegrationConfig
+        model = SalesforceIntegration
         load_instance = True
         include_fk = True
