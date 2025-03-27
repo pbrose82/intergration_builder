@@ -5,8 +5,8 @@
     <title>Alchemy Integration Manager</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Add the style as is from the existing template -->
     <style>
         :root {
             --alchemy-blue: #0047BB;
@@ -280,9 +280,28 @@
             font-size: 12px;
             font-weight: 500;
         }
+        
+        #diagnosticPanel {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background-color: rgba(0,0,0,0.8);
+            color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 9999;
+            font-family: monospace;
+            font-size: 12px;
+            max-width: 400px;
+            max-height: 200px;
+            overflow: auto;
+        }
     </style>
 </head>
 <body>
+    <!-- Diagnostic Panel -->
+    <div id="diagnosticPanel"></div>
+
     <!-- Header -->
     <div class="header">
         <div class="header-container">
@@ -303,7 +322,7 @@
                         <img src="{{ url_for('static', filename='salesforce.png') }}" class="integration-logo" alt="Salesforce">
                         <h5>Salesforce</h5>
                         <p class="text-muted">Customer Relationship Management</p>
-                        <button class="btn btn-primary select-platform mt-auto">Select Salesforce</button>
+                        <button class="btn btn-primary direct-platform-btn" data-platform="salesforce">Select Salesforce</button>
                     </div>
                 </div>
                 <div class="col-md-4 col-lg-3">
@@ -311,7 +330,7 @@
                         <img src="{{ url_for('static', filename='sap.png') }}" class="integration-logo" alt="SAP">
                         <h5>SAP</h5>
                         <p class="text-muted">Enterprise Resource Planning</p>
-                        <button class="btn btn-primary select-platform mt-auto">Select SAP</button>
+                        <button class="btn btn-primary direct-platform-btn" data-platform="sap">Select SAP</button>
                     </div>
                 </div>
                 <div class="col-md-4 col-lg-3">
@@ -319,7 +338,7 @@
                         <i class="fas fa-poll fa-3x mb-3 text-primary"></i>
                         <h5>HubSpot</h5>
                         <p class="text-muted">Marketing & CRM Platform</p>
-                        <button class="btn btn-primary select-platform mt-auto">Select HubSpot</button>
+                        <button class="btn btn-primary direct-platform-btn" data-platform="hubspot">Select HubSpot</button>
                     </div>
                 </div>
             </div>
@@ -522,10 +541,182 @@
         </div>
     </div>
 
-    <!-- Scripts -->
+    <!-- Loading Scripts -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-    <script src="{{ url_for('static', filename='js/integration.js') }}"></script>
+    
+    <!-- Inline Script for Immediate Execution -->
+    <script>
+        // Direct logging system
+        const diagnosticPanel = document.getElementById('diagnosticPanel');
+        
+        function logToScreen(message) {
+            if (diagnosticPanel) {
+                const logLine = document.createElement('div');
+                logLine.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+                diagnosticPanel.appendChild(logLine);
+                
+                // Keep only the most recent log messages
+                while (diagnosticPanel.children.length > 20) {
+                    diagnosticPanel.removeChild(diagnosticPanel.firstChild);
+                }
+                
+                // Auto-scroll to the bottom
+                diagnosticPanel.scrollTop = diagnosticPanel.scrollHeight;
+            }
+            
+            // Also log to console if available
+            console.log(message);
+        }
+        
+        // Log initial execution
+        logToScreen('Inline script starting execution');
+        
+        // Check if jQuery is loaded
+        if (typeof jQuery !== 'undefined') {
+            logToScreen('jQuery is loaded: v' + jQuery.fn.jquery);
+        } else {
+            logToScreen('ERROR: jQuery is NOT loaded');
+        }
+        
+        // Add direct handlers for platform buttons
+        document.addEventListener('DOMContentLoaded', function() {
+            logToScreen('DOM fully loaded, setting up direct handlers');
+            
+            // Setup direct platform buttons
+            const platformButtons = document.querySelectorAll('.direct-platform-btn');
+            logToScreen('Found ' + platformButtons.length + ' platform buttons');
+            
+            platformButtons.forEach(function(button) {
+                button.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    const selectedPlatform = this.getAttribute('data-platform');
+                    logToScreen('Platform button clicked: ' + selectedPlatform);
+                    
+                    // Hide platform selection, show integration form
+                    document.getElementById('platformSelection').style.display = 'none';
+                    document.getElementById('integrationForm').style.display = 'block';
+                    
+                    // Update platform title
+                    document.getElementById('platformConfigTitle').textContent = 
+                        capitalize(selectedPlatform) + ' Credentials';
+                    
+                    // Hide all platform configs
+                    document.getElementById('salesforceConfig').style.display = 'none';
+                    document.getElementById('sapConfig').style.display = 'none';
+                    document.getElementById('hubspotConfig').style.display = 'none';
+                    
+                    // Show only the selected platform config
+                    document.getElementById(selectedPlatform + 'Config').style.display = 'block';
+                    
+                    // Set initial step
+                    showStep(1);
+                });
+                
+                logToScreen('Added click handler to ' + button.textContent);
+            });
+            
+            // Setup navigation buttons
+            document.getElementById('backBtn').addEventListener('click', function() {
+                logToScreen('Back button clicked');
+                const currentStep = getCurrentStep();
+                if (currentStep === 1) {
+                    // Go back to platform selection
+                    document.getElementById('integrationForm').style.display = 'none';
+                    document.getElementById('platformSelection').style.display = 'block';
+                } else {
+                    // Go to previous step
+                    showStep(currentStep - 1);
+                }
+            });
+            
+            document.getElementById('nextBtn').addEventListener('click', function() {
+                logToScreen('Next button clicked');
+                const currentStep = getCurrentStep();
+                showStep(currentStep + 1);
+            });
+            
+            document.getElementById('backToStep2Btn').addEventListener('click', function() {
+                logToScreen('Back to Step 2 button clicked');
+                showStep(2);
+            });
+            
+            // Toggle password visibility
+            document.getElementById('toggleRefreshToken').addEventListener('click', function() {
+                const input = document.getElementById('alchemyRefreshToken');
+                togglePasswordVisibility(input, this.querySelector('i'));
+            });
+            
+            document.getElementById('toggleClientSecret').addEventListener('click', function() {
+                const input = document.getElementById('salesforceClientSecret');
+                togglePasswordVisibility(input, this.querySelector('i'));
+            });
+        });
+        
+        // Helper function to get current step
+        function getCurrentStep() {
+            if (document.getElementById('step1').style.display !== 'none') {
+                return 1;
+            } else if (document.getElementById('step2').style.display !== 'none') {
+                return 2;
+            } else {
+                return 3;
+            }
+        }
+        
+        // Helper function to show a specific step
+        function showStep(step) {
+            logToScreen('Changing to step ' + step);
+            
+            // Hide all steps
+            document.getElementById('step1').style.display = 'none';
+            document.getElementById('step2').style.display = 'none';
+            document.getElementById('step3').style.display = 'none';
+            
+            // Show the current step
+            if (step === 1) {
+                document.getElementById('step1').style.display = 'block';
+                document.getElementById('backBtn').textContent = 'Back';
+                document.getElementById('nextBtn').style.display = 'block';
+                document.getElementById('progressBar').style.width = '33%';
+                document.getElementById('progressStep').textContent = 'Step 1 of 3';
+            } else if (step === 2) {
+                document.getElementById('step2').style.display = 'block';
+                document.getElementById('backBtn').textContent = 'Back';
+                document.getElementById('nextBtn').style.display = 'block';
+                document.getElementById('progressBar').style.width = '66%';
+                document.getElementById('progressStep').textContent = 'Step 2 of 3';
+            } else if (step === 3) {
+                document.getElementById('step3').style.display = 'block';
+                document.getElementById('nextBtn').style.display = 'none';
+                document.getElementById('progressBar').style.width = '100%';
+                document.getElementById('progressStep').textContent = 'Step 3 of 3';
+            }
+        }
+        
+        // Helper function to toggle password visibility
+        function togglePasswordVisibility(inputElement, iconElement) {
+            const type = inputElement.type === 'password' ? 'text' : 'password';
+            inputElement.type = type;
+            
+            if (iconElement) {
+                if (type === 'text') {
+                    iconElement.classList.remove('fa-eye');
+                    iconElement.classList.add('fa-eye-slash');
+                } else {
+                    iconElement.classList.remove('fa-eye-slash');
+                    iconElement.classList.add('fa-eye');
+                }
+            }
+        }
+        
+        // Helper function to capitalize first letter
+        function capitalize(string) {
+            return string.charAt(0).toUpperCase() + string.slice(1);
+        }
+        
+        // Show final initialization message
+        logToScreen('Inline script setup complete');
+    </script>
 </body>
 </html>
