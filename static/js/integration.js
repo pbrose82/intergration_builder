@@ -3,7 +3,11 @@
  * JavaScript for managing the integration configuration workflow
  */
 
+// Add debug console log to verify script is loading
+console.log('Integration.js is loading...');
+
 $(document).ready(function() {
+    console.log('DOM is ready, initializing event handlers...');
     // Initialize Select2 for enhanced dropdowns
     $('.form-select').select2({
         width: '100%',
