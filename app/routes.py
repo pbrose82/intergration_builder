@@ -1,5 +1,5 @@
-from flask import Blueprint, render_template, request, jsonify, session
-from app import db, app
+from flask import Blueprint, render_template, request, jsonify, current_app, session
+from app import db
 from app.models import SalesforceIntegration, SalesforceIntegrationSchema
 from services.alchemy_service import (
     get_alchemy_access_token,
@@ -7,13 +7,11 @@ from services.alchemy_service import (
     fetch_alchemy_fields
 )
 import logging
-import json
 import requests
+import json
 from datetime import datetime
 
 main_bp = Blueprint('main', __name__)
-
-# ------------- Main Application Routes -------------
 
 @main_bp.route('/')
 def index():
@@ -30,7 +28,7 @@ def get_record_types():
         if not refresh_token and tenant_id:
             if 'alchemy_tokens' in session and tenant_id in session['alchemy_tokens']:
                 refresh_token = session['alchemy_tokens'][tenant_id].get('refresh_token')
-                app.logger.info(f"Using refresh token from session for tenant {tenant_id}")
+                current_app.logger.info(f"Using refresh token from session for tenant {tenant_id}")
 
         if not tenant_id or not refresh_token:
             return jsonify({"error": "Missing tenant_id or refresh_token"}), 400
@@ -61,7 +59,7 @@ def get_fields():
         if not refresh_token and tenant_id:
             if 'alchemy_tokens' in session and tenant_id in session['alchemy_tokens']:
                 refresh_token = session['alchemy_tokens'][tenant_id].get('refresh_token')
-                app.logger.info(f"Using refresh token from session for tenant {tenant_id}")
+                current_app.logger.info(f"Using refresh token from session for tenant {tenant_id}")
 
         if not tenant_id or not refresh_token or not record_type:
             return jsonify({"error": "Missing one or more required fields"}), 400
@@ -88,22 +86,12 @@ def save_integration():
         if not platform or not alchemy_config or not record_type or not field_mappings:
             return jsonify({"status": "error", "message": "Missing required fields"}), 400
         
-        # Get tenant ID from alchemy config
-        tenant_id = alchemy_config.get('tenant_id', '')
-        
-        # Try to get refresh token from session if not in the request
-        refresh_token = alchemy_config.get('refresh_token', '')
-        if not refresh_token and tenant_id:
-            if 'alchemy_tokens' in session and tenant_id in session['alchemy_tokens']:
-                refresh_token = session['alchemy_tokens'][tenant_id].get('refresh_token')
-                app.logger.info(f"Using refresh token from session for tenant {tenant_id} in save-integration")
-        
         # Create or update integration in database
         integration = SalesforceIntegration(
-            alchemy_base_url=tenant_id,
-            alchemy_api_key=refresh_token,
+            alchemy_base_url=alchemy_config.get('tenant_id', ''),
+            alchemy_api_key=alchemy_config.get('refresh_token', ''), 
             salesforce_username=platform_config.get('instance_url', ''),
-            sync_frequency=data.get('sync_frequency', 'daily'),
+            sync_frequency='daily',  # Default value
             is_active=True
         )
         
@@ -128,8 +116,6 @@ def save_integration():
         db.session.rollback()
         return jsonify({"status": "error", "message": f"Unexpected error: {str(e)}"}), 500
 
-# ------------- Authentication Routes -------------
-
 @main_bp.route('/authenticate-alchemy', methods=['POST'])
 def authenticate_alchemy():
     """
@@ -151,7 +137,7 @@ def authenticate_alchemy():
         # Format the authentication URL with the tenant ID
         auth_url = f"https://core-production.alchemy.cloud/core/api/v2/sign-in"
         
-        app.logger.info(f"Authenticating with Alchemy for tenant: {tenant_id}")
+        current_app.logger.info(f"Authenticating with Alchemy for tenant: {tenant_id}")
         
         # Make the authentication request
         response = requests.post(
@@ -165,10 +151,10 @@ def authenticate_alchemy():
             }
         )
         
-        app.logger.info(f"Authentication response status: {response.status_code}")
+        current_app.logger.info(f"Authentication response status: {response.status_code}")
         
         if response.status_code != 200:
-            app.logger.error(f"Authentication error: {response.text}")
+            current_app.logger.error(f"Authentication error: {response.text}")
             return jsonify({
                 "status": "error",
                 "message": f"Authentication failed: {response.text}"
@@ -194,7 +180,7 @@ def authenticate_alchemy():
         if not tenant_token:
             # If the exact tenant wasn't found, log available tenants for debugging
             available_tenants = [t.get('tenant') for t in auth_data.get('tokens', [])]
-            app.logger.error(f"Tenant {tenant_id} not found in response. Available tenants: {available_tenants}")
+            current_app.logger.error(f"Tenant {tenant_id} not found in response. Available tenants: {available_tenants}")
             
             return jsonify({
                 "status": "error",
@@ -223,7 +209,7 @@ def authenticate_alchemy():
         # Also store the current tenant ID for convenience
         session['current_tenant'] = tenant_id
         
-        app.logger.info(f"Successfully authenticated and stored refresh token for tenant {tenant_id}")
+        current_app.logger.info(f"Successfully authenticated and stored refresh token for tenant {tenant_id}")
         
         return jsonify({
             "status": "success",
@@ -233,7 +219,7 @@ def authenticate_alchemy():
         })
         
     except Exception as e:
-        app.logger.error(f"Error in Alchemy authentication: {str(e)}")
+        current_app.logger.error(f"Error in Alchemy authentication: {str(e)}")
         return jsonify({
             "status": "error",
             "message": f"Error: {str(e)}"
@@ -271,100 +257,11 @@ def get_session_token():
         })
         
     except Exception as e:
-        app.logger.error(f"Error retrieving token from session: {str(e)}")
+        current_app.logger.error(f"Error retrieving token from session: {str(e)}")
         return jsonify({
             "status": "error",
             "message": f"Error: {str(e)}"
         }), 500
-
-# ------------- Troubleshooting & Testing Routes -------------
-
-@main_bp.route('/test-auth', methods=['POST'])
-def test_auth():
-    """
-    Test route for validating authentication credentials
-    """
-    try:
-        data = request.get_json()
-        tenant_id = data.get('tenant_id')
-        refresh_token = data.get('refresh_token')
-        endpoint = data.get('endpoint')
-        
-        if not tenant_id or not refresh_token:
-            return jsonify({
-                "status": "error",
-                "message": "Missing tenant_id or refresh_token"
-            }), 400
-            
-        app.logger.info(f"Testing authentication for tenant: {tenant_id}")
-        
-        # If a custom endpoint is provided, use it; otherwise use the default
-        token_url = endpoint or f"https://core-production.alchemy.cloud/auth/realms/{tenant_id}/protocol/openid-connect/token"
-        
-        # Log the URL for debugging
-        app.logger.info(f"Using token URL: {token_url}")
-        
-        # Make the token request
-        token_data = {
-            "grant_type": "refresh_token",
-            "client_id": "alchemy-web-client",
-            "refresh_token": refresh_token
-        }
-        
-        # Log the request data (excluding token)
-        app.logger.info(f"Making token request with data: {json.dumps({k: v if k != 'refresh_token' else '***' for k, v in token_data.items()})}")
-        
-        response = requests.post(token_url, data=token_data)
-        
-        # Log the response status and any errors
-        app.logger.info(f"Token response status: {response.status_code}")
-        
-        if response.status_code != 200:
-            app.logger.error(f"Token request failed with status {response.status_code}: {response.text}")
-            
-            # Try to parse the error response
-            error_details = {}
-            try:
-                error_details = response.json()
-            except:
-                error_details = {"raw_text": response.text}
-                
-            return jsonify({
-                "status": "error",
-                "message": f"Authentication failed with status {response.status_code}",
-                "error_details": error_details
-            })
-        
-        # Process the successful response
-        token_response = response.json()
-        app.logger.info(f"Successfully obtained access token")
-        
-        # Return a success response
-        return jsonify({
-            "status": "success",
-            "message": "Authentication successful",
-            "access_token": token_response.get("access_token"),
-            "expires_in": token_response.get("expires_in")
-        })
-        
-    except Exception as e:
-        app.logger.error(f"Error testing authentication: {str(e)}")
-        return jsonify({
-            "status": "error",
-            "message": f"Error testing authentication: {str(e)}"
-        }), 500
-
-@main_bp.route('/troubleshoot')
-def auth_troubleshooter():
-    """Serve the authentication troubleshooting tool"""
-    return render_template('auth_troubleshooter.html')
-
-@main_bp.route('/tenant-tester')
-def tenant_tester():
-    """
-    Serve the tenant testing tool page
-    """
-    return render_template('tenant_tester.html')
 
 @main_bp.route('/test-alchemy-auth', methods=['POST'])
 def test_alchemy_auth():
@@ -387,7 +284,7 @@ def test_alchemy_auth():
         if not auth_url:
             auth_url = f"https://core-production.alchemy.cloud/auth/realms/{tenant_id}/protocol/openid-connect/token"
         
-        app.logger.info(f"Testing authentication for tenant {tenant_id} with URL: {auth_url}")
+        current_app.logger.info(f"Testing authentication for tenant {tenant_id} with URL: {auth_url}")
         
         # Make the authentication request
         response = requests.post(
@@ -399,10 +296,10 @@ def test_alchemy_auth():
             }
         )
         
-        app.logger.info(f"Auth response status: {response.status_code}")
+        current_app.logger.info(f"Auth response status: {response.status_code}")
         
         if response.status_code != 200:
-            app.logger.error(f"Auth error: {response.text}")
+            current_app.logger.error(f"Auth error: {response.text}")
             
             # Try to parse error details
             error_details = {}
@@ -429,7 +326,7 @@ def test_alchemy_auth():
         })
         
     except Exception as e:
-        app.logger.error(f"Error testing authentication: {str(e)}")
+        current_app.logger.error(f"Error testing authentication: {str(e)}")
         return jsonify({
             "status": "error",
             "message": f"Error: {str(e)}"
@@ -451,7 +348,7 @@ def test_record_types():
                 "message": "Missing tenant_id or access_token"
             }), 400
         
-        app.logger.info(f"Testing record types API for tenant {tenant_id}")
+        current_app.logger.info(f"Testing record types API for tenant {tenant_id}")
         
         # Make request to get record types
         url = "https://core-production.alchemy.cloud/core/api/v2/record-templates"
@@ -459,10 +356,10 @@ def test_record_types():
         
         response = requests.get(url, headers=headers)
         
-        app.logger.info(f"Record types response status: {response.status_code}")
+        current_app.logger.info(f"Record types response status: {response.status_code}")
         
         if response.status_code != 200:
-            app.logger.error(f"Record types error: {response.text}")
+            current_app.logger.error(f"Record types error: {response.text}")
             return jsonify({
                 "status": "error",
                 "message": f"Failed to fetch record types: {response.status_code}"
@@ -483,79 +380,20 @@ def test_record_types():
         })
         
     except Exception as e:
-        app.logger.error(f"Error testing record types: {str(e)}")
+        current_app.logger.error(f"Error testing record types: {str(e)}")
         return jsonify({
             "status": "error",
             "message": f"Error: {str(e)}"
         }), 500
 
-# Add this route to get a sample record for field extraction
-@main_bp.route('/get-sample-record', methods=['POST'])
-def get_sample_record():
+@main_bp.route('/tenant-tester')
+def tenant_tester():
     """
-    Get a sample record from Alchemy to extract field structure
+    Serve the tenant testing tool page
     """
-    try:
-        data = request.get_json()
-        tenant_id = data.get('tenant_id')
-        refresh_token = data.get('refresh_token')
-        record_type = data.get('record_type')
-        
-        # Try to get token from session if not provided directly
-        if not refresh_token and tenant_id:
-            if 'alchemy_tokens' in session and tenant_id in session['alchemy_tokens']:
-                refresh_token = session['alchemy_tokens'][tenant_id].get('refresh_token')
-                app.logger.info(f"Using refresh token from session for tenant {tenant_id}")
-        
-        if not tenant_id or not refresh_token or not record_type:
-            return jsonify({
-                "status": "error",
-                "message": "Missing required fields"
-            }), 400
-        
-        # Get access token
-        access_token = get_alchemy_access_token(refresh_token, tenant_id)
-        if not access_token:
-            return jsonify({
-                "status": "error",
-                "message": "Failed to get access token"
-            }), 401
-        
-        # Make request to get a sample record
-        url = "https://core-production.alchemy.cloud/core/api/v2/filter-records"
-        headers = {
-            "Authorization": f"Bearer {access_token}",
-            "Content-Type": "application/json"
-        }
-        
-        payload = {
-            "queryTerm": "Result.Status == 'Valid'",
-            "recordTemplateIdentifier": record_type,
-            "drop": 0,
-            "take": 1,
-            "lastChangedOnFrom": "2020-01-01T00:00:00Z",
-            "lastChangedOnTo": "2025-12-31T23:59:59Z"
-        }
-        
-        response = requests.put(url, headers=headers, json=payload)
-        
-        if response.status_code != 200:
-            return jsonify({
-                "status": "error",
-                "message": f"Failed to fetch sample record: {response.text}"
-            })
-        
-        # Return the sample record
-        record_data = response.json()
-        return jsonify({
-            "status": "success",
-            "message": "Sample record retrieved successfully",
-            "record_data": record_data
-        })
-        
-    except Exception as e:
-        app.logger.error(f"Error getting sample record: {str(e)}")
-        return jsonify({
-            "status": "error",
-            "message": f"Error: {str(e)}"
-        }), 500
+    return render_template('tenant_tester.html')
+
+@main_bp.route('/troubleshoot')
+def auth_troubleshooter():
+    """Serve the authentication troubleshooting tool"""
+    return render_template('auth_troubleshooter.html')
