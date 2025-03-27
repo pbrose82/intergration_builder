@@ -1,0 +1,16 @@
+
+:root {
+    --primary-color: #0047BB;
+    --secondary-color: #3F88F6;
+    --light-bg: #F4F6F9;
+}
+
+body {
+    background-color: var(--light-bg);
+    font-family: 'Inter', sans-serif;
+}
+
+.card {
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
