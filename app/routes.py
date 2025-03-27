@@ -75,20 +75,40 @@ def get_fields():
         tenant_id = data.get("tenant_id")
         refresh_token = data.get("refresh_token")
         record_type = data.get("record_type")
+        
+        current_app.logger.info(f"Field fetch request for record type: {record_type} in tenant: {tenant_id}")
 
         # Try to get token from session if not provided directly
-        if not refresh_token and tenant_id:
+        if refresh_token == "session" and tenant_id:
             if 'alchemy_tokens' in session and tenant_id in session['alchemy_tokens']:
                 refresh_token = session['alchemy_tokens'][tenant_id].get('refresh_token')
                 current_app.logger.info(f"Using refresh token from session for tenant {tenant_id}")
 
         if not tenant_id or not refresh_token or not record_type:
+            current_app.logger.error("Missing required parameters")
             return jsonify({"error": "Missing one or more required fields"}), 400
 
+        # Call the service to fetch fields
+        current_app.logger.info(f"Fetching fields for record type {record_type}")
         fields = fetch_alchemy_fields(tenant_id, refresh_token, record_type)
-        return jsonify({"fields": fields})
+        
+        if not fields:
+            current_app.logger.warning(f"No fields returned for record type {record_type}")
+            return jsonify({
+                "status": "warning",
+                "message": f"No fields found for record type {record_type}",
+                "fields": []
+            })
+            
+        current_app.logger.info(f"Successfully fetched {len(fields)} fields for record type {record_type}")
+        return jsonify({
+            "status": "success",
+            "message": f"Successfully fetched {len(fields)} fields",
+            "fields": fields
+        })
+        
     except Exception as e:
-        logging.error(f"Failed to fetch fields: {str(e)}")
+        current_app.logger.error(f"Failed to fetch fields: {str(e)}")
         return jsonify({"error": f"Unexpected error: {str(e)}"}), 500
 
 @main_bp.route('/save-integration', methods=['POST'])
