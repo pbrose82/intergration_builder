@@ -386,29 +386,27 @@
                 
                 <!-- Step 2: Record Type Selection -->
                 <div id="step2" class="step-content" style="display: none;">
-                    <h5 class="mb-4">Select Alchemy Record Type</h5>
+                    <h5 class="mb-4">Enter Alchemy Record Type</h5>
                     
                     <div class="card mb-4">
                         <div class="card-body">
                             <div class="mb-3">
-                                <label for="recordTypeSelect" class="form-label">Record Type</label>
-                                <select class="form-select" id="recordTypeSelect" style="display: none;">
-                                    <option value="">-- Select Record Type --</option>
-                                </select>
-                                
-                                <div class="input-group mt-3">
-                                    <input type="text" class="form-control" id="recordTypeInput" placeholder="Or enter record type identifier">
-                                    <button class="btn btn-outline-secondary" type="button" id="fetchFieldsBtn">
-                                        <i class="fas fa-sync-alt me-1"></i> Fetch Fields
-                                    </button>
+                                <label for="recordTypeInput" class="form-label">Record Type Identifier</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="recordTypeInput" placeholder="Enter record type identifier (e.g. Material, Location, etc.)">
                                 </div>
-                                
-                                <p id="recordTypeDescription" class="form-text mt-2"></p>
+                                <div class="form-text">
+                                    Enter the record type identifier you want to synchronize with {{ platform|capitalize }}
+                                </div>
                             </div>
                             
-                            <button type="button" id="fetchRecordTypesBtn" class="btn btn-primary">
-                                <i class="fas fa-list me-2"></i>Fetch Available Record Types
-                            </button>
+                            <div class="d-grid gap-2">
+                                <button type="button" id="fetchFieldsBtn" class="btn btn-primary">
+                                    <i class="fas fa-sync-alt me-2"></i>Fetch Fields for This Record Type
+                                </button>
+                            </div>
+                            
+                            <div id="recordTypeStatus" class="alert mt-3" style="display: none;"></div>
                         </div>
                     </div>
                 </div>
@@ -488,13 +486,20 @@
     <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{{ url_for('static', filename='js/integration.js') }}"></script>
     
     <!-- Inline script for immediate functionality -->
     <script>
         // Wait for the DOM to load
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM loaded - initializing direct handlers');
+            
+            // Global variables to store data
+            let alchemyFields = [];
+            let platformFields = [];
+            let currentStep = 1;
+            
+            // Initialize platform fields based on the selected platform
+            initializePlatformFields();
             
             // Fix 1: Toggle between authentication methods
             const authMethodAuto = document.getElementById('authMethodAuto');
@@ -610,8 +615,6 @@
             const progressBar = document.getElementById('progressBar');
             const progressStep = document.getElementById('progressStep');
             
-            let currentStep = 1;
-            
             if (backBtn) {
                 backBtn.addEventListener('click', function() {
                     if (currentStep > 1) {
@@ -639,6 +642,76 @@
                 });
             }
             
+            // Fix 6: Fetch fields for a record type
+            const fetchFieldsBtn = document.getElementById('fetchFieldsBtn');
+            if (fetchFieldsBtn) {
+                fetchFieldsBtn.addEventListener('click', function() {
+                    const recordTypeId = document.getElementById('recordTypeInput').value.trim();
+                    
+                    if (!recordTypeId) {
+                        showRecordTypeStatus('error', 'Please enter a record type identifier');
+                        return;
+                    }
+                    
+                    fetchFieldsForRecordType(recordTypeId);
+                });
+            }
+            
+            // Fix 7: Save configuration
+            if (saveBtn) {
+                saveBtn.addEventListener('click', function() {
+                    saveConfiguration();
+                });
+            }
+            
+            // Function to initialize platform fields
+            function initializePlatformFields() {
+                // Determine the platform from URL
+                const url = window.location.href;
+                let platform = 'salesforce'; // Default
+                
+                if (url.includes('platform=sap')) {
+                    platform = 'sap';
+                } else if (url.includes('platform=hubspot')) {
+                    platform = 'hubspot';
+                }
+                
+                console.log('Initializing fields for platform:', platform);
+                
+                if (platform === 'salesforce') {
+                    platformFields = [
+                        { identifier: 'name', name: 'Name' },
+                        { identifier: 'account', name: 'Account' },
+                        { identifier: 'opportunity', name: 'Opportunity' },
+                        { identifier: 'contact', name: 'Contact' },
+                        { identifier: 'email', name: 'Email' },
+                        { identifier: 'phone', name: 'Phone' },
+                        { identifier: 'address', name: 'Address' },
+                        { identifier: 'description', name: 'Description' }
+                    ];
+                } else if (platform === 'sap') {
+                    platformFields = [
+                        { identifier: 'material', name: 'Material' },
+                        { identifier: 'vendor', name: 'Vendor' },
+                        { identifier: 'purchase_order', name: 'Purchase Order' },
+                        { identifier: 'delivery', name: 'Delivery' },
+                        { identifier: 'invoice', name: 'Invoice' },
+                        { identifier: 'customer', name: 'Customer' },
+                        { identifier: 'cost_center', name: 'Cost Center' }
+                    ];
+                } else if (platform === 'hubspot') {
+                    platformFields = [
+                        { identifier: 'first_name', name: 'First Name' },
+                        { identifier: 'last_name', name: 'Last Name' },
+                        { identifier: 'email', name: 'Email' },
+                        { identifier: 'company', name: 'Company' },
+                        { identifier: 'website', name: 'Website' },
+                        { identifier: 'phone', name: 'Phone' },
+                        { identifier: 'address', name: 'Address' }
+                    ];
+                }
+            }
+            
             // Helper functions
             function showAuthStatus(type, message) {
                 const authStatus = document.getElementById('authStatus');
@@ -661,6 +734,29 @@
                 authStatus.className = `alert ${statusClass} mt-2`;
                 authStatus.innerHTML = `${icon}${message}`;
                 authStatus.style.display = 'block';
+            }
+            
+            function showRecordTypeStatus(type, message) {
+                const recordTypeStatus = document.getElementById('recordTypeStatus');
+                if (!recordTypeStatus) return;
+                
+                let statusClass = '';
+                let icon = '';
+                
+                if (type === 'success') {
+                    statusClass = 'alert-success';
+                    icon = '<i class="fas fa-check-circle me-2"></i>';
+                } else if (type === 'error') {
+                    statusClass = 'alert-danger';
+                    icon = '<i class="fas fa-exclamation-circle me-2"></i>';
+                } else {
+                    statusClass = 'alert-info';
+                    icon = '<i class="fas fa-info-circle me-2"></i>';
+                }
+                
+                recordTypeStatus.className = `alert ${statusClass} mt-2`;
+                recordTypeStatus.innerHTML = `${icon}${message}`;
+                recordTypeStatus.style.display = 'block';
             }
             
             function toggleFieldVisibility(input, icon) {
@@ -716,7 +812,7 @@
                         // Check if authentication was successful
                         const authStatus = document.getElementById('authStatus');
                         if (!authStatus || authStatus.style.display === 'none' || !authStatus.className.includes('alert-success')) {
-                            alert('Please authenticate with Alchemy before proceeding');
+                            showToast('Please authenticate with Alchemy before proceeding', 'error');
                             return false;
                         }
                     } else {
@@ -725,20 +821,19 @@
                         const refreshToken = document.getElementById('alchemyRefreshToken').value.trim();
                         
                         if (!tenantId || !refreshToken) {
-                            alert('Please provide both Tenant ID and Refresh Token');
+                            showToast('Please provide both Tenant ID and Refresh Token', 'error');
                             return false;
                         }
                     }
                     return true;
                 } else if (currentStep === 2) {
-                    // Check if record type is selected
-                    const recordTypeSelect = document.getElementById('recordTypeSelect');
+                    // Check if record type is entered
                     const recordTypeInput = document.getElementById('recordTypeInput');
                     
-                    if ((recordTypeSelect && recordTypeSelect.value) || (recordTypeInput && recordTypeInput.value)) {
+                    if (recordTypeInput && recordTypeInput.value.trim()) {
                         return true;
                     } else {
-                        alert('Please select or enter a record type');
+                        showToast('Please enter a record type identifier', 'error');
                         return false;
                     }
                 }
@@ -757,10 +852,30 @@
                 alchemyField.className = 'form-select me-2';
                 alchemyField.innerHTML = '<option value="">Select Alchemy Field</option>';
                 
+                // Add options from alchemyFields
+                if (alchemyFields && alchemyFields.length) {
+                    alchemyFields.forEach(field => {
+                        const option = document.createElement('option');
+                        option.value = field.identifier;
+                        option.textContent = field.name || field.identifier;
+                        alchemyField.appendChild(option);
+                    });
+                }
+                
                 // Create platform field dropdown
                 const platformField = document.createElement('select');
                 platformField.className = 'form-select me-2';
                 platformField.innerHTML = '<option value="">Select Platform Field</option>';
+                
+                // Add options from platformFields
+                if (platformFields && platformFields.length) {
+                    platformFields.forEach(field => {
+                        const option = document.createElement('option');
+                        option.value = field.identifier;
+                        option.textContent = field.name;
+                        platformField.appendChild(option);
+                    });
+                }
                 
                 // Create remove button
                 const removeBtn = document.createElement('button');
@@ -779,9 +894,253 @@
                 container.appendChild(row);
             }
             
-            // Initialize by adding a field mapping row
-            if (document.getElementById('fieldMappingContainer')) {
+            function fetchFieldsForRecordType(recordTypeId) {
+                console.log('Fetching fields for record type:', recordTypeId);
+                
+                // Get tenant info
+                let tenantId, refreshToken;
+                
+                if (authMethodAuto.checked) {
+                    tenantId = document.getElementById('alchemyTenantId').value.trim();
+                    refreshToken = "session"; // Server uses session token
+                } else {
+                    tenantId = document.getElementById('alchemyTenantIdDirect').value.trim();
+                    refreshToken = document.getElementById('alchemyRefreshToken').value.trim();
+                }
+                
+                if (!tenantId) {
+                    showToast('Please provide tenant ID', 'error');
+                    return;
+                }
+                
+                // Show loading status
+                showRecordTypeStatus('info', `Fetching fields for record type: ${recordTypeId}...`);
+                
+                // Make the API call
+                fetch('/get-alchemy-fields', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        tenant_id: tenantId,
+                        refresh_token: refreshToken,
+                        record_type: recordTypeId
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Server returned ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Fields response:', data);
+                    
+                    if (data.fields && data.fields.length > 0) {
+                        // Store the fields
+                        alchemyFields = data.fields;
+                        
+                        // Show success message
+                        showRecordTypeStatus('success', `Successfully retrieved ${data.fields.length} fields for record type: ${recordTypeId}`);
+                        
+                        // Enable continuing to next step
+                        setTimeout(() => {
+                            showStep(3);
+                            prepareFieldMappings();
+                        }, 1000);
+                    } else {
+                        showRecordTypeStatus('warning', `No fields found for record type: ${recordTypeId}`);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching fields:', error);
+                    showRecordTypeStatus('error', `Error fetching fields: ${error.message}`);
+                });
+            }
+            
+            function prepareFieldMappings() {
+                const container = document.getElementById('fieldMappingContainer');
+                if (!container) return;
+                
+                // Clear existing mappings
+                container.innerHTML = '';
+                
+                // Add initial row
                 addFieldMappingRow();
+            }
+            
+            function saveConfiguration() {
+                const fieldMappingContainer = document.getElementById('fieldMappingContainer');
+                
+                // Validate field mappings
+                if (!fieldMappingContainer || fieldMappingContainer.children.length === 0) {
+                    showToast('Please add at least one field mapping', 'error');
+                    return;
+                }
+                
+                // Collect field mappings
+                const mappings = [];
+                const mappingRows = fieldMappingContainer.querySelectorAll('.mapping-row');
+                
+                mappingRows.forEach(row => {
+                    const selects = row.querySelectorAll('select');
+                    if (selects.length >= 2) {
+                        const alchemyField = selects[0].value;
+                        const platformField = selects[1].value;
+                        
+                        if (alchemyField && platformField) {
+                            mappings.push({
+                                alchemy_field: alchemyField,
+                                platform_field: platformField
+                            });
+                        }
+                    }
+                });
+                
+                if (mappings.length === 0) {
+                    showToast('Please complete at least one field mapping', 'error');
+                    return;
+                }
+                
+                // Get authentication details
+                let tenantId, refreshToken;
+                
+                if (authMethodAuto.checked) {
+                    tenantId = document.getElementById('alchemyTenantId').value.trim();
+                    refreshToken = "session"; // Server uses session token
+                } else {
+                    tenantId = document.getElementById('alchemyTenantIdDirect').value.trim();
+                    refreshToken = document.getElementById('alchemyRefreshToken').value.trim();
+                }
+                
+                // Get selected platform
+                const url = window.location.href;
+                let platform = 'salesforce'; // Default
+                
+                if (url.includes('platform=sap')) {
+                    platform = 'sap';
+                } else if (url.includes('platform=hubspot')) {
+                    platform = 'hubspot';
+                }
+                
+                // Get platform config
+                let platformConfig = {};
+                
+                if (platform === 'salesforce') {
+                    platformConfig = {
+                        instance_url: document.getElementById('salesforceInstanceUrl').value.trim(),
+                        client_id: document.getElementById('salesforceClientId').value.trim(),
+                        client_secret: document.getElementById('salesforceClientSecret').value.trim()
+                    };
+                } else if (platform === 'sap') {
+                    platformConfig = {
+                        base_url: document.getElementById('sapBaseUrl').value.trim(),
+                        client_id: document.getElementById('sapClientId').value.trim(),
+                        client_secret: document.getElementById('sapClientSecret').value.trim()
+                    };
+                } else if (platform === 'hubspot') {
+                    platformConfig = {
+                        api_key: document.getElementById('hubspotApiKey').value.trim(),
+                        portal_id: document.getElementById('hubspotPortalId').value.trim()
+                    };
+                }
+                
+                // Get record type
+                const recordTypeId = document.getElementById('recordTypeInput').value.trim();
+                
+                // Get sync settings
+                const syncFrequency = document.getElementById('syncFrequency').value;
+                const syncDirection = document.getElementById('syncDirection').value;
+                
+                // Create config object
+                const config = {
+                    platform: platform,
+                    alchemy: {
+                        tenant_id: tenantId,
+                        refresh_token: refreshToken
+                    },
+                    platform_config: platformConfig,
+                    record_type: recordTypeId,
+                    sync_frequency: syncFrequency,
+                    sync_direction: syncDirection,
+                    field_mappings: mappings
+                };
+                
+                console.log('Saving config:', config);
+                
+                // Send to server
+                fetch('/save-integration', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(config)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Save response:', data);
+                    
+                    if (data.status === 'success') {
+                        showToast('Integration configuration saved successfully!', 'success');
+                        
+                        // Show success message with integration ID
+                        const step3 = document.getElementById('step3');
+                        if (step3) {
+                            step3.innerHTML = `
+                                <div class="alert alert-success">
+                                    <i class="fas fa-check-circle me-2"></i>
+                                    Integration configuration saved successfully! ID: ${data.id}
+                                </div>
+                                <button class="btn btn-primary" onclick="window.location.href='/'">
+                                    <i class="fas fa-home me-2"></i>Return to Home
+                                </button>
+                            `;
+                        }
+                    } else {
+                        showToast(data.message || 'Error saving configuration', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving configuration:', error);
+                    showToast('Error saving configuration: ' + error.message, 'error');
+                });
+            }
+            
+            function showToast(message, type = 'info') {
+                console.log(`Toast: ${type} - ${message}`);
+                
+                const toastContainer = document.getElementById('toastContainer');
+                if (!toastContainer) return;
+                
+                const toast = document.createElement('div');
+                toast.className = `toast toast-${type}`;
+                
+                // Set icon based on type
+                let icon = '';
+                if (type === 'success') icon = '<i class="fas fa-check-circle me-2"></i>';
+                else if (type === 'error') icon = '<i class="fas fa-exclamation-circle me-2"></i>';
+                else if (type === 'warning') icon = '<i class="fas fa-exclamation-triangle me-2"></i>';
+                else icon = '<i class="fas fa-info-circle me-2"></i>';
+                
+                toast.innerHTML = icon + message;
+                
+                // Add to container
+                toastContainer.appendChild(toast);
+                
+                // Auto-remove after delay
+                setTimeout(() => {
+                    toast.style.opacity = '0';
+                    toast.style.transition = 'opacity 0.5s';
+                    setTimeout(() => {
+                        toast.remove();
+                    }, 500);
+                }, 3000);
+            }
+            
+            // Initialize field mappings if we're on step 3
+            if (currentStep === 3) {
+                prepareFieldMappings();
             }
         });
     </script>
