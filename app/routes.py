@@ -1,6 +1,4 @@
-
 from flask import Blueprint, render_template, request, jsonify
-from simple_salesforce import Salesforce
 from app import db
 from app.models import SalesforceIntegration, SalesforceIntegrationSchema
 from services.alchemy_service import (
@@ -37,6 +35,7 @@ def get_record_types():
         return jsonify({"recordTypes": record_types})
 
     except Exception as e:
+        logging.error(f"Failed to get record types: {str(e)}")
         return jsonify({"error": f"Unexpected error: {str(e)}"}), 500
 
 @main_bp.route('/get-alchemy-fields', methods=['POST'])
@@ -55,3 +54,49 @@ def get_fields():
     except Exception as e:
         logging.error(f"Failed to fetch fields: {str(e)}")
         return jsonify({"error": f"Unexpected error: {str(e)}"}), 500
+
+@main_bp.route('/save-integration', methods=['POST'])
+def save_integration():
+    try:
+        data = request.get_json()
+        
+        # Extract data from request
+        platform = data.get('platform')
+        alchemy_config = data.get('alchemy', {})
+        platform_config = data.get('platform_config', {})
+        record_type = data.get('record_type')
+        field_mappings = data.get('field_mappings', [])
+        
+        # Validate required fields
+        if not platform or not alchemy_config or not record_type or not field_mappings:
+            return jsonify({"status": "error", "message": "Missing required fields"}), 400
+        
+        # Create or update integration in database
+        integration = SalesforceIntegration(
+            alchemy_base_url=alchemy_config.get('tenant_id', ''),
+            alchemy_api_key=alchemy_config.get('refresh_token', ''), 
+            salesforce_username=platform_config.get('instance_url', ''),
+            sync_frequency='daily',  # Default value
+            is_active=True
+        )
+        
+        # Set field mappings
+        integration.set_field_mappings({
+            'record_type': record_type,
+            'mappings': field_mappings
+        })
+        
+        # Save to database
+        db.session.add(integration)
+        db.session.commit()
+        
+        return jsonify({
+            "status": "success", 
+            "message": "Integration configured successfully",
+            "id": integration.id
+        })
+        
+    except Exception as e:
+        logging.error(f"Failed to save integration: {str(e)}")
+        db.session.rollback()
+        return jsonify({"status": "error", "message": f"Unexpected error: {str(e)}"}), 500
