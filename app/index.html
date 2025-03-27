@@ -1,0 +1,24 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alchemy Integration</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Alchemy Integration Setup</h1>
+        <form id="alchemyForm">
+            <label for="tenantId">Tenant ID:</label>
+            <input type="text" id="tenantId" name="tenantId" required><br>
+            <label for="refreshToken">Refresh Token:</label>
+            <input type="text" id="refreshToken" name="refreshToken" required><br>
+            <button type="submit">Get Record Types</button>
+        </form>
+        <div id="recordTypesList"></div>
+    </div>
+    <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
+</body>
+</html>
