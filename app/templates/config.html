@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ platform|capitalize }} Integration Configuration</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-container">
+            <h1 class="header-title">
+                <i class="fas fa-plug me-2"></i>
+                Alchemy Integration Manager
+            </h1>
+        </div>
+    </div>
+
+    <div class="container py-4">
+        <!-- Configuration Form -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="fas fa-cogs me-2"></i>Configure {{ platform|capitalize }} Integration</h4>
+            </div>
+            <div class="card-body">
+                <!-- Progress bar -->
+                <div class="progress mb-4">
+                    <div id="progressBar" class="progress-bar" role="progressbar" style="width: 33%"></div>
+                </div>
+                <p id="progressStep" class="text-center mb-4">Step 1 of 3</p>
+                
+                <form id="configurationForm">
+                    <!-- Step 1: Credentials -->
+                    <div id="step1" class="step-content">
+                        <h5 class="mb-3">Alchemy Credentials</h5>
+                        <div class="mb-3">
+                            <label for="alchemyTenantId" class="form-label">Alchemy Tenant ID</label>
+                            <input type="text" class="form-control" id="alchemyTenantId" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="alchemyApiKey" class="form-label">Alchemy API Key</label>
+                            <input type="password" class="form-control" id="alchemyApiKey" required>
+                        </div>
+                        
+                        <h5 class="mb-3 mt-4">{{ platform|capitalize }} Credentials</h5>
+                        {% if platform == 'salesforce' %}
+                        <div class="mb-3">
+                            <label for="salesforceUsername" class="form-label">Salesforce Username</label>
+                            <input type="text" class="form-control" id="salesforceUsername" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="salesforcePassword" class="form-label">Salesforce Password</label>
+                            <input type="password" class="form-control" id="salesforcePassword" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="salesforceToken" class="form-label">Security Token</label>
+                            <input type="text" class="form-control" id="salesforceToken" required>
+                        </div>
+                        {% elif platform == 'sap' %}
+                        <div class="mb-3">
+                            <label for="sapUrl" class="form-label">SAP URL</label>
+                            <input type="text" class="form-control" id="sapUrl" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="sapUsername" class="form-label">SAP Username</label>
+                            <input type="text" class="form-control" id="sapUsername" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="sapPassword" class="form-label">SAP Password</label>
+                            <input type="password" class="form-control" id="sapPassword" required>
+                        </div>
+                        {% else %}
+                        <div class="mb-3">
+                            <label for="platformUrl" class="form-label">Platform URL</label>
+                            <input type="text" class="form-control" id="platformUrl" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="platformApiKey" class="form-label">API Key</label>
+                            <input type="text" class="form-control" id="platformApiKey" required>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Step 2: Record Types -->
+                    <div id="step2" class="step-content" style="display: none;">
+                        <h5 class="mb-3">Select Record Type</h5>
+                        <div class="mb-3">
+                            <label for="recordType" class="form-label">Alchemy Record Type</label>
+                            <select class="form-select" id="recordType" required>
+                                <option value="">-- Select Record Type --</option>
+                                <!-- Record types will be loaded dynamically -->
+                            </select>
+                        </div>
+                        <button type="button" id="loadFieldsBtn" class="btn btn-primary">
+                            <i class="fas fa-sync me-2"></i>Load Fields
+                        </button>
+                    </div>
+                    
+                    <!-- Step 3: Field Mapping -->
+                    <div id="step3" class="step-content" style="display: none;">
+                        <h5 class="mb-3">Map Fields</h5>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Map Alchemy fields to {{ platform|capitalize }} fields
+                        </div>
+                        
+                        <div id="fieldMappingContainer" class="mb-4">
+                            <!-- Field mappings will be added here dynamically -->
+                        </div>
+                        
+                        <button type="button" id="addMappingBtn" class="btn btn-outline-primary mb-3">
+                            <i class="fas fa-plus me-2"></i>Add Mapping
+                        </button>
+                        
+                        <div class="mb-3">
+                            <label for="syncFrequency" class="form-label">Sync Frequency</label>
+                            <select class="form-select" id="syncFrequency">
+                                <option value="hourly">Hourly</option>
+                                <option value="daily" selected>Daily</option>
+                                <option value="weekly">Weekly</option>
+                                <option value="manual">Manual</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Navigation Buttons -->
+                    <div class="d-flex justify-content-between mt-4">
+                        <button type="button" id="backBtn" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Back
+                        </button>
+                        <div>
+                            <button type="button" id="nextBtn" class="btn btn-primary">
+                                Next<i class="fas fa-arrow-right ms-2"></i>
+                            </button>
+                            <button type="button" id="saveBtn" class="btn btn-success" style="display: none;">
+                                <i class="fas fa-save me-2"></i>Save Configuration
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="position-fixed bottom-0 end-0 p-3"></div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <div class="footer-content">
+            <div class="copyright">© ALCHEMY CLOUD, INC. ALL RIGHTS RESERVED.</div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/integration.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize with the selected platform
+            const selectedPlatform = '{{ platform }}';
+            console.log(`Initializing configuration for ${selectedPlatform}`);
+            
+            // Setup navigation buttons
+            const backBtn = document.getElementById('backBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const saveBtn = document.getElementById('saveBtn');
+            
+            let currentStep = 1;
+            
+            backBtn.addEventListener('click', function() {
+                if (currentStep > 1) {
+                    showStep(currentStep - 1);
+                } else {
+                    window.location.href = '/'; // Go back to home page
+                }
+            });
+            
+            nextBtn.addEventListener('click', function() {
+                if (validateStep(currentStep)) {
+                    if (currentStep < 3) {
+                        showStep(currentStep + 1);
+                    }
+                }
+            });
+            
+            saveBtn.addEventListener('click', function() {
+                if (validateStep(currentStep)) {
+                    saveConfiguration();
+                }
+            });
+            
+            function showStep(step) {
+                // Hide all steps
+                document.querySelectorAll('.step-content').forEach(el => {
+                    el.style.display = 'none';
+                });
+                
+                // Show current step
+                document.getElementById(`step${step}`).style.display = 'block';
+                
+                // Update progress bar
+                const progressBar = document.getElementById('progressBar');
+                progressBar.style.width = `${step * 33}%`;
+                document.getElementById('progressStep').textContent = `Step ${step} of 3`;
+                
+                // Update buttons
+                if (step === 3) {
+                    nextBtn.style.display = 'none';
+                    saveBtn.style.display = 'inline-block';
+                } else {
+                    nextBtn.style.display = 'inline-block';
+                    saveBtn.style.display = 'none';
+                }
+                
+                currentStep = step;
+            }
+            
+            function validateStep(step) {
+                // Simple validation logic
+                if (step === 1) {
+                    const requiredFields = document.querySelectorAll('#step1 input[required]');
+                    for (const field of requiredFields) {
+                        if (!field.value.trim()) {
+                            alert(`Please fill in the ${field.previousElementSibling.textContent}`);
+                            field.focus();
+                            return false;
+                        }
+                    }
+                } else if (step === 2) {
+                    const recordType = document.getElementById('recordType').value;
+                    if (!recordType) {
+                        alert('Please select a record type');
+                        return false;
+                    }
+                }
+                return true;
+            }
+            
+            function saveConfiguration() {
+                // Collect form data
+                const formData = {
+                    platform: selectedPlatform,
+                    alchemy: {
+                        tenant_id: document.getElementById('alchemyTenantId').value,
+                        api_key: document.getElementById('alchemyApiKey').value
+                    },
+                    platform_config: {},
+                    record_type: document.getElementById('recordType').value,
+                    sync_frequency: document.getElementById('syncFrequency').value,
+                    field_mappings: []
+                };
+                
+                // Add platform-specific config
+                if (selectedPlatform === 'salesforce') {
+                    formData.platform_config = {
+                        username: document.getElementById('salesforceUsername').value,
+                        password: document.getElementById('salesforcePassword').value,
+                        security_token: document.getElementById('salesforceToken').value
+                    };
+                } else if (selectedPlatform === 'sap') {
+                    formData.platform_config = {
+                        url: document.getElementById('sapUrl').value,
+                        username: document.getElementById('sapUsername').value,
+                        password: document.getElementById('sapPassword').value
+                    };
+                }
+                
+                // Collect field mappings
+                const mappingRows = document.querySelectorAll('.field-mapping-row');
+                for (const row of mappingRows) {
+                    const alchemyField = row.querySelector('.alchemy-field').value;
+                    const platformField = row.querySelector('.platform-field').value;
+                    
+                    if (alchemyField && platformField) {
+                        formData.field_mappings.push({
+                            alchemy_field: alchemyField,
+                            platform_field: platformField
+                        });
+                    }
+                }
+                
+                // Submit data
+                fetch('/save-integration', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert('Integration configuration saved successfully!');
+                        window.location.href = '/';  // Redirect to home
+                    } else {
+                        alert(`Error: ${data.message}`);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving configuration:', error);
+                    alert('An error occurred while saving the configuration');
+                });
+            }
+            
+            // Add field mapping functionality
+            document.getElementById('addMappingBtn').addEventListener('click', function() {
+                addFieldMappingRow();
+            });
+            
+            function addFieldMappingRow() {
+                const container = document.getElementById('fieldMappingContainer');
+                const row = document.createElement('div');
+                row.className = 'field-mapping-row row mb-2';
+                
+                row.innerHTML = `
+                    <div class="col-5">
+                        <select class="form-select alchemy-field">
+                            <option value="">Select Alchemy Field</option>
+                            <!-- Alchemy fields will be populated dynamically -->
+                        </select>
+                    </div>
+                    <div class="col-5">
+                        <select class="form-select platform-field">
+                            <option value="">Select ${selectedPlatform.charAt(0).toUpperCase() + selectedPlatform.slice(1)} Field</option>
+                            <!-- Platform fields will be populated dynamically -->
+                        </select>
+                    </div>
+                    <div class="col-2">
+                        <button type="button" class="btn btn-outline-danger remove-mapping">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `;
+                
+                container.appendChild(row);
+                
+                // Add remove functionality
+                row.querySelector('.remove-mapping').addEventListener('click', function() {
+                    row.remove();
+                });
+            }
+            
+            // Load record types when the page loads
+            fetch('/get-alchemy-record-types', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    tenant_id: '',  // Will be filled from form
+                    refresh_token: ''  // Will be filled from form
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.recordTypes) {
+                    const select = document.getElementById('recordType');
+                    data.recordTypes.forEach(type => {
+                        const option = document.createElement('option');
+                        option.value = type.identifier;
+                        option.textContent = type.name;
+                        select.appendChild(option);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error loading record types:', error);
+            });
+            
+            // Add initial field mapping row
+            addFieldMappingRow();
+        });
+    </script>
+</body>
+</html>
