@@ -300,7 +300,7 @@
             <div class="row g-4 justify-content-center">
                 <div class="col-md-4 col-lg-3">
                     <div class="platform-card" data-platform="salesforce">
-                        <img src="static/salesforce.png" class="integration-logo" alt="Salesforce">
+                        <img src="{{ url_for('static', filename='salesforce.png') }}" class="integration-logo" alt="Salesforce">
                         <h5>Salesforce</h5>
                         <p class="text-muted">Customer Relationship Management</p>
                         <button class="btn btn-primary select-platform mt-auto">Select Salesforce</button>
@@ -308,7 +308,7 @@
                 </div>
                 <div class="col-md-4 col-lg-3">
                     <div class="platform-card" data-platform="sap">
-                        <img src="static/sap.png" class="integration-logo" alt="SAP">
+                        <img src="{{ url_for('static', filename='sap.png') }}" class="integration-logo" alt="SAP">
                         <h5>SAP</h5>
                         <p class="text-muted">Enterprise Resource Planning</p>
                         <button class="btn btn-primary select-platform mt-auto">Select SAP</button>
