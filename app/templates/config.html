@@ -489,5 +489,301 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ url_for('static', filename='js/integration.js') }}"></script>
+    
+    <!-- Inline script for immediate functionality -->
+    <script>
+        // Wait for the DOM to load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded - initializing direct handlers');
+            
+            // Fix 1: Toggle between authentication methods
+            const authMethodAuto = document.getElementById('authMethodAuto');
+            const authMethodToken = document.getElementById('authMethodToken');
+            const autoAuthForm = document.getElementById('autoAuthForm');
+            const tokenAuthForm = document.getElementById('tokenAuthForm');
+            
+            if (authMethodAuto && authMethodToken) {
+                authMethodAuto.addEventListener('change', function() {
+                    console.log('Switching to auto auth');
+                    if (this.checked) {
+                        autoAuthForm.style.display = 'block';
+                        tokenAuthForm.style.display = 'none';
+                    }
+                });
+                
+                authMethodToken.addEventListener('change', function() {
+                    console.log('Switching to token auth');
+                    if (this.checked) {
+                        autoAuthForm.style.display = 'none';
+                        tokenAuthForm.style.display = 'block';
+                    }
+                });
+            }
+            
+            // Fix 2: Authentication button handler
+            const authenticateBtn = document.getElementById('authenticateBtn');
+            if (authenticateBtn) {
+                authenticateBtn.addEventListener('click', function() {
+                    console.log('Authentication button clicked');
+                    const tenantId = document.getElementById('alchemyTenantId').value.trim();
+                    const email = document.getElementById('alchemyEmail').value.trim();
+                    const password = document.getElementById('alchemyPassword').value.trim();
+                    
+                    if (!tenantId || !email || !password) {
+                        showAuthStatus('error', 'Please provide all required credentials');
+                        return;
+                    }
+                    
+                    // Disable button during authentication
+                    authenticateBtn.disabled = true;
+                    authenticateBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin me-2"></i>Authenticating...';
+                    
+                    // Show authentication status
+                    showAuthStatus('info', 'Authenticating with Alchemy...');
+                    
+                    // Make the API call to authenticate
+                    fetch('/authenticate-alchemy', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            tenant_id: tenantId,
+                            email: email,
+                            password: password
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        // Reset button state
+                        authenticateBtn.disabled = false;
+                        authenticateBtn.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i>Authenticate with Alchemy';
+                        
+                        if (data.status === 'success') {
+                            showAuthStatus('success', 'Authentication successful! You can now proceed to the next step.');
+                            
+                            // Copy tenant ID to direct token form for consistency
+                            const directTenantInput = document.getElementById('alchemyTenantIdDirect');
+                            if (directTenantInput) {
+                                directTenantInput.value = tenantId;
+                            }
+                        } else {
+                            // Handle error
+                            let errorMessage = data.message || 'Authentication failed';
+                            showAuthStatus('error', errorMessage);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Authentication error:', error);
+                        authenticateBtn.disabled = false;
+                        authenticateBtn.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i>Authenticate with Alchemy';
+                        
+                        showAuthStatus('error', 'Network error: ' + error.message);
+                    });
+                });
+            }
+            
+            // Fix 3: Toggle password visibility
+            const togglePassword = document.getElementById('togglePassword');
+            if (togglePassword) {
+                togglePassword.addEventListener('click', function() {
+                    const input = document.getElementById('alchemyPassword');
+                    toggleFieldVisibility(input, this.querySelector('i'));
+                });
+            }
+            
+            const toggleRefreshToken = document.getElementById('toggleRefreshToken');
+            if (toggleRefreshToken) {
+                toggleRefreshToken.addEventListener('click', function() {
+                    const input = document.getElementById('alchemyRefreshToken');
+                    toggleFieldVisibility(input, this.querySelector('i'));
+                });
+            }
+            
+            // Fix 4: Basic navigation
+            const backBtn = document.getElementById('backBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const saveBtn = document.getElementById('saveBtn');
+            const step1 = document.getElementById('step1');
+            const step2 = document.getElementById('step2');
+            const step3 = document.getElementById('step3');
+            const progressBar = document.getElementById('progressBar');
+            const progressStep = document.getElementById('progressStep');
+            
+            let currentStep = 1;
+            
+            if (backBtn) {
+                backBtn.addEventListener('click', function() {
+                    if (currentStep > 1) {
+                        showStep(currentStep - 1);
+                    } else {
+                        // Go back to platform selection
+                        window.location.href = '/';
+                    }
+                });
+            }
+            
+            if (nextBtn) {
+                nextBtn.addEventListener('click', function() {
+                    if (validateCurrentStep()) {
+                        showStep(currentStep + 1);
+                    }
+                });
+            }
+            
+            // Fix 5: Field mapping
+            const addMappingBtn = document.getElementById('addMappingBtn');
+            if (addMappingBtn) {
+                addMappingBtn.addEventListener('click', function() {
+                    addFieldMappingRow();
+                });
+            }
+            
+            // Helper functions
+            function showAuthStatus(type, message) {
+                const authStatus = document.getElementById('authStatus');
+                if (!authStatus) return;
+                
+                let statusClass = '';
+                let icon = '';
+                
+                if (type === 'success') {
+                    statusClass = 'alert-success';
+                    icon = '<i class="fas fa-check-circle me-2"></i>';
+                } else if (type === 'error') {
+                    statusClass = 'alert-danger';
+                    icon = '<i class="fas fa-exclamation-circle me-2"></i>';
+                } else {
+                    statusClass = 'alert-info';
+                    icon = '<i class="fas fa-info-circle me-2"></i>';
+                }
+                
+                authStatus.className = `alert ${statusClass} mt-2`;
+                authStatus.innerHTML = `${icon}${message}`;
+                authStatus.style.display = 'block';
+            }
+            
+            function toggleFieldVisibility(input, icon) {
+                if (!input || !icon) return;
+                
+                const type = input.type === 'password' ? 'text' : 'password';
+                input.type = type;
+                
+                if (type === 'text') {
+                    icon.classList.remove('fa-eye');
+                    icon.classList.add('fa-eye-slash');
+                } else {
+                    icon.classList.remove('fa-eye-slash');
+                    icon.classList.add('fa-eye');
+                }
+            }
+            
+            function showStep(step) {
+                // Hide all steps
+                step1.style.display = 'none';
+                step2.style.display = 'none';
+                step3.style.display = 'none';
+                
+                // Show current step
+                if (step === 1) {
+                    step1.style.display = 'block';
+                    nextBtn.style.display = 'inline-block';
+                    saveBtn.style.display = 'none';
+                    progressBar.style.width = '33%';
+                    progressStep.textContent = 'Step 1 of 3';
+                } else if (step === 2) {
+                    step2.style.display = 'block';
+                    nextBtn.style.display = 'inline-block';
+                    saveBtn.style.display = 'none';
+                    progressBar.style.width = '66%';
+                    progressStep.textContent = 'Step 2 of 3';
+                } else if (step === 3) {
+                    step3.style.display = 'block';
+                    nextBtn.style.display = 'none';
+                    saveBtn.style.display = 'inline-block';
+                    progressBar.style.width = '100%';
+                    progressStep.textContent = 'Step 3 of 3';
+                }
+                
+                currentStep = step;
+                console.log('Navigated to step', step);
+            }
+            
+            function validateCurrentStep() {
+                if (currentStep === 1) {
+                    // Check authentication method
+                    if (authMethodAuto.checked) {
+                        // Check if authentication was successful
+                        const authStatus = document.getElementById('authStatus');
+                        if (!authStatus || authStatus.style.display === 'none' || !authStatus.className.includes('alert-success')) {
+                            alert('Please authenticate with Alchemy before proceeding');
+                            return false;
+                        }
+                    } else {
+                        // Check if token is provided
+                        const tenantId = document.getElementById('alchemyTenantIdDirect').value.trim();
+                        const refreshToken = document.getElementById('alchemyRefreshToken').value.trim();
+                        
+                        if (!tenantId || !refreshToken) {
+                            alert('Please provide both Tenant ID and Refresh Token');
+                            return false;
+                        }
+                    }
+                    return true;
+                } else if (currentStep === 2) {
+                    // Check if record type is selected
+                    const recordTypeSelect = document.getElementById('recordTypeSelect');
+                    const recordTypeInput = document.getElementById('recordTypeInput');
+                    
+                    if ((recordTypeSelect && recordTypeSelect.value) || (recordTypeInput && recordTypeInput.value)) {
+                        return true;
+                    } else {
+                        alert('Please select or enter a record type');
+                        return false;
+                    }
+                }
+                return true;
+            }
+            
+            function addFieldMappingRow() {
+                const container = document.getElementById('fieldMappingContainer');
+                if (!container) return;
+                
+                const row = document.createElement('div');
+                row.className = 'mapping-row';
+                
+                // Create Alchemy field dropdown
+                const alchemyField = document.createElement('select');
+                alchemyField.className = 'form-select me-2';
+                alchemyField.innerHTML = '<option value="">Select Alchemy Field</option>';
+                
+                // Create platform field dropdown
+                const platformField = document.createElement('select');
+                platformField.className = 'form-select me-2';
+                platformField.innerHTML = '<option value="">Select Platform Field</option>';
+                
+                // Create remove button
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'btn-remove-mapping';
+                removeBtn.innerHTML = '<i class="fas fa-times"></i>';
+                removeBtn.addEventListener('click', function() {
+                    row.remove();
+                });
+                
+                // Add elements to row
+                row.appendChild(alchemyField);
+                row.appendChild(platformField);
+                row.appendChild(removeBtn);
+                
+                // Add row to container
+                container.appendChild(row);
+            }
+            
+            // Initialize by adding a field mapping row
+            if (document.getElementById('fieldMappingContainer')) {
+                addFieldMappingRow();
+            }
+        });
+    </script>
 </body>
 </html>
