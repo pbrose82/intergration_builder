@@ -121,6 +121,13 @@
                                         </div>
                                     </div>
                                     <div id="alchemyTokenSection" style="display:none;">
+<div class="mb-3" id="alchemyRecordTypeSection" style="display:none;">
+    <label class="form-label">Record Type</label>
+    <select id="alchemyRecordType" class="form-select">
+        <option value="">Select Record Type</option>
+    </select>
+</div>
+
                                         <div class="mb-3">
                                             <label class="form-label">Refresh Token</label>
                                             <input type="text" class="form-control" id="alchemyRefreshToken">
@@ -450,6 +457,65 @@
             // Initialize
             loadAlchemyTenants();
             loadFieldSelectors();
+
+            $('#alchemyTenant, #alchemyRefreshToken').on('change', function() {
+                const tenant = $('#alchemyTenant').val();
+                const refreshToken = $('#alchemyRefreshToken').val();
+                if (tenant && refreshToken) {
+                    loadAlchemyRecordTypes(tenant, refreshToken);
+                }
+            });
+
+            $('#alchemyRecordType').on('change', function() {
+                const tenant = $('#alchemyTenant').val();
+                const refreshToken = $('#alchemyRefreshToken').val();
+                const recordType = $(this).val();
+                if (tenant && refreshToken && recordType) {
+                    loadAlchemyFields(tenant, refreshToken, recordType);
+                }
+            });
+
+            function loadAlchemyRecordTypes(tenant, refreshToken) {
+                $.ajax({
+                    url: '/get-alchemy-record-types',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ tenant, refresh_token: refreshToken }),
+                    success: function(recordTypes) {
+                        const recordTypeSelect = $('#alchemyRecordType');
+                        recordTypeSelect.empty().append('<option value="">Select Record Type</option>');
+                        recordTypes.forEach(rt => {
+                            recordTypeSelect.append(`<option value="${rt.identifier}">${rt.name}</option>`);
+                        });
+                        $('#alchemyRecordTypeSection').show();
+                    },
+                    error: function(err) {
+                        alert('Error loading record types from Alchemy');
+                        console.error(err);
+                    }
+                });
+            }
+
+            function loadAlchemyFields(tenant, refreshToken, recordType) {
+                $.ajax({
+                    url: '/get-alchemy-fields',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ tenant, refresh_token: refreshToken, record_type: recordType }),
+                    success: function(fields) {
+                        const alchemyFieldSelects = $('.alchemy-field-select, .alchemy-field');
+                        alchemyFieldSelects.empty().append('<option value="">Select Alchemy Field</option>');
+                        fields.forEach(field => {
+                            alchemyFieldSelects.append(`<option value="${field.identifier}">${field.name}</option>`);
+                        });
+                    },
+                    error: function(err) {
+                        alert('Error loading Alchemy fields');
+                        console.error(err);
+                    }
+                });
+            }
+
         });
     </script>
 </body>
