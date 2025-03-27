@@ -1,56 +1,37 @@
-from flask import current_app
+
+from flask import Blueprint, render_template, request, jsonify
+from simple_salesforce import Salesforce
+from app import db
+from app.models import SalesforceIntegration, SalesforceIntegrationSchema
+from services.alchemy import get_alchemy_access_token, get_alchemy_record_types
+import requests
+import logging
 
 main_bp = Blueprint('main', __name__)
 
-def get_alchemy_token(tenant_id, refresh_token):
-    auth_url = f"https://{tenant_id}.alchemy-lims.com/api/auth/token"
-    try:
-        response = requests.post(auth_url, json={"refresh_token": refresh_token})
-        response.raise_for_status()
-        return response.json().get("access_token")
-    except Exception as e:
-        logging.error(f"Failed to retrieve Alchemy access token: {str(e)}")
-        return None
-
+@main_bp.route('/')
+def index():
+    return render_template('index.html')
 
 @main_bp.route('/get-alchemy-record-types', methods=['POST'])
-def get_alchemy_record_types():
-    data = request.get_json()
-    tenant = data.get("tenant")
-    refresh_token = data.get("refresh_token")
-
-    token = get_alchemy_token(tenant, refresh_token)
-    if not token:
-        return jsonify({"error": "Unable to authenticate with Alchemy"}), 401
-
+def get_record_types():
     try:
-        url = f"https://{tenant}.alchemy-lims.com/api/record-types"
-        response = requests.get(url, headers={"Authorization": f"Bearer {token}"})
-        response.raise_for_status()
-        record_types = response.json()
-        return jsonify(record_types)
+        data = request.get_json()
+        tenant_id = data.get("tenant_id")
+        refresh_token = data.get("refresh_token")
+
+        if not tenant_id or not refresh_token:
+            return jsonify({"error": "Missing tenant_id or refresh_token"}), 400
+
+        access_token = get_alchemy_access_token(refresh_token, tenant_id)
+        if not access_token:
+            return jsonify({"error": "Unable to get access token"}), 401
+
+        record_types = get_alchemy_record_types(access_token, tenant_id)
+        if not record_types:
+            return jsonify({"error": "Failed to fetch record types"}), 500
+
+        return jsonify({"recordTypes": record_types})
+
     except Exception as e:
-        logging.error(f"Error fetching record types: {str(e)}")
-        return jsonify({"error": str(e)}), 500
-
-
-@main_bp.route('/get-alchemy-fields', methods=['POST'])
-def get_alchemy_fields():
-    data = request.get_json()
-    tenant = data.get("tenant")
-    refresh_token = data.get("refresh_token")
-    record_type = data.get("record_type")
-
-    token = get_alchemy_token(tenant, refresh_token)
-    if not token:
-        return jsonify({"error": "Unable to authenticate with Alchemy"}), 401
-
-    try:
-        url = f"https://{tenant}.alchemy-lims.com/api/record-types/{record_type}/fields"
-        response = requests.get(url, headers={"Authorization": f"Bearer {token}"})
-        response.raise_for_status()
-        fields = response.json()
-        return jsonify(fields)
-    except Exception as e:
-        logging.error(f"Error fetching Alchemy fields: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"Unexpected error: {str(e)}"}), 500
