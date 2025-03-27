@@ -3,21 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <title>Alchemy Integration Manager</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <style>
         body {
             background-color: #f4f6f9;
-        }
-        .card {
-            transition: transform 0.2s ease-in-out;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        .card:hover {
-            transform: translateY(-5px);
+            font-family: 'Inter', sans-serif;
         }
         .integration-logo {
             height: 60px;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            transition: transform 0.2s;
+        }
+        #integrationForm {
+            display: none;
+        }
+        .select2-container {
+            width: 100% !important;
         }
     </style>
 </head>
@@ -25,32 +30,138 @@
     <div class="container py-5">
         <h1 class="text-center mb-4">Alchemy Integration Manager</h1>
         <p class="text-center text-muted mb-5">Connect Alchemy to your favorite enterprise platforms</p>
-        <div class="row justify-content-center">
+
+        <!-- Platform Selection -->
+        <div class="row justify-content-center mb-4" id="platformSelection">
             <div class="col-md-4">
-                <div class="card p-4 text-center" data-platform="sap">
-                    <img src="{{ url_for('static', filename='sap.png') }}" alt="SAP Logo" class="integration-logo mb-3">
+                <div class="card p-3 text-center" data-platform="sap">
+                    <img src="{{ url_for('static', filename='sap.png') }}" class="integration-logo mb-2" alt="SAP">
                     <h4>SAP</h4>
                     <p>Enterprise Resource Planning</p>
                     <button class="btn btn-primary select-platform">Select SAP</button>
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="card p-4 text-center" data-platform="salesforce">
-                    <img src="{{ url_for('static', filename='salesforce.png') }}" alt="Salesforce Logo" class="integration-logo mb-3">
+                <div class="card p-3 text-center" data-platform="salesforce">
+                    <img src="{{ url_for('static', filename='salesforce.png') }}" class="integration-logo mb-2" alt="Salesforce">
                     <h4>Salesforce</h4>
                     <p>Customer Relationship Management</p>
                     <button class="btn btn-primary select-platform">Select Salesforce</button>
                 </div>
             </div>
         </div>
+
+        <!-- Integration Config Form -->
+        <form id="integrationForm">
+            <div class="progress mb-4">
+                <div class="progress-bar" style="width: 33%"></div>
+            </div>
+            <div class="row mb-3">
+                <!-- Alchemy Config -->
+                <div class="col-md-6">
+                    <h5>Alchemy Credentials</h5>
+                    <div class="mb-3">
+                        <label class="form-label">Tenant ID</label>
+                        <input type="text" id="alchemyTenantId" class="form-control" placeholder="Enter Tenant ID">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Refresh Token</label>
+                        <input type="text" id="alchemyRefreshToken" class="form-control" placeholder="Enter Refresh Token">
+                    </div>
+                </div>
+
+                <!-- Platform Config -->
+                <div class="col-md-6">
+                    <h5 id="platformConfigTitle">Platform Credentials</h5>
+                    <div id="salesforceConfig">
+                        <div class="mb-3">
+                            <label class="form-label">Instance URL</label>
+                            <input type="text" id="salesforceInstanceUrl" class="form-control">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Client ID</label>
+                            <input type="text" id="salesforceClientId" class="form-control">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Client Secret</label>
+                            <input type="password" id="salesforceClientSecret" class="form-control">
+                        </div>
+                    </div>
+                    <div id="sapConfig" style="display:none;">
+                        <div class="mb-3">
+                            <label class="form-label">Base URL</label>
+                            <input type="text" id="sapBaseUrl" class="form-control">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Client ID</label>
+                            <input type="text" id="sapClientId" class="form-control">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Client Secret</label>
+                            <input type="password" id="sapClientSecret" class="form-control">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Record Type and Field Mapping -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <label class="form-label">Alchemy Record Type</label>
+                    <select id="recordTypeSelect" class="form-select select2"></select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Mapped Fields</label>
+                    <div id="fieldMappingContainer"></div>
+                    <button class="btn btn-secondary mt-2" id="addMapping">Add Field Mapping</button>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between">
+                <button class="btn btn-secondary" id="backBtn">Back</button>
+                <button class="btn btn-success" id="saveBtn">Save Configuration</button>
+            </div>
+        </form>
     </div>
 
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
-        document.querySelectorAll('.select-platform').forEach(button => {
-            button.addEventListener('click', function () {
-                const selectedPlatform = this.closest('.card').dataset.platform;
-                localStorage.setItem('selectedPlatform', selectedPlatform);
-                window.location.href = `/auth/${selectedPlatform}`;
+        let selectedPlatform = null;
+
+        $(document).ready(function() {
+            $('.select2').select2();
+
+            $('.select-platform').on('click', function() {
+                selectedPlatform = $(this).closest('.card').data('platform');
+                $('#platformSelection').hide();
+                $('#integrationForm').show();
+                $('#platformConfigTitle').text(`Configure ${selectedPlatform.charAt(0).toUpperCase() + selectedPlatform.slice(1)}`);
+                $('#salesforceConfig, #sapConfig').hide();
+                if (selectedPlatform === 'salesforce') $('#salesforceConfig').show();
+                if (selectedPlatform === 'sap') $('#sapConfig').show();
+            });
+
+            $('#backBtn').on('click', function(e) {
+                e.preventDefault();
+                $('#integrationForm').hide();
+                $('#platformSelection').show();
+            });
+
+            $('#addMapping').on('click', function(e) {
+                e.preventDefault();
+                $('#fieldMappingContainer').append(`
+                    <div class="d-flex gap-2 mb-2">
+                        <input type="text" class="form-control" placeholder="Alchemy Field">
+                        <input type="text" class="form-control" placeholder="Platform Field">
+                    </div>
+                `);
+            });
+
+            $('#saveBtn').on('click', function(e) {
+                e.preventDefault();
+                alert("Save button clicked. Hook this up to your POST API!");
             });
         });
     </script>
