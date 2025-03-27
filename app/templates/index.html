@@ -1,24 +1,104 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Alchemy Integration</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <title>Alchemy Integration Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #0047BB;
+            --secondary-color: #3F88F6;
+            --light-bg: #F4F6F9;
+        }
+        body {
+            background-color: var(--light-bg);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        .integration-card {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            transition: transform 0.3s ease;
+        }
+        .integration-card:hover {
+            transform: translateY(-5px);
+        }
+        .integration-logo {
+            max-width: 100px;
+            max-height: 100px;
+            margin: 20px 0;
+        }
+        .step-container {
+            background-color: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .progress {
+            height: 5px;
+            margin-bottom: 20px;
+        }
+        .select2-container {
+            width: 100% !important;
+        }
+        .nav-pills .nav-link.active {
+            background-color: var(--primary-color);
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Alchemy Integration Setup</h1>
-        <form id="alchemyForm">
-            <label for="tenantId">Tenant ID:</label>
-            <input type="text" id="tenantId" name="tenantId" required><br>
-            <label for="refreshToken">Refresh Token:</label>
-            <input type="text" id="refreshToken" name="refreshToken" required><br>
-            <button type="submit">Get Record Types</button>
-        </form>
-        <div id="recordTypesList"></div>
+    <div class="container py-5">
+        <div class="row">
+            <div class="col-12 text-center mb-4">
+                <h1>Alchemy Integration Manager</h1>
+                <p class="text-muted">Connect Alchemy to your favorite enterprise platforms</p>
+            </div>
+        </div>
+
+        <!-- PLATFORM SELECTION -->
+        <div class="row" id="platformSelectionStep">
+            <div class="col-md-4">
+                <div class="integration-card text-center p-4" data-platform="sap">
+                    <img src="/static/sap-logo.png" alt="SAP Logo" class="integration-logo">
+                    <h4>SAP</h4>
+                    <p class="text-muted">Enterprise Resource Planning</p>
+                    <button class="btn btn-primary select-platform">Select SAP</button>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="integration-card text-center p-4" data-platform="salesforce">
+                    <img src="/static/salesforce.png" alt="Salesforce Logo" class="integration-logo">
+                    <h4>Salesforce</h4>
+                    <p class="text-muted">Customer Relationship Management</p>
+                    <button class="btn btn-primary select-platform">Select Salesforce</button>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="integration-card text-center p-4" data-platform="hubspot">
+                    <img src="/static/hubspot-logo.png" alt="HubSpot Logo" class="integration-logo">
+                    <h4>HubSpot</h4>
+                    <p class="text-muted">Marketing Automation</p>
+                    <button class="btn btn-primary select-platform">Select HubSpot</button>
+                </div>
+            </div>
+        </div>
     </div>
-    <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
+
+    <!-- DEPENDENCIES -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $('.select-platform').click(function () {
+                const selected = $(this).closest('.integration-card').data('platform');
+                alert('You selected ' + selected);
+            });
+        });
+    </script>
 </body>
 </html>
