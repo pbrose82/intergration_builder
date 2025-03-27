@@ -3,16 +3,75 @@
  * JavaScript for managing the integration configuration workflow
  */
 
-// Add debug console log to verify script is loading
 console.log('Integration.js is loading...');
 
-$(document).ready(function() {
-    console.log('DOM is ready, initializing event handlers...');
-    // Initialize Select2 for enhanced dropdowns
-    $('.form-select').select2({
-        width: '100%',
-        theme: 'bootstrap5'
+// Make sure to run the code after the document is fully loaded
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM is ready via DOMContentLoaded');
+    
+    // Verify jQuery is loaded correctly
+    if (typeof jQuery !== 'undefined') {
+        console.log('jQuery is loaded properly, version: ' + jQuery.fn.jquery);
+    } else {
+        console.error('jQuery is NOT loaded!');
+        return; // Exit if jQuery is not loaded
+    }
+    
+    // Manual initialization of buttons (without relying on jQuery)
+    document.querySelectorAll('.select-platform').forEach(function(button) {
+        console.log('Adding click handler to button:', button.textContent);
+        
+        button.addEventListener('click', function(e) {
+            console.log('Platform button clicked via plain JS!', e.target.textContent);
+            let platformCard = this.closest('.platform-card');
+            let selectedPlatform = platformCard.dataset.platform;
+            console.log('Selected platform:', selectedPlatform);
+            
+            // Rest of the button click handler
+            document.getElementById('platformSelection').style.display = 'none';
+            document.getElementById('integrationForm').style.display = 'block';
+            
+            // Set platform-specific UI elements
+            document.getElementById('platformConfigTitle').textContent = 
+                capitalize(selectedPlatform) + ' Credentials';
+            
+            // Hide all config panels
+            document.getElementById('salesforceConfig').style.display = 'none';
+            document.getElementById('sapConfig').style.display = 'none';
+            document.getElementById('hubspotConfig').style.display = 'none';
+            
+            // Show relevant panel
+            if (selectedPlatform === 'salesforce') {
+                document.getElementById('salesforceConfig').style.display = 'block';
+            } else if (selectedPlatform === 'sap') {
+                document.getElementById('sapConfig').style.display = 'block';
+            } else if (selectedPlatform === 'hubspot') {
+                document.getElementById('hubspotConfig').style.display = 'block';
+            }
+            
+            // Initialize to step 1
+            showStep(1);
+        });
     });
+    
+    // Initialize after jQuery is ready
+    $(function() {
+        console.log('jQuery document.ready triggered');
+        initializeApp();
+    });
+});
+
+function initializeApp() {
+    console.log('Initializing app with jQuery');
+    // Initialize Select2 for enhanced dropdowns
+    try {
+        $('.form-select').select2({
+            width: '100%'
+        });
+        console.log('Select2 initialized');
+    } catch (e) {
+        console.error('Error initializing Select2:', e);
+    }
     
     // Variables
     let selectedPlatform = null;
@@ -58,35 +117,9 @@ $(document).ready(function() {
         togglePasswordVisibility($('#salesforceClientSecret'), $(this).find('i'));
     });
     
-    // Select Platform
-    console.log('Setting up platform selection handlers...');
-    console.log('Number of platform buttons found:', $('.select-platform').length);
-    
-    $('.select-platform').on('click', function(e) {
-        console.log('Platform button clicked!', e);
-        selectedPlatform = $(this).closest('.platform-card').data('platform');
-        console.log('Selected platform:', selectedPlatform);
-        platformSelection.hide();
-        integrationForm.show();
-        
-        // Set platform-specific UI elements
-        $('#platformConfigTitle').text(`${capitalizeFirstLetter(selectedPlatform)} Credentials`);
-        
-        // Show relevant configuration panel
-        salesforceConfig.hide();
-        sapConfig.hide();
-        hubspotConfig.hide();
-        
-        if (selectedPlatform === 'salesforce') salesforceConfig.show();
-        if (selectedPlatform === 'sap') sapConfig.show();
-        if (selectedPlatform === 'hubspot') hubspotConfig.show();
-        
-        // Reset to first step
-        showStep(1);
-    });
-    
     // Navigation Buttons
     backBtn.on('click', function() {
+        console.log('Back button clicked');
         if (currentStep === 1) {
             // Go back to platform selection
             integrationForm.hide();
@@ -98,6 +131,7 @@ $(document).ready(function() {
     });
     
     nextBtn.on('click', function() {
+        console.log('Next button clicked');
         if (validateCurrentStep()) {
             showStep(currentStep + 1);
         }
@@ -285,7 +319,7 @@ $(document).ready(function() {
         
         // Create platform field select
         const platformSelect = $('<select>').addClass('form-select platform-field me-2');
-        platformSelect.append(`<option value="">Select ${capitalizeFirstLetter(selectedPlatform)} Field</option>`);
+        platformSelect.append(`<option value="">Select ${capitalize(selectedPlatform)} Field</option>`);
         
         platformFields.forEach(field => {
             platformSelect.append(`<option value="${field.identifier}">${field.name}</option>`);
@@ -306,13 +340,11 @@ $(document).ready(function() {
         
         // Initialize Select2 for the new dropdowns
         alchemySelect.select2({
-            width: '100%',
-            theme: 'bootstrap5'
+            width: '100%'
         });
         
         platformSelect.select2({
-            width: '100%',
-            theme: 'bootstrap5'
+            width: '100%'
         });
     }
     
@@ -431,143 +463,74 @@ $(document).ready(function() {
             }
         });
     }
+}
+
+// Helper function to show a specific step (moved outside for access from plain JS)
+function showStep(step) {
+    const currentStep = step;
     
-    // Helper function to show a specific step
-    function showStep(step) {
-        currentStep = step;
-        
-        // Hide all steps
-        step1.hide();
-        step2.hide();
-        step3.hide();
-        
-        // Show the current step
-        if (step === 1) {
-            step1.show();
-            backBtn.text('Back');
-            nextBtn.show();
-            progressBar.css('width', '33%');
-            progressStep.text('Step 1 of 3');
-        } else if (step === 2) {
-            step2.show();
-            backBtn.text('Back');
-            nextBtn.show();
-            progressBar.css('width', '66%');
-            progressStep.text('Step 2 of 3');
-        } else if (step === 3) {
-            step3.show();
-            nextBtn.hide();
-            progressBar.css('width', '100%');
-            progressStep.text('Step 3 of 3');
-        }
-    }
+    // Hide all steps
+    document.getElementById('step1').style.display = 'none';
+    document.getElementById('step2').style.display = 'none';
+    document.getElementById('step3').style.display = 'none';
     
-    // Validate the current step
-    function validateCurrentStep() {
-        if (currentStep === 1) {
-            // Validate Alchemy credentials
-            if (!alchemyTenantId.val()) {
-                showToast('Please enter Alchemy Tenant ID', 'error');
-                return false;
-            }
-            
-            if (!alchemyRefreshToken.val()) {
-                showToast('Please enter Alchemy Refresh Token', 'error');
-                return false;
-            }
-            
-            // Validate platform-specific fields
-            if (selectedPlatform === 'salesforce') {
-                if (!$('#salesforceInstanceUrl').val()) {
-                    showToast('Please enter Salesforce Instance URL', 'error');
-                    return false;
-                }
-                // Add more validations as needed
-            } else if (selectedPlatform === 'sap') {
-                if (!$('#sapBaseUrl').val()) {
-                    showToast('Please enter SAP Base URL', 'error');
-                    return false;
-                }
-                // Add more validations as needed
-            } else if (selectedPlatform === 'hubspot') {
-                if (!$('#hubspotApiKey').val()) {
-                    showToast('Please enter HubSpot API Key', 'error');
-                    return false;
-                }
-                // Add more validations as needed
-            }
-            
-            return true;
-        } else if (currentStep === 2) {
-            // Validate record type selection
-            if (!recordTypeSelect.val()) {
-                showToast('Please select a record type', 'error');
-                return false;
-            }
-            
-            return true;
-        }
-        
-        return true;
+    // Show the current step
+    if (step === 1) {
+        document.getElementById('step1').style.display = 'block';
+        document.getElementById('backBtn').textContent = 'Back';
+        document.getElementById('nextBtn').style.display = 'block';
+        document.getElementById('progressBar').style.width = '33%';
+        document.getElementById('progressStep').textContent = 'Step 1 of 3';
+    } else if (step === 2) {
+        document.getElementById('step2').style.display = 'block';
+        document.getElementById('backBtn').textContent = 'Back';
+        document.getElementById('nextBtn').style.display = 'block';
+        document.getElementById('progressBar').style.width = '66%';
+        document.getElementById('progressStep').textContent = 'Step 2 of 3';
+    } else if (step === 3) {
+        document.getElementById('step3').style.display = 'block';
+        document.getElementById('nextBtn').style.display = 'none';
+        document.getElementById('progressBar').style.width = '100%';
+        document.getElementById('progressStep').textContent = 'Step 3 of 3';
     }
+}
+
+// Helper functions moved outside for global access
+function togglePasswordVisibility(inputField, icon) {
+    const type = inputField.attr('type') === 'password' ? 'text' : 'password';
+    inputField.attr('type', type);
     
-    // Reset the form
-    function resetForm() {
-        // Reset form fields
-        $('#integrationForm')[0].reset();
-        
-        // Clear select2 dropdowns
-        $('.form-select').val(null).trigger('change');
-        
-        // Clear field mappings
-        fieldMappingContainer.empty();
-        
-        // Reset variables
-        alchemyFields = [];
-        platformFields = [];
-        
-        // Reset to step 1
-        showStep(1);
+    if (type === 'text') {
+        icon.removeClass('fa-eye').addClass('fa-eye-slash');
+    } else {
+        icon.removeClass('fa-eye-slash').addClass('fa-eye');
     }
+}
+
+function showToast(message, type) {
+    const toast = $('<div>').addClass(`toast toast-${type}`);
     
-    // Helper function to show a toast notification
-    function showToast(message, type) {
-        const toast = $('<div>').addClass(`toast toast-${type}`);
-        
-        // Set icon based on type
-        let icon = '';
-        if (type === 'success') icon = '<i class="fas fa-check-circle me-2"></i>';
-        else if (type === 'error') icon = '<i class="fas fa-exclamation-circle me-2"></i>';
-        else if (type === 'warning') icon = '<i class="fas fa-exclamation-triangle me-2"></i>';
-        else if (type === 'info') icon = '<i class="fas fa-info-circle me-2"></i>';
-        
-        toast.html(`${icon}${message}`);
-        
-        // Add to container
-        $('#toastContainer').append(toast);
-        
-        // Auto-remove after delay
-        setTimeout(function() {
-            toast.fadeOut(500, function() {
-                $(this).remove();
-            });
-        }, 3000);
-    }
+    // Set icon based on type
+    let icon = '';
+    if (type === 'success') icon = '<i class="fas fa-check-circle me-2"></i>';
+    else if (type === 'error') icon = '<i class="fas fa-exclamation-circle me-2"></i>';
+    else if (type === 'warning') icon = '<i class="fas fa-exclamation-triangle me-2"></i>';
+    else if (type === 'info') icon = '<i class="fas fa-info-circle me-2"></i>';
     
-    // Toggle password visibility
-    function togglePasswordVisibility(inputField, icon) {
-        const type = inputField.attr('type') === 'password' ? 'text' : 'password';
-        inputField.attr('type', type);
-        
-        if (type === 'text') {
-            icon.removeClass('fa-eye').addClass('fa-eye-slash');
-        } else {
-            icon.removeClass('fa-eye-slash').addClass('fa-eye');
-        }
-    }
+    toast.html(`${icon}${message}`);
     
-    // Helper function to capitalize first letter
-    function capitalizeFirstLetter(string) {
-        return string.charAt(0).toUpperCase() + string.slice(1);
-    }
-});
+    // Add to container
+    $('#toastContainer').append(toast);
+    
+    // Auto-remove after delay
+    setTimeout(function() {
+        toast.fadeOut(500, function() {
+            $(this).remove();
+        });
+    }, 3000);
+}
+
+function capitalize(string) {
+    if (!string) return '';
+    return string.charAt(0).toUpperCase() + string.slice(1);
+}
