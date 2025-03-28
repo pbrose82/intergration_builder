@@ -6,27 +6,43 @@ import json
 logger = logging.getLogger(__name__)
 
 def get_alchemy_access_token(refresh_token, tenant_id):
-    """Get access token from refresh token with detailed logging"""
-    token_url = f"https://core-production.alchemy.cloud/auth/realms/{tenant_id}/protocol/openid-connect/token"
+    """Get access token from refresh token using the working method from scanner app"""
+    # Use the working API endpoint from the scanner
+    refresh_url = "https://core-production.alchemy.cloud/core/api/v2/refresh-token"
     
     # Mask token for logging
     masked_token = refresh_token[:5] + "..." if refresh_token and len(refresh_token) > 5 else "None"
     logger.info(f"Attempting to get access token for tenant {tenant_id} with refresh token {masked_token}")
     
-    data = {
-        "grant_type": "refresh_token",
-        "client_id": "alchemy-web-client",
-        "refresh_token": refresh_token
-    }
-    
     try:
-        response = requests.post(token_url, data=data)
+        # Use PUT with JSON payload (matching scanner implementation)
+        response = requests.put(
+            refresh_url, 
+            json={"refreshToken": refresh_token},
+            headers={"Content-Type": "application/json"}
+        )
+        
         logger.info(f"Token response status: {response.status_code}")
         
         if response.status_code == 200:
-            token_data = response.json()
-            logger.info("Successfully obtained access token")
-            return token_data.get("access_token")
+            data = response.json()
+            
+            # Process tokens array to find matching tenant
+            if "tokens" in data and isinstance(data["tokens"], list):
+                tenant_token = next((token for token in data["tokens"] 
+                                    if token.get("tenant") == tenant_id), None)
+                
+                if tenant_token:
+                    logger.info(f"Found token for tenant {tenant_id}")
+                    return tenant_token.get("accessToken")
+                else:
+                    # Log available tenants for debugging
+                    available_tenants = [t.get("tenant") for t in data.get("tokens", [])]
+                    logger.error(f"Tenant {tenant_id} not found in response. Available tenants: {available_tenants}")
+            else:
+                logger.error("No tokens array in response or invalid format")
+                
+            return None
         else:
             # Log the error response
             try:
@@ -70,7 +86,7 @@ def get_alchemy_record_types(access_token, tenant_id):
         return []
 
 def fetch_alchemy_fields(tenant_id, refresh_token, record_type):
-    """Fetch fields for record type with detailed logging and fallback fields"""
+    """Fetch fields for record type with improved authentication method"""
     logger.info(f"Starting field fetch for record type '{record_type}' in tenant '{tenant_id}'")
     
     # Fallback fields to return in case of errors
@@ -81,32 +97,17 @@ def fetch_alchemy_fields(tenant_id, refresh_token, record_type):
         {"identifier": "ExternalId", "name": "External ID"}
     ]
     
-    # Try to get access token first
+    # Get access token using the improved method
+    access_token = get_alchemy_access_token(refresh_token, tenant_id)
+    
+    if not access_token:
+        logger.error(f"Failed to get access token for tenant {tenant_id}")
+        return fallback_fields
+    
+    # Now fetch the fields using the access token
     try:
         base_url = "https://core-production.alchemy.cloud"
-        token_url = f"{base_url}/auth/realms/{tenant_id}/protocol/openid-connect/token"
         
-        logger.info(f"Getting access token from {token_url}")
-        
-        token_response = requests.post(token_url, data={
-            "grant_type": "refresh_token",
-            "client_id": "alchemy-web-client",
-            "refresh_token": refresh_token
-        })
-        
-        logger.info(f"Token response status: {token_response.status_code}")
-        
-        if token_response.status_code != 200:
-            logger.error(f"Failed to get access token: {token_response.text}")
-            return fallback_fields
-            
-        token_data = token_response.json()
-        access_token = token_data.get("access_token")
-        
-        if not access_token:
-            logger.error("No access token in response")
-            return fallback_fields
-            
         # Log token info (masked)
         logger.info(f"Access token: {access_token[:5]}...")
         
@@ -142,7 +143,7 @@ def fetch_alchemy_fields(tenant_id, refresh_token, record_type):
             
         records_data = response.json()
         
-        # Log the response structure to debug
+        # Log the response structure for debugging
         logger.info(f"Response keys: {list(records_data.keys())}")
         logger.info(f"Records count: {len(records_data.get('records', []))}")
         
@@ -160,11 +161,6 @@ def fetch_alchemy_fields(tenant_id, refresh_token, record_type):
         # Check for fieldValues
         if "fieldValues" not in first_record:
             logger.warning("No fieldValues in record, looking for alternative structure")
-            
-            # Return a sample of what the record looks like for debugging
-            sample = {k: str(v)[:50] for k, v in first_record.items() if k not in ["id", "recordId"]}
-            logger.info(f"Sample record data: {json.dumps(sample)}")
-            
             return fallback_fields
             
         field_values = first_record.get("fieldValues", {})
