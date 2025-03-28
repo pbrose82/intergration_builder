@@ -203,6 +203,306 @@ class HubSpotService:
                 return [f for f in fallback_fields if f["identifier"] not in ["firstname", "lastname"]]
             else:
                 return fallback_fields
+    
+    def get_records(self, object_type, limit=100, properties=None, after=None):
+        """
+        Get records from HubSpot for a given object type
+        
+        Args:
+            object_type (str): The object type to get records for (e.g., contact, company)
+            limit (int, optional): Maximum number of records to return. Defaults to 100.
+            properties (list, optional): List of property names to include. Defaults to None (all properties).
+            after (str, optional): Pagination cursor. Defaults to None.
+            
+        Returns:
+            dict: Result containing records and pagination info
+        """
+        try:
+            logger.info(f"Fetching {limit} records for HubSpot object type: {object_type}")
+            
+            # Normalize token - remove any whitespace
+            token = self.access_token.strip() if self.access_token else ""
+            
+            if not token:
+                logger.error("No access token provided for fetching records")
+                return {
+                    "results": [],
+                    "paging": None,
+                    "error": "No access token provided"
+                }
+            
+            # Use the CRM API endpoint
+            url = f"{self.base_url}/crm/v3/objects/{object_type}"
+            
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json"
+            }
+            
+            params = {
+                "limit": min(limit, 100)  # HubSpot API limit is 100 per page
+            }
+            
+            # Add properties if specified
+            if properties:
+                params["properties"] = properties
+                
+            # Add pagination cursor if specified
+            if after:
+                params["after"] = after
+            
+            response = requests.get(url, headers=headers, params=params)
+            
+            if response.status_code != 200:
+                logger.error(f"Error fetching records: {response.status_code} - {response.text[:100]}")
+                return {
+                    "results": [],
+                    "paging": None,
+                    "error": f"Error {response.status_code}: {response.text[:100]}"
+                }
+            
+            # Parse the response
+            data = response.json()
+            
+            # Extract records and pagination info
+            results = data.get("results", [])
+            paging = data.get("paging", None)
+            
+            logger.info(f"Successfully fetched {len(results)} records for object type {object_type}")
+            
+            return {
+                "results": results,
+                "paging": paging,
+                "error": None
+            }
+        
+        except Exception as e:
+            logger.error(f"Error getting records for object type {object_type}: {str(e)}")
+            return {
+                "results": [],
+                "paging": None,
+                "error": f"Error: {str(e)}"
+            }
+    
+    def create_record(self, object_type, properties):
+        """
+        Create a new record in HubSpot
+        
+        Args:
+            object_type (str): The object type to create (e.g., contact, company)
+            properties (dict): Properties for the new record
+            
+        Returns:
+            dict: Created record or error
+        """
+        try:
+            logger.info(f"Creating new {object_type} in HubSpot")
+            
+            # Normalize token - remove any whitespace
+            token = self.access_token.strip() if self.access_token else ""
+            
+            if not token:
+                logger.error("No access token provided for creating record")
+                return {
+                    "success": False,
+                    "error": "No access token provided"
+                }
+            
+            # Use the CRM API endpoint
+            url = f"{self.base_url}/crm/v3/objects/{object_type}"
+            
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json"
+            }
+            
+            # Prepare data
+            data = {
+                "properties": properties
+            }
+            
+            response = requests.post(url, headers=headers, json=data)
+            
+            if response.status_code not in [200, 201]:
+                logger.error(f"Error creating record: {response.status_code} - {response.text[:100]}")
+                return {
+                    "success": False,
+                    "error": f"Error {response.status_code}: {response.text[:100]}"
+                }
+            
+            # Parse the response
+            record = response.json()
+            
+            logger.info(f"Successfully created {object_type} with ID: {record.get('id')}")
+            
+            return {
+                "success": True,
+                "record": record,
+                "error": None
+            }
+        
+        except Exception as e:
+            logger.error(f"Error creating {object_type}: {str(e)}")
+            return {
+                "success": False,
+                "error": f"Error: {str(e)}"
+            }
+    
+    def update_record(self, object_type, record_id, properties):
+        """
+        Update an existing record in HubSpot
+        
+        Args:
+            object_type (str): The object type to update (e.g., contact, company)
+            record_id (str): The ID of the record to update
+            properties (dict): Properties to update
+            
+        Returns:
+            dict: Updated record or error
+        """
+        try:
+            logger.info(f"Updating {object_type} with ID {record_id} in HubSpot")
+            
+            # Normalize token - remove any whitespace
+            token = self.access_token.strip() if self.access_token else ""
+            
+            if not token:
+                logger.error("No access token provided for updating record")
+                return {
+                    "success": False,
+                    "error": "No access token provided"
+                }
+            
+            # Use the CRM API endpoint
+            url = f"{self.base_url}/crm/v3/objects/{object_type}/{record_id}"
+            
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json"
+            }
+            
+            # Prepare data
+            data = {
+                "properties": properties
+            }
+            
+            response = requests.patch(url, headers=headers, json=data)
+            
+            if response.status_code != 200:
+                logger.error(f"Error updating record: {response.status_code} - {response.text[:100]}")
+                return {
+                    "success": False,
+                    "error": f"Error {response.status_code}: {response.text[:100]}"
+                }
+            
+            # Parse the response
+            record = response.json()
+            
+            logger.info(f"Successfully updated {object_type} with ID: {record_id}")
+            
+            return {
+                "success": True,
+                "record": record,
+                "error": None
+            }
+        
+        except Exception as e:
+            logger.error(f"Error updating {object_type} {record_id}: {str(e)}")
+            return {
+                "success": False,
+                "error": f"Error: {str(e)}"
+            }
+    
+    def search_records(self, object_type, filter_groups=None, sorts=None, properties=None, limit=100, after=None):
+        """
+        Search for records in HubSpot with filtering
+        
+        Args:
+            object_type (str): The object type to search (e.g., contact, company)
+            filter_groups (list, optional): Filter groups for the search. Defaults to None.
+            sorts (list, optional): Sort criteria for the search. Defaults to None.
+            properties (list, optional): List of property names to include. Defaults to None (all properties).
+            limit (int, optional): Maximum number of records to return. Defaults to 100.
+            after (str, optional): Pagination cursor. Defaults to None.
+            
+        Returns:
+            dict: Result containing records and pagination info
+        """
+        try:
+            logger.info(f"Searching {object_type} in HubSpot")
+            
+            # Normalize token - remove any whitespace
+            token = self.access_token.strip() if self.access_token else ""
+            
+            if not token:
+                logger.error("No access token provided for searching records")
+                return {
+                    "results": [],
+                    "paging": None,
+                    "error": "No access token provided"
+                }
+            
+            # Use the CRM API search endpoint
+            url = f"{self.base_url}/crm/v3/objects/{object_type}/search"
+            
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json"
+            }
+            
+            # Prepare search request
+            search_request = {
+                "limit": min(limit, 100)  # HubSpot API limit is 100 per page
+            }
+            
+            # Add filter groups if specified
+            if filter_groups:
+                search_request["filterGroups"] = filter_groups
+                
+            # Add sorts if specified
+            if sorts:
+                search_request["sorts"] = sorts
+                
+            # Add properties if specified
+            if properties:
+                search_request["properties"] = properties
+                
+            # Add pagination cursor if specified
+            if after:
+                search_request["after"] = after
+            
+            response = requests.post(url, headers=headers, json=search_request)
+            
+            if response.status_code != 200:
+                logger.error(f"Error searching records: {response.status_code} - {response.text[:100]}")
+                return {
+                    "results": [],
+                    "paging": None,
+                    "error": f"Error {response.status_code}: {response.text[:100]}"
+                }
+            
+            # Parse the response
+            data = response.json()
+            
+            # Extract records and pagination info
+            results = data.get("results", [])
+            paging = data.get("paging", None)
+            
+            logger.info(f"Search returned {len(results)} {object_type} records")
+            
+            return {
+                "results": results,
+                "paging": paging,
+                "error": None
+            }
+        
+        except Exception as e:
+            logger.error(f"Error searching {object_type}: {str(e)}")
+            return {
+                "results": [],
+                "paging": None,
+                "error": f"Error: {str(e)}"
+            }
 
 def get_hubspot_service(access_token=None, client_secret=None, oauth_mode=False):
     """
