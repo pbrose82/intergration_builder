@@ -141,6 +141,31 @@
             font-size: 12px;
             font-weight: 500;
         }
+        
+        /* Toast for notifications */
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1050;
+        }
+        
+        .toast {
+            background-color: white;
+            border-left: 4px solid var(--alchemy-blue);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            padding: 12px 20px;
+            margin-bottom: 10px;
+            min-width: 250px;
+        }
+        
+        .toast.success {
+            border-left-color: var(--alchemy-green);
+        }
+        
+        .toast.error {
+            border-left-color: var(--alchemy-red);
+        }
     </style>
 </head>
 <body>
@@ -293,19 +318,48 @@
                     </div>
                 </div>
                 
+                <!-- Step 2: Record Selection (For now hidden) -->
+                <div id="step2" class="step-content" style="display: none;">
+                    <h5 class="mb-4">Select Record Type</h5>
+                    <div class="mb-3">
+                        <label for="recordTypeInput" class="form-label">Alchemy Record Type</label>
+                        <input type="text" class="form-control" id="recordTypeInput" placeholder="e.g. Material, Location, Sample">
+                    </div>
+                    <button type="button" id="fetchFieldsBtn" class="btn btn-primary">
+                        <i class="fas fa-search me-2"></i>Fetch Fields
+                    </button>
+                </div>
+                
+                <!-- Step 3: Field Mapping (For now hidden) -->
+                <div id="step3" class="step-content" style="display: none;">
+                    <h5 class="mb-4">Map Fields</h5>
+                    <div id="fieldMappings" class="mb-4">
+                        <!-- Field mappings will be generated here -->
+                    </div>
+                </div>
+                
                 <!-- Navigation Buttons -->
                 <div class="mt-4 d-flex justify-content-between">
                     <a href="/" class="btn btn-outline-secondary">
                         <i class="fas fa-arrow-left me-2"></i>Back
                     </a>
                     
-                    <button type="button" id="nextBtn" class="btn btn-primary">
-                        Continue<i class="fas fa-arrow-right ms-2"></i>
-                    </button>
+                    <div>
+                        <button type="button" id="nextBtn" class="btn btn-primary">
+                            Continue<i class="fas fa-arrow-right ms-2"></i>
+                        </button>
+                        
+                        <button type="button" id="saveBtn" class="btn btn-success" style="display: none;">
+                            <i class="fas fa-save me-2"></i>Save Configuration
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+    
+    <!-- Toast Container for Notifications -->
+    <div class="toast-container" id="toastContainer"></div>
     
     <!-- Footer -->
     <div class="footer">
@@ -314,108 +368,223 @@
         </div>
     </div>
 
-    <!-- Basic JavaScript for form controls -->
+    <!-- jQuery for easier DOM manipulation -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- Main JavaScript -->
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Toggle between authentication methods
-            const authMethodAuto = document.getElementById('authMethodAuto');
-            const authMethodToken = document.getElementById('authMethodToken');
-            const autoAuthForm = document.getElementById('autoAuthForm');
-            const tokenAuthForm = document.getElementById('tokenAuthForm');
+        // Global variables
+        let currentStep = 1;
+        let isAuthenticated = false;
+        
+        // Document ready
+        $(document).ready(function() {
+            // Initialize UI
+            updateProgressUI();
             
-            if (authMethodAuto && authMethodToken) {
-                authMethodAuto.addEventListener('change', function() {
-                    if (this.checked) {
-                        autoAuthForm.style.display = 'block';
-                        tokenAuthForm.style.display = 'none';
-                    }
-                });
-                
-                authMethodToken.addEventListener('change', function() {
-                    if (this.checked) {
-                        autoAuthForm.style.display = 'none';
-                        tokenAuthForm.style.display = 'block';
-                    }
-                });
-            }
-            
-            // Password visibility toggles
-            const togglePassword = document.getElementById('togglePassword');
-            if (togglePassword) {
-                togglePassword.addEventListener('click', function() {
-                    const passwordInput = document.getElementById('alchemyPassword');
-                    if (passwordInput.type === 'password') {
-                        passwordInput.type = 'text';
-                        this.innerHTML = '<i class="fas fa-eye-slash"></i>';
-                    } else {
-                        passwordInput.type = 'password';
-                        this.innerHTML = '<i class="fas fa-eye"></i>';
-                    }
-                });
-            }
-            
-            const toggleRefreshToken = document.getElementById('toggleRefreshToken');
-            if (toggleRefreshToken) {
-                toggleRefreshToken.addEventListener('click', function() {
-                    const tokenInput = document.getElementById('alchemyRefreshToken');
-                    if (tokenInput.type === 'password') {
-                        tokenInput.type = 'text';
-                        this.innerHTML = '<i class="fas fa-eye-slash"></i>';
-                    } else {
-                        tokenInput.type = 'password';
-                        this.innerHTML = '<i class="fas fa-eye"></i>';
-                    }
-                });
-            }
-            
-            // Basic authentication button handler
-            const authenticateBtn = document.getElementById('authenticateBtn');
-            if (authenticateBtn) {
-                authenticateBtn.addEventListener('click', function() {
-                    const tenantId = document.getElementById('alchemyTenantId').value.trim();
-                    const email = document.getElementById('alchemyEmail').value.trim();
-                    const password = document.getElementById('alchemyPassword').value.trim();
-                    
-                    if (!tenantId || !email || !password) {
-                        showAuthStatus('error', 'Please provide all required credentials');
-                        return;
-                    }
-                    
-                    // Show authenticating status
-                    showAuthStatus('info', 'Authenticating with Alchemy...');
-                    
-                    // In a real implementation, this would call the backend API
-                    // For now, just simulate success after 1 second
-                    setTimeout(() => {
-                        showAuthStatus('success', 'Authentication successful! You can proceed to the next step.');
-                    }, 1000);
-                });
-            }
-            
-            // Show auth status message
-            function showAuthStatus(type, message) {
-                const authStatus = document.getElementById('authStatus');
-                if (!authStatus) return;
-                
-                let statusClass = '';
-                let icon = '';
-                
-                if (type === 'success') {
-                    statusClass = 'alert-success';
-                    icon = '<i class="fas fa-check-circle me-2"></i>';
-                } else if (type === 'error') {
-                    statusClass = 'alert-danger';
-                    icon = '<i class="fas fa-exclamation-circle me-2"></i>';
+            // Set up auth method toggle
+            $('input[name="authMethod"]').change(function() {
+                const method = $(this).val();
+                if (method === 'auto') {
+                    $('#autoAuthForm').show();
+                    $('#tokenAuthForm').hide();
                 } else {
-                    statusClass = 'alert-info';
-                    icon = '<i class="fas fa-info-circle me-2"></i>';
+                    $('#autoAuthForm').hide();
+                    $('#tokenAuthForm').show();
+                }
+            });
+            
+            // Toggle password visibility
+            $('#togglePassword').click(function() {
+                togglePasswordVisibility('#alchemyPassword', this);
+            });
+            
+            $('#toggleRefreshToken').click(function() {
+                togglePasswordVisibility('#alchemyRefreshToken', this);
+            });
+            
+            // Authenticate button
+            $('#authenticateBtn').click(function() {
+                const tenantId = $('#alchemyTenantId').val().trim();
+                const email = $('#alchemyEmail').val().trim();
+                const password = $('#alchemyPassword').val().trim();
+                
+                if (!tenantId || !email || !password) {
+                    showAuthStatus('error', 'Please provide all required credentials');
+                    return;
                 }
                 
-                authStatus.className = `alert ${statusClass} mt-2`;
-                authStatus.innerHTML = `${icon}${message}`;
-                authStatus.style.display = 'block';
-            }
+                // Disable button while authenticating
+                $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Authenticating...');
+                
+                // Show authentication in progress
+                showAuthStatus('info', 'Authenticating with Alchemy...');
+                
+                // Make API call to backend authentication endpoint
+                $.ajax({
+                    url: '/authenticate-alchemy',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        tenant_id: tenantId,
+                        email: email,
+                        password: password
+                    }),
+                    success: function(response) {
+                        // Re-enable button
+                        $('#authenticateBtn').prop('disabled', false).html('<i class="fas fa-sign-in-alt me-2"></i>Authenticate with Alchemy');
+                        
+                        if (response.status === 'success') {
+                            isAuthenticated = true;
+                            showAuthStatus('success', 'Authentication successful! You can proceed to the next step.');
+                            
+                            // Copy tenant ID to direct form for consistency
+                            $('#alchemyTenantIdDirect').val(tenantId);
+                            
+                            // Enable next button
+                            $('#nextBtn').prop('disabled', false);
+                            
+                            // Show toast
+                            showToast('success', 'Successfully authenticated with Alchemy');
+                        } else {
+                            showAuthStatus('error', response.message || 'Authentication failed');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        // Re-enable button
+                        $('#authenticateBtn').prop('disabled', false).html('<i class="fas fa-sign-in-alt me-2"></i>Authenticate with Alchemy');
+                        
+                        let errorMessage = 'Authentication failed';
+                        try {
+                            const response = JSON.parse(xhr.responseText);
+                            errorMessage = response.message || response.error || errorMessage;
+                        } catch (e) {
+                            errorMessage = `Error: ${error}`;
+                        }
+                        
+                        showAuthStatus('error', errorMessage);
+                    }
+                });
+            });
+            
+            // Next button
+            $('#nextBtn').click(function() {
+                // For now, simplified validation
+                if (currentStep === 1) {
+                    if ($('#authMethodAuto').is(':checked') && !isAuthenticated) {
+                        const authStatus = $('#authStatus');
+                        if (authStatus.is(':hidden') || !authStatus.hasClass('alert-success')) {
+                            showToast('error', 'Please authenticate first');
+                            return;
+                        }
+                    } else if ($('#authMethodToken').is(':checked')) {
+                        const tenantId = $('#alchemyTenantIdDirect').val().trim();
+                        const refreshToken = $('#alchemyRefreshToken').val().trim();
+                        
+                        if (!tenantId || !refreshToken) {
+                            showToast('error', 'Please provide tenant ID and refresh token');
+                            return;
+                        }
+                    }
+                }
+                
+                // Move to next step
+                currentStep++;
+                updateProgressUI();
+            });
+            
+            // Back button (we're using link back to home, but could be extended)
+            
+            // Save button (for demo, just show success)
+            $('#saveBtn').click(function() {
+                showToast('success', 'Configuration saved successfully!');
+                setTimeout(function() {
+                    window.location.href = '/';
+                }, 2000);
+            });
         });
+        
+        // Update progress UI based on current step
+        function updateProgressUI() {
+            // Hide all steps
+            $('.step-content').hide();
+            
+            // Show current step
+            $(`#step${currentStep}`).show();
+            
+            // Update progress bar
+            const progress = (currentStep / 3) * 100;
+            $('#progressBar').css('width', `${progress}%`);
+            $('#progressStep').text(`Step ${currentStep} of 3`);
+            
+            // Update buttons
+            if (currentStep === 3) {
+                $('#nextBtn').hide();
+                $('#saveBtn').show();
+            } else {
+                $('#nextBtn').show();
+                $('#saveBtn').hide();
+            }
+        }
+        
+        // Toggle password visibility
+        function togglePasswordVisibility(inputId, toggleButton) {
+            const input = $(inputId);
+            const type = input.attr('type') === 'password' ? 'text' : 'password';
+            input.attr('type', type);
+            
+            // Toggle icon
+            const icon = $(toggleButton).find('i');
+            if (type === 'text') {
+                icon.removeClass('fa-eye').addClass('fa-eye-slash');
+            } else {
+                icon.removeClass('fa-eye-slash').addClass('fa-eye');
+            }
+        }
+        
+        // Show authentication status
+        function showAuthStatus(type, message) {
+            const authStatus = $('#authStatus');
+            let alertClass = 'alert-info';
+            let icon = '<i class="fas fa-info-circle me-2"></i>';
+            
+            if (type === 'success') {
+                alertClass = 'alert-success';
+                icon = '<i class="fas fa-check-circle me-2"></i>';
+            } else if (type === 'error') {
+                alertClass = 'alert-danger';
+                icon = '<i class="fas fa-exclamation-circle me-2"></i>';
+            }
+            
+            authStatus.removeClass('alert-success alert-danger alert-info')
+                     .addClass(alertClass)
+                     .html(icon + message)
+                     .show();
+        }
+        
+        // Show toast notification
+        function showToast(type, message) {
+            const toast = $('<div>').addClass('toast');
+            
+            if (type === 'success') {
+                toast.addClass('success');
+                toast.html('<i class="fas fa-check-circle me-2"></i>' + message);
+            } else if (type === 'error') {
+                toast.addClass('error');
+                toast.html('<i class="fas fa-exclamation-circle me-2"></i>' + message);
+            } else {
+                toast.html('<i class="fas fa-info-circle me-2"></i>' + message);
+            }
+            
+            $('#toastContainer').append(toast);
+            
+            // Auto-remove after 3 seconds
+            setTimeout(function() {
+                toast.fadeOut(300, function() {
+                    $(this).remove();
+                });
+            }, 3000);
+        }
     </script>
 </body>
 </html>
