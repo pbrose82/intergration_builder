@@ -311,25 +311,35 @@
                         <!-- HubSpot Configuration -->
                         <div id="hubspotConfig" class="platform-config" {% if platform != 'hubspot' %}style="display: none;"{% endif %}>
                             <div class="mb-3">
-                                <label for="hubspotApiKey" class="form-label">API Key</label>
+                                <label for="hubspotApiKey" class="form-label">Access Token</label>
                                 <div class="input-group">
-                                    <input type="password" class="form-control" id="hubspotApiKey" placeholder="HubSpot API Key">
+                                    <input type="password" class="form-control" id="hubspotApiKey" placeholder="HubSpot Access Token">
                                     <span class="input-group-text" id="toggleHubspotApiKey" style="cursor: pointer;">
                                         <i class="fas fa-eye"></i>
                                     </span>
                                 </div>
                                 <div class="form-text">
-                                    Enter your HubSpot Private App API Key
+                                    Enter your HubSpot OAuth Access Token
                                 </div>
                             </div>
                             <div class="mb-3">
-                                <label for="hubspotPortalId" class="form-label">Portal ID</label>
-                                <input type="text" class="form-control" id="hubspotPortalId" placeholder="HubSpot Portal ID">
+                                <label for="hubspotPortalId" class="form-label">Client Secret</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="hubspotPortalId" placeholder="HubSpot Client Secret">
+                                    <span class="input-group-text" id="toggleHubspotSecret" style="cursor: pointer;">
+                                        <i class="fas fa-eye"></i>
+                                    </span>
+                                </div>
                                 <div class="form-text">
-                                    Your HubSpot Portal/Hub ID number
+                                    Your HubSpot Client Secret for OAuth
                                 </div>
                             </div>
-                            <!-- Additional HubSpot UI elements will be added dynamically -->
+                            <div class="text-end mb-3">
+                                <button type="button" id="validateHubspotBtn" class="btn btn-outline-primary">
+                                    <i class="fas fa-check-circle me-2"></i>Validate Credentials
+                                </button>
+                            </div>
+                            <div id="hubspotStatus" class="alert mt-3" style="display: none;"></div>
                         </div>
                     </div>
                 </div>
@@ -429,6 +439,14 @@
                 togglePasswordVisibility('#alchemyRefreshToken', this);
             });
             
+            $('#toggleHubspotApiKey').click(function() {
+                togglePasswordVisibility('#hubspotApiKey', this);
+            });
+            
+            $('#toggleHubspotSecret').click(function() {
+                togglePasswordVisibility('#hubspotPortalId', this);
+            });
+            
             // Authenticate button
             $('#authenticateBtn').click(function() {
                 const tenantId = $('#alchemyTenantId').val().trim();
@@ -521,6 +539,11 @@
             
             // Save button (for demo, just show success)
             $('#saveBtn').click(function() {
+                // If on HubSpot platform, the click event is handled by hubspot-integration.js
+                if (window.location.href.includes('platform=hubspot')) {
+                    return;
+                }
+                
                 showToast('success', 'Configuration saved successfully!');
                 setTimeout(function() {
                     window.location.href = '/';
@@ -586,12 +609,18 @@
                                 showToast('success', 'Successfully fetched ' + response.fields.length + ' fields');
                             }
                             
-                            // Proceed to next step
-                            currentStep++;
-                            updateProgressUI();
-                            
-                            // Populate field mapping UI
-                            populateFieldMappings(response.fields);
+                            // For HubSpot, we need an extra step for object selection
+                            if (window.location.href.includes('platform=hubspot')) {
+                                // Let the HubSpot JS handle this
+                                // It will show object type selection
+                            } else {
+                                // Proceed to next step
+                                currentStep++;
+                                updateProgressUI();
+                                
+                                // Populate field mapping UI
+                                populateFieldMappings(response.fields);
+                            }
                         } else {
                             // Handle non-success but valid response
                             showToast('error', response.message || 'Failed to fetch fields');
@@ -730,11 +759,15 @@
             const mappingContainer = $('#fieldMappings');
             mappingContainer.empty();
             
+            // Get the platform name from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const platform = urlParams.get('platform') || 'salesforce';
+            
             // Create field mapping header
             mappingContainer.append(`
                 <div class="alert alert-info mb-3">
                     <i class="fas fa-info-circle me-2"></i>
-                    Map fields between Alchemy and Salesforce
+                    Map fields between Alchemy and ${platform.charAt(0).toUpperCase() + platform.slice(1)}
                 </div>
             `);
             
@@ -755,7 +788,7 @@
                         </div>
                         <div class="col-5">
                             <select class="form-select platform-field">
-                                <option value="">-- Select Salesforce Field --</option>
+                                <option value="">-- Select ${platform.charAt(0).toUpperCase() + platform.slice(1)} Field --</option>
                             </select>
                         </div>
                         <div class="col-1">
