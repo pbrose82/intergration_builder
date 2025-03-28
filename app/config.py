@@ -28,9 +28,12 @@ class Config:
     SALESFORCE_SECURITY_TOKEN = os.getenv('SALESFORCE_SECURITY_TOKEN', '')
     SALESFORCE_DOMAIN = os.getenv('SALESFORCE_DOMAIN', 'test')
     
-    # HubSpot Configuration
+    # HubSpot Configuration - support for both API key and OAuth
     HUBSPOT_API_KEY = os.getenv('HUBSPOT_API_KEY', '')
     HUBSPOT_PORTAL_ID = os.getenv('HUBSPOT_PORTAL_ID', '')
+    # New OAuth specific variables
+    HUBSPOT_ACCESS_TOKEN = os.getenv('HUBSPOT_ACCESS_TOKEN', '')
+    HUBSPOT_CLIENT_SECRET = os.getenv('HUBSPOT_CLIENT_SECRET', '')
     
     # Logging
     LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
