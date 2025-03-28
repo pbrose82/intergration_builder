@@ -1,13 +1,14 @@
 import requests
 import logging
 import json
+import traceback
 
 # Set up logger
 logger = logging.getLogger(__name__)
 
 def get_alchemy_access_token(refresh_token, tenant_id):
     """Get access token from refresh token using the working method from scanner app"""
-    # Use the working API endpoint from the scanner
+    # Use the working API endpoint
     refresh_url = "https://core-production.alchemy.cloud/core/api/v2/refresh-token"
     
     # Mask token for logging
@@ -15,7 +16,7 @@ def get_alchemy_access_token(refresh_token, tenant_id):
     logger.info(f"Attempting to get access token for tenant {tenant_id} with refresh token {masked_token}")
     
     try:
-        # Use PUT with JSON payload (matching scanner implementation)
+        # Use PUT with JSON payload
         response = requests.put(
             refresh_url, 
             json={"refreshToken": refresh_token},
@@ -34,13 +35,21 @@ def get_alchemy_access_token(refresh_token, tenant_id):
                 
                 if tenant_token:
                     logger.info(f"Found token for tenant {tenant_id}")
-                    return tenant_token.get("accessToken")
+                    access_token = tenant_token.get("accessToken")
+                    # Log success with masked token
+                    masked_access = access_token[:5] + "..." if access_token and len(access_token) > 5 else "None"
+                    logger.info(f"Access token obtained successfully: {masked_access}")
+                    return access_token
                 else:
                     # Log available tenants for debugging
                     available_tenants = [t.get("tenant") for t in data.get("tokens", [])]
                     logger.error(f"Tenant {tenant_id} not found in response. Available tenants: {available_tenants}")
             else:
                 logger.error("No tokens array in response or invalid format")
+                try:
+                    logger.error(f"Response content: {json.dumps(data)}")
+                except:
+                    logger.error(f"Response content (not JSON): {data}")
                 
             return None
         else:
@@ -53,6 +62,7 @@ def get_alchemy_access_token(refresh_token, tenant_id):
             return None
     except Exception as e:
         logger.error(f"Exception getting access token: {str(e)}")
+        logger.error(traceback.format_exc())
         return None
 
 def get_alchemy_record_types(access_token, tenant_id):
@@ -83,6 +93,7 @@ def get_alchemy_record_types(access_token, tenant_id):
             return []
     except Exception as e:
         logger.error(f"Exception getting record types: {str(e)}")
+        logger.error(traceback.format_exc())
         return []
 
 def fetch_alchemy_fields(tenant_id, refresh_token, record_type):
@@ -106,34 +117,50 @@ def fetch_alchemy_fields(tenant_id, refresh_token, record_type):
     
     # Now fetch the fields using the access token
     try:
-        base_url = "https://core-production.alchemy.cloud"
-        
-        # Log token info (masked)
-        logger.info(f"Access token: {access_token[:5]}...")
-        
-        # Now fetch the fields
         headers = {
             "Authorization": f"Bearer {access_token}",
             "Content-Type": "application/json"
         }
         
+        # First try the record-templates endpoint to get fields metadata
+        try:
+            templates_url = "https://core-production.alchemy.cloud/core/api/v2/record-templates"
+            logger.info(f"Fetching templates from {templates_url}")
+            
+            templates_response = requests.get(templates_url, headers=headers)
+            
+            if templates_response.status_code == 200:
+                templates_data = templates_response.json()
+                
+                # Find the matching template
+                template = next((t for t in templates_data if t.get("identifier") == record_type), None)
+                
+                if template and "fields" in template:
+                    template_fields = template.get("fields", [])
+                    
+                    if template_fields:
+                        logger.info(f"Found {len(template_fields)} fields in template metadata")
+                        return [{"identifier": f.get("identifier"), "name": f.get("displayName", f.get("name", f.get("identifier")))} 
+                                for f in template_fields]
+            
+            logger.warning("Could not get fields from templates, trying filter-records endpoint")
+        except Exception as template_error:
+            logger.error(f"Error getting template metadata: {str(template_error)}")
+        
+        # If template approach fails, try using filter-records
         body = {
             "queryTerm": "Result.Status == 'Valid'",
             "recordTemplateIdentifier": record_type,
             "drop": 0,
-            "take": 1,  # We only need one record to get the fields
+            "take": 1,
             "lastChangedOnFrom": "2021-03-03T00:00:00Z",
             "lastChangedOnTo": "2028-03-04T00:00:00Z"
         }
         
-        filter_url = f"{base_url}/core/api/v2/filter-records"
+        filter_url = "https://core-production.alchemy.cloud/core/api/v2/filter-records"
         logger.info(f"Fetching fields from {filter_url} with payload: {json.dumps(body)}")
         
-        response = requests.put(
-            filter_url,
-            headers=headers,
-            json=body
-        )
+        response = requests.put(filter_url, headers=headers, json=body)
         
         logger.info(f"Fields response status: {response.status_code}")
         
@@ -141,41 +168,45 @@ def fetch_alchemy_fields(tenant_id, refresh_token, record_type):
             logger.error(f"Failed to get fields: {response.text}")
             return fallback_fields
             
-        records_data = response.json()
+        data = response.json()
         
-        # Log a sample of the records_data for debugging
-        logger.debug(f"Records data sample: {json.dumps(records_data)[:1000]}")
-        
-        # Process the response based on the provided sample structure
-        # Check if we have a list of records with at least one entry
-        if not records_data or not isinstance(records_data, list) or len(records_data) == 0:
-            logger.warning(f"No records found for type {record_type}")
-            return fallback_fields
+        # Check if we have records
+        if isinstance(data, list) and len(data) > 0 and "fields" in data[0]:
+            # Extract fields from the first record
+            record_fields = data[0].get("fields", [])
             
-        # Get the first record
-        first_record = records_data[0]
+            if record_fields:
+                fields = []
+                for field in record_fields:
+                    if "identifier" in field:
+                        fields.append({
+                            "identifier": field["identifier"],
+                            "name": field.get("displayName", field.get("name", field["identifier"]))
+                        })
+                
+                logger.info(f"Successfully extracted {len(fields)} fields from response")
+                return fields
         
-        # Based on sample, fields are in a top-level 'fields' array
-        if "fields" not in first_record or not isinstance(first_record["fields"], list):
-            logger.warning("No fields array in record or invalid format")
-            return fallback_fields
+        # Check for fieldValues instead of fields
+        elif isinstance(data, list) and len(data) > 0 and "fieldValues" in data[0]:
+            # Extract field keys from the first record
+            field_values = data[0].get("fieldValues", {})
+            
+            if field_values:
+                fields = []
+                for key in field_values.keys():
+                    fields.append({
+                        "identifier": key,
+                        "name": key
+                    })
+                
+                logger.info(f"Successfully extracted {len(fields)} fields from fieldValues")
+                return fields
         
-        # Extract fields from the fields array
-        fields = []
-        for field_obj in first_record["fields"]:
-            if "identifier" in field_obj:
-                fields.append({
-                    "identifier": field_obj["identifier"],
-                    "name": field_obj["identifier"]  # Use identifier as name
-                })
-        
-        if not fields:
-            logger.warning("No fields extracted from response")
-            return fallback_fields
-        
-        logger.info(f"Successfully extracted {len(fields)} fields from response")
-        return fields
+        logger.warning("No fields found in API response, returning fallback fields")
+        return fallback_fields
         
     except Exception as e:
         logger.error(f"Exception fetching fields: {str(e)}")
+        logger.error(traceback.format_exc())
         return fallback_fields
