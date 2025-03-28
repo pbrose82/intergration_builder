@@ -51,89 +51,71 @@
             margin: 0;
         }
         
-        /* Platform selection styles */
-        .platform-section {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-            padding: 25px;
-        }
-        
+        /* Platform card styles */
         .platform-card {
-            background-color: white;
             border-radius: 8px;
-            border: 1px solid #e0e0e0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             padding: 20px;
+            background-color: white;
             text-align: center;
-            transition: all 0.3s ease;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
             height: 100%;
             display: flex;
             flex-direction: column;
-            align-items: center;
         }
         
         .platform-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
         
-        .integration-logo {
+        .platform-icon {
+            width: 60px;
             height: 60px;
-            margin-bottom: 15px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            font-size: 24px;
         }
         
-        /* Form styles */
-        .integration-form {
+        .platform-icon.salesforce {
+            background-color: #1798c1;
+            color: white;
+        }
+        
+        .platform-icon.hubspot {
+            background-color: #ff7a59;
+            color: white;
+        }
+        
+        .platform-icon.sap {
+            background-color: #0faaff;
+            color: white;
+        }
+        
+        /* Integration list styles */
+        .integration-list {
             background-color: white;
             border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            padding: 25px;
-        }
-        
-        .form-title {
-            color: var(--alchemy-dark);
-            font-weight: 600;
-            font-size: 18px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
             margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #e0e0e0;
         }
         
-        .form-section {
-            margin-bottom: 25px;
-        }
-        
-        .form-label {
+        .integration-list .table th {
+            font-weight: 600;
             color: var(--alchemy-dark);
-            font-weight: 500;
-            margin-bottom: 8px;
         }
         
-        .form-control, .form-select {
-            border-radius: 4px;
-            padding: 10px 15px;
-            border: 1px solid #dee2e6;
-            height: auto;
+        .integration-list .table td {
+            vertical-align: middle;
         }
         
-        .form-control:focus, .form-select:focus {
-            border-color: var(--alchemy-light-blue);
-            box-shadow: 0 0 0 3px rgba(63, 136, 246, 0.15);
-        }
-        
-        /* Button styles */
-        .btn-primary {
-            background-color: var(--alchemy-blue);
-            border-color: var(--alchemy-blue);
-            border-radius: 4px;
-            padding: 10px 20px;
-            font-weight: 500;
-        }
-        
-        .btn-primary:hover {
-            background-color: var(--alchemy-light-blue);
-            border-color: var(--alchemy-light-blue);
+        .empty-state {
+            padding: 40px 20px;
+            text-align: center;
         }
         
         /* Footer styles */
@@ -159,6 +141,33 @@
             font-size: 12px;
             font-weight: 500;
         }
+        
+        /* Toast styles */
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1050;
+        }
+        
+        .toast {
+            background-color: white;
+            border-left: 4px solid var(--alchemy-blue);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            min-width: 280px;
+        }
+        
+        .toast.success {
+            border-left-color: var(--alchemy-green);
+        }
+        
+        .toast.error {
+            border-left-color: var(--alchemy-red);
+        }
+        
+        .toast.warning {
+            border-left-color: #FFC107;
+        }
     </style>
 </head>
 <body>
@@ -173,52 +182,74 @@
     </div>
 
     <div class="container py-4">
-        <!-- Platform Selection -->
-        <div class="platform-section">
-            <h4 class="mb-4 text-center">Select Integration Platform</h4>
-            <div class="row g-4 justify-content-center">
-                <div class="col-md-4 col-lg-3">
-                    <div class="platform-card">
-                        <img src="{{ url_for('static', filename='salesforce.png') }}" class="integration-logo" alt="Salesforce">
-                        <h5>Salesforce</h5>
-                        <p class="text-muted">Customer Relationship Management</p>
-                        <form action="/select-platform" method="post">
-                            <input type="hidden" name="platform" value="salesforce">
-                            <button type="submit" class="btn btn-primary mt-auto">Select Salesforce</button>
-                        </form>
+        <!-- Page Title & Actions -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="h4 mb-0">Integrations</h2>
+            <button id="addIntegrationBtn" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Add Integration
+            </button>
+        </div>
+        
+        <!-- Integrations List -->
+        <div class="integration-list">
+            <div id="integrationsContainer">
+                <!-- Loading state - will be replaced by JS -->
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
                     </div>
+                    <p class="mt-2">Loading integrations...</p>
                 </div>
-                <div class="col-md-4 col-lg-3">
-                    <div class="platform-card">
-                        <img src="{{ url_for('static', filename='sap.png') }}" class="integration-logo" alt="SAP">
-                        <h5>SAP</h5>
-                        <p class="text-muted">Enterprise Resource Planning</p>
-                        <form action="/select-platform" method="post">
-                            <input type="hidden" name="platform" value="sap">
-                            <button type="submit" class="btn btn-primary mt-auto">Select SAP</button>
-                        </form>
+            </div>
+        </div>
+        
+        <!-- Platform Information -->
+        <div class="row g-4 mt-2">
+            <div class="col-md-4">
+                <div class="platform-card">
+                    <div class="platform-icon salesforce">
+                        <i class="fas fa-cloud"></i>
                     </div>
+                    <h5>Salesforce</h5>
+                    <p class="text-muted">Integrate Alchemy with Salesforce CRM. Sync contacts, leads, opportunities and more.</p>
                 </div>
-                <div class="col-md-4 col-lg-3">
-                    <div class="platform-card">
-                        <img src="{{ url_for('static', filename='hubspot.png') }}" class="integration-logo" alt="Hubspot">
-                        <h5>HubSpot</h5>
-                        <p class="text-muted">Marketing & CRM Platform</p>
-                        <form action="/select-platform" method="post">
-                            <input type="hidden" name="platform" value="hubspot">
-                            <button type="submit" class="btn btn-primary mt-auto">Select HubSpot</button>
-                        </form>
+            </div>
+            <div class="col-md-4">
+                <div class="platform-card">
+                    <div class="platform-icon hubspot">
+                        <i class="fas fa-h-square"></i>
                     </div>
+                    <h5>HubSpot</h5>
+                    <p class="text-muted">Connect Alchemy with HubSpot for seamless customer data synchronization.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="platform-card">
+                    <div class="platform-icon sap">
+                        <i class="fas fa-database"></i>
+                    </div>
+                    <h5>SAP</h5>
+                    <p class="text-muted">Link Alchemy with SAP ERP systems to maintain consistent data across platforms.</p>
                 </div>
             </div>
         </div>
     </div>
-
+    
+    <!-- Toast Container for Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
+    
     <!-- Footer -->
     <div class="footer">
         <div class="footer-content">
             <div class="copyright">© ALCHEMY CLOUD, INC. ALL RIGHTS RESERVED.</div>
         </div>
     </div>
+
+    <!-- jQuery and Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JS for index page -->
+    <script src="{{ url_for('static', filename='js/index.js') }}"></script>
 </body>
 </html>
