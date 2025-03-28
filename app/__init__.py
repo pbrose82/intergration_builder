@@ -36,6 +36,22 @@ def create_app():
         app.logger.info("Troubleshooting routes registered successfully")
     except Exception as e:
         app.logger.warning(f"Could not register troubleshooting routes: {str(e)}")
+        
+    # Import and register HubSpot routes
+    try:
+        from app.hubspot_routes import hubspot_bp
+        app.register_blueprint(hubspot_bp)
+        app.logger.info("HubSpot routes registered successfully")
+    except Exception as e:
+        app.logger.warning(f"Could not register HubSpot routes: {str(e)}")
+        
+    # Import and register integration routes
+    try:
+        from app.integration_routes import integration_bp
+        app.register_blueprint(integration_bp)
+        app.logger.info("Integration routes registered successfully")
+    except Exception as e:
+        app.logger.warning(f"Could not register integration routes: {str(e)}")
 
     # Create database tables within the application context
     with app.app_context():
