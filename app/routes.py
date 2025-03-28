@@ -78,44 +78,42 @@ def get_fields():
         
         current_app.logger.info(f"Field fetch request for record type: {record_type} in tenant: {tenant_id}")
 
-        # We need the email and password for direct authentication
+        # This is now a marker to use session credentials
         if refresh_token == "session" and tenant_id:
-            # Get email and password from session
+            # Verify we have credentials
             if 'alchemy_credentials' in session and tenant_id in session['alchemy_credentials']:
-                credentials = session['alchemy_credentials'][tenant_id]
                 current_app.logger.info(f"Using credentials from session for tenant {tenant_id}")
+            elif 'alchemy_tokens' in session and tenant_id in session['alchemy_tokens']:
+                # Fall back to refresh token if available
+                refresh_token = session['alchemy_tokens'][tenant_id].get('refresh_token')
+                current_app.logger.info(f"Using refresh token from session for tenant {tenant_id}")
             else:
-                current_app.logger.error(f"No credentials found in session for tenant {tenant_id}")
+                current_app.logger.error(f"No credentials or tokens found in session for tenant {tenant_id}")
                 return jsonify({
                     "status": "error",
-                    "message": "Authentication required. Please authenticate with email and password first."
+                    "message": "Authentication required. Please authenticate first."
                 }), 401
-        else:
-            # They're using direct token authentication which we don't support anymore
-            current_app.logger.error("Direct token authentication not supported")
-            return jsonify({
-                "status": "error",
-                "message": "Direct token authentication is not supported. Please use email/password authentication."
-            }), 400
-
-        if not tenant_id or not credentials or not record_type:
+        
+        if not tenant_id or not record_type:
             current_app.logger.error("Missing required parameters")
             return jsonify({
                 "status": "error", 
                 "message": "Missing one or more required fields"
             }), 400
 
-        # Call the service to fetch fields with credentials
+        # Call the service to fetch fields (now supports direct auth)
         current_app.logger.info(f"Fetching fields for record type {record_type}")
         try:
-            fields = fetch_alchemy_fields(tenant_id, credentials, record_type)
+            fields = fetch_alchemy_fields(tenant_id, refresh_token, record_type)
             
             if not fields:
                 current_app.logger.warning(f"No fields returned for record type {record_type}")
+                # Return a minimal response with empty fields instead of error
                 return jsonify({
-                    "status": "error",
-                    "message": f"No fields found for record type {record_type}"
-                }), 404
+                    "status": "warning",
+                    "message": f"No fields found for record type {record_type}",
+                    "fields": []
+                })
                 
             current_app.logger.info(f"Successfully fetched {len(fields)} fields for record type {record_type}")
             return jsonify({
@@ -129,7 +127,7 @@ def get_fields():
             return jsonify({
                 "status": "error",
                 "message": str(e)
-            }), 401
+            }), 500
             
     except Exception as e:
         current_app.logger.error(f"Failed to fetch fields: {str(e)}")
@@ -188,7 +186,7 @@ def save_integration():
 def authenticate_alchemy():
     """
     Authenticate with Alchemy using username/password to get a refresh token
-    and store both token and credentials in the session
+    and store both token and email/password in the session
     """
     try:
         data = request.get_json()
@@ -274,10 +272,11 @@ def authenticate_alchemy():
             'timestamp': datetime.now().isoformat()
         }
         
-        # Also store the credentials in the session for direct authentication if needed
+        # IMPORTANT: Also store the email/password credentials in the session
+        # This is the key change to support direct authentication
         if 'alchemy_credentials' not in session:
             session['alchemy_credentials'] = {}
-            
+        
         session['alchemy_credentials'][tenant_id] = {
             'email': email,
             'password': password
