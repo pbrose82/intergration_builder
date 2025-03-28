@@ -22,9 +22,9 @@ def create_app():
     from .routes import main_bp
     app.register_blueprint(main_bp)
 
-    # Import and register troubleshooting routes
-    from troubleshoot_routes import troubleshoot_bp
-    app.register_blueprint(troubleshoot_bp)
+    # Simply don't register the troubleshoot blueprint for now
+    # to get the application working without the troubleshooting routes
+    # Note: We'll add them back once the app is stable
 
     # Create database tables within the application context
     with app.app_context():
