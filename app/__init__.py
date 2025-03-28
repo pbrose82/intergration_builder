@@ -22,9 +22,8 @@ def create_app():
     from .routes import main_bp
     app.register_blueprint(main_bp)
 
-    # Simply don't register the troubleshoot blueprint for now
-    # to get the application working without the troubleshooting routes
-    # Note: We'll add them back once the app is stable
+    # No troubleshooting routes for now
+    # We'll add them back once the app is stable
 
     # Create database tables within the application context
     with app.app_context():
@@ -49,17 +48,23 @@ def configure_logging(app):
         '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
     ))
 
-    # Set log level from config
-    log_level = app.config.get('LOG_LEVEL', 'INFO')
+    # Set log level from config - use DEBUG for now to get more information
+    log_level = app.config.get('LOG_LEVEL', 'DEBUG')
     file_handler.setLevel(log_level)
     
     # Add handler to app logger
     app.logger.addHandler(file_handler)
     app.logger.setLevel(log_level)
     
-    # Ensure other libraries' loggers don't overwhelm our logs with DEBUG messages
+    # Configure other loggers for debugging
+    logging.getLogger('urllib3').setLevel(logging.WARNING)
     logging.getLogger('werkzeug').setLevel(logging.WARNING)
     logging.getLogger('sqlalchemy').setLevel(logging.WARNING)
+    
+    # Make sure our service logger has DEBUG level
+    service_logger = logging.getLogger('services.alchemy_service')
+    service_logger.setLevel(logging.DEBUG)
+    service_logger.addHandler(file_handler)
     
     # Log startup
     app.logger.info('Integration Platform startup')
