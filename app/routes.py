@@ -33,10 +33,12 @@ def get_record_types():
         if not tenant_id or not refresh_token:
             return jsonify({"error": "Missing tenant_id or refresh_token"}), 400
 
+        # Get access token using improved method
         access_token = get_alchemy_access_token(refresh_token, tenant_id)
         if not access_token:
             return jsonify({"error": "Unable to get access token"}), 401
 
+        # Fetch record types
         record_types = get_alchemy_record_types(access_token, tenant_id)
         if not record_types:
             return jsonify({"error": "Failed to fetch record types"}), 500
@@ -46,27 +48,6 @@ def get_record_types():
     except Exception as e:
         logging.error(f"Failed to get record types: {str(e)}")
         return jsonify({"error": f"Unexpected error: {str(e)}"}), 500
-
-# Add this route to your app/routes.py file
-
-@main_bp.route('/select-platform', methods=['POST'])
-def select_platform():
-    """
-    Handle platform selection form submission
-    """
-    platform = request.form.get('platform')
-    
-    if not platform:
-        current_app.logger.error("No platform specified in form submission")
-        return jsonify({"error": "No platform specified"}), 400
-    
-    current_app.logger.info(f"Platform selected: {platform}")
-    
-    # Store the selected platform in session
-    session['selected_platform'] = platform
-    
-    # Redirect to the configuration page
-    return render_template('config.html', platform=platform)
 
 @main_bp.route('/get-alchemy-fields', methods=['POST'])
 def get_fields():
@@ -99,14 +80,11 @@ def get_fields():
                 "fields": []
             }), 400
 
-        # Get fields using service
+        # Get fields using improved service method
         fields = fetch_alchemy_fields(tenant_id, refresh_token, record_type)
         
         # Log the actual fields for debugging
         current_app.logger.info(f"Fields to return: {json.dumps(fields)}")
-        
-        # Always return a status along with fields
-        current_app.logger.info(f"Successfully fetched {len(fields)} fields for record type {record_type}")
         
         # Check if these are fallback fields
         is_fallback = len(fields) == 4 and fields[0]['identifier'] == 'Name' and fields[1]['identifier'] == 'Description'
@@ -134,57 +112,11 @@ def get_fields():
             "fields": []
         }), 500
 
-@main_bp.route('/save-integration', methods=['POST'])
-def save_integration():
-    try:
-        data = request.get_json()
-        
-        # Extract data from request
-        platform = data.get('platform')
-        alchemy_config = data.get('alchemy', {})
-        platform_config = data.get('platform_config', {})
-        record_type = data.get('record_type')
-        field_mappings = data.get('field_mappings', [])
-        
-        # Validate required fields
-        if not platform or not alchemy_config or not record_type or not field_mappings:
-            return jsonify({"status": "error", "message": "Missing required fields"}), 400
-        
-        # Create or update integration in database
-        integration = SalesforceIntegration(
-            alchemy_base_url=alchemy_config.get('tenant_id', ''),
-            alchemy_api_key=alchemy_config.get('refresh_token', ''), 
-            salesforce_username=platform_config.get('instance_url', ''),
-            sync_frequency='daily',  # Default value
-            is_active=True
-        )
-        
-        # Set field mappings
-        integration.set_field_mappings({
-            'record_type': record_type,
-            'mappings': field_mappings
-        })
-        
-        # Save to database
-        db.session.add(integration)
-        db.session.commit()
-        
-        return jsonify({
-            "status": "success", 
-            "message": "Integration configured successfully",
-            "id": integration.id
-        })
-        
-    except Exception as e:
-        logging.error(f"Failed to save integration: {str(e)}")
-        db.session.rollback()
-        return jsonify({"status": "error", "message": f"Unexpected error: {str(e)}"}), 500
-
 @main_bp.route('/authenticate-alchemy', methods=['POST'])
 def authenticate_alchemy():
     """
     Authenticate with Alchemy using username/password to get a refresh token
-    and store it in the session
+    and store it in the session - using the improved approach based on scanner
     """
     try:
         data = request.get_json()
@@ -288,176 +220,3 @@ def authenticate_alchemy():
             "status": "error",
             "message": f"Error: {str(e)}"
         }), 500
-        
-@main_bp.route('/get-session-token', methods=['POST'])
-def get_session_token():
-    """
-    Retrieve a stored refresh token from the session
-    """
-    try:
-        data = request.get_json()
-        tenant_id = data.get('tenant_id')
-        
-        if not tenant_id:
-            return jsonify({
-                "status": "error",
-                "message": "Missing tenant_id"
-            }), 400
-        
-        # Check if the token exists in the session
-        if 'alchemy_tokens' not in session or tenant_id not in session['alchemy_tokens']:
-            return jsonify({
-                "status": "error",
-                "message": "No token found for this tenant",
-                "authenticated": False
-            })
-        
-        # Return success with authentication status
-        return jsonify({
-            "status": "success",
-            "message": "Token found in session",
-            "authenticated": True,
-            "tenant_id": tenant_id
-        })
-        
-    except Exception as e:
-        current_app.logger.error(f"Error retrieving token from session: {str(e)}")
-        return jsonify({
-            "status": "error",
-            "message": f"Error: {str(e)}"
-        }), 500
-
-@main_bp.route('/test-alchemy-auth', methods=['POST'])
-def test_alchemy_auth():
-    """
-    Test Alchemy authentication with any tenant ID
-    """
-    try:
-        data = request.get_json()
-        tenant_id = data.get('tenant_id')
-        refresh_token = data.get('refresh_token')
-        auth_url = data.get('auth_url')
-        
-        if not tenant_id or not refresh_token:
-            return jsonify({
-                "status": "error",
-                "message": "Missing tenant_id or refresh_token"
-            }), 400
-        
-        # Use the provided auth URL or construct one with the tenant ID
-        if not auth_url:
-            auth_url = f"https://core-production.alchemy.cloud/auth/realms/{tenant_id}/protocol/openid-connect/token"
-        
-        current_app.logger.info(f"Testing authentication for tenant {tenant_id} with URL: {auth_url}")
-        
-        # Make the authentication request
-        response = requests.post(
-            auth_url,
-            data={
-                "grant_type": "refresh_token",
-                "client_id": "alchemy-web-client",
-                "refresh_token": refresh_token
-            }
-        )
-        
-        current_app.logger.info(f"Auth response status: {response.status_code}")
-        
-        if response.status_code != 200:
-            current_app.logger.error(f"Auth error: {response.text}")
-            
-            # Try to parse error details
-            error_details = {}
-            try:
-                error_details = response.json()
-            except:
-                error_details = {"raw_response": response.text}
-            
-            return jsonify({
-                "status": "error",
-                "message": f"Authentication failed with status {response.status_code}",
-                "error_details": error_details
-            })
-        
-        # Authentication successful
-        token_data = response.json()
-        
-        return jsonify({
-            "status": "success",
-            "message": "Authentication successful",
-            "access_token": token_data.get("access_token"),
-            "expires_in": token_data.get("expires_in"),
-            "token_type": token_data.get("token_type")
-        })
-        
-    except Exception as e:
-        current_app.logger.error(f"Error testing authentication: {str(e)}")
-        return jsonify({
-            "status": "error",
-            "message": f"Error: {str(e)}"
-        }), 500
-
-@main_bp.route('/test-record-types', methods=['POST'])
-def test_record_types():
-    """
-    Test fetching record types with a specific token
-    """
-    try:
-        data = request.get_json()
-        tenant_id = data.get('tenant_id')
-        access_token = data.get('access_token')
-        
-        if not tenant_id or not access_token:
-            return jsonify({
-                "status": "error",
-                "message": "Missing tenant_id or access_token"
-            }), 400
-        
-        current_app.logger.info(f"Testing record types API for tenant {tenant_id}")
-        
-        # Make request to get record types
-        url = "https://core-production.alchemy.cloud/core/api/v2/record-templates"
-        headers = {"Authorization": f"Bearer {access_token}"}
-        
-        response = requests.get(url, headers=headers)
-        
-        current_app.logger.info(f"Record types response status: {response.status_code}")
-        
-        if response.status_code != 200:
-            current_app.logger.error(f"Record types error: {response.text}")
-            return jsonify({
-                "status": "error",
-                "message": f"Failed to fetch record types: {response.status_code}"
-            })
-        
-        # Process the record types
-        record_types = []
-        for item in response.json():
-            record_types.append({
-                "identifier": item.get("identifier"),
-                "name": item.get("displayName", item.get("name", item.get("identifier")))
-            })
-        
-        return jsonify({
-            "status": "success",
-            "message": f"Successfully fetched {len(record_types)} record types",
-            "record_types": record_types
-        })
-        
-    except Exception as e:
-        current_app.logger.error(f"Error testing record types: {str(e)}")
-        return jsonify({
-            "status": "error",
-            "message": f"Error: {str(e)}"
-        }), 500
-
-@main_bp.route('/tenant-tester')
-def tenant_tester():
-    """
-    Serve the tenant testing tool page
-    """
-    return render_template('tenant_tester.html')
-
-@main_bp.route('/troubleshoot')
-def auth_troubleshooter():
-    """Serve the authentication troubleshooting tool"""
-    return render_template('auth_troubleshooter.html')
