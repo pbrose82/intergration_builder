@@ -112,6 +112,84 @@ def callback():
     except Exception as e:
         current_app.logger.error(f"Error in Salesforce callback: {str(e)}")
         return jsonify({"status": "error", "message": f"Error: {str(e)}"}), 500
+@salesforce_bp.route('/direct-auth', methods=['POST'])
+def direct_auth():
+    """
+    Directly authenticate with Salesforce using provided credentials
+    This is useful for testing without going through the OAuth flow
+    """
+    try:
+        data = request.get_json()
+        
+        # Get credentials from request
+        client_id = data.get('client_id')
+        client_secret = data.get('client_secret')
+        username = data.get('username')
+        password = data.get('password')
+        security_token = data.get('security_token', '')
+        
+        # Validate required fields
+        if not client_id or not client_secret or not username or not password:
+            return jsonify({
+                "status": "error", 
+                "message": "Missing required parameters"
+            }), 400
+        
+        # Combine password and security token if provided
+        password_with_token = password + security_token
+        
+        # Authenticate using username-password flow
+        auth_url = "https://login.salesforce.com/services/oauth2/token"
+        payload = {
+            'grant_type': 'password',
+            'client_id': client_id,
+            'client_secret': client_secret,
+            'username': username,
+            'password': password_with_token
+        }
+        
+        response = requests.post(auth_url, data=payload)
+        data = response.json()
+        
+        if response.status_code != 200 or 'error' in data:
+            error_msg = data.get('error_description', data.get('error', 'Unknown error'))
+            current_app.logger.error(f"Salesforce direct auth error: {error_msg}")
+            return jsonify({
+                "status": "error", 
+                "message": f"Authentication failed: {error_msg}"
+            }), 400
+        
+        # Extract tokens
+        access_token = data.get('access_token')
+        instance_url = data.get('instance_url')
+        
+        if not access_token or not instance_url:
+            return jsonify({
+                "status": "error", 
+                "message": "Invalid token response"
+            }), 400
+        
+        # Store tokens in session
+        if 'salesforce_tokens' not in session:
+            session['salesforce_tokens'] = {}
+        
+        session['salesforce_tokens'] = {
+            'access_token': access_token,
+            'instance_url': instance_url
+        }
+        
+        current_app.logger.info(f"Successfully authenticated with Salesforce using direct auth")
+        
+        return jsonify({
+            "status": "success",
+            "message": "Successfully authenticated with Salesforce",
+            "instance_url": instance_url,
+            "access_token": access_token[:10] + "..." # Show partial token for verification
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"Error in Salesforce direct auth: {str(e)}")
+        return jsonify({"status": "error", "message": f"Error: {str(e)}"}), 500
 
 @salesforce_bp.route('/get-fields', methods=['POST'])
 def get_fields():
