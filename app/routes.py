@@ -136,6 +136,21 @@ def get_fields():
             "fields": []
         }), 500
 
+@main_bp.route('/select-platform', methods=['GET'])
+def select_platform_page():
+    """
+    Render the platform selection page
+    """
+    current_app.logger.info("Rendering platform selection page")
+    return render_template('platform_select.html')
+
+@main_bp.route('/select-platform.html', methods=['GET'])
+def select_platform_html():
+    """
+    Alias for the platform selection page with .html extension
+    """
+    return select_platform_page()
+
 @main_bp.route('/select-platform', methods=['POST'])
 def select_platform():
     """
