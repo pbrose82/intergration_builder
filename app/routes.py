@@ -85,22 +85,54 @@ def get_fields():
                 current_app.logger.info(f"Using refresh token from session for tenant {tenant_id}")
             else:
                 current_app.logger.error(f"No session token found for tenant {tenant_id}")
-                return jsonify({"error": "No token in session for this tenant"}), 401
+                return jsonify({
+                    "status": "error", 
+                    "message": "No token in session for this tenant",
+                    "fields": []
+                }), 401
 
         if not tenant_id or not refresh_token or not record_type:
             current_app.logger.error("Missing required parameters")
-            return jsonify({"error": "Missing one or more required fields"}), 400
+            return jsonify({
+                "status": "error", 
+                "message": "Missing one or more required fields",
+                "fields": []
+            }), 400
 
         # Get fields using service
         fields = fetch_alchemy_fields(tenant_id, refresh_token, record_type)
         
-        # Return fields (the service will always return at least sample fields now)
+        # Log the actual fields for debugging
+        current_app.logger.info(f"Fields to return: {json.dumps(fields)}")
+        
+        # Always return a status along with fields
         current_app.logger.info(f"Successfully fetched {len(fields)} fields for record type {record_type}")
-        return jsonify({"fields": fields})
+        
+        # Check if these are fallback fields
+        is_fallback = len(fields) == 4 and fields[0]['identifier'] == 'Name' and fields[1]['identifier'] == 'Description'
+        
+        if is_fallback:
+            current_app.logger.warning("Returning fallback fields")
+            return jsonify({
+                "status": "warning",
+                "message": "Using fallback fields due to API issues",
+                "fields": fields
+            })
+        
+        return jsonify({
+            "status": "success",
+            "message": f"Successfully fetched {len(fields)} fields",
+            "fields": fields
+        })
         
     except Exception as e:
         current_app.logger.error(f"Failed to fetch fields: {str(e)}")
-        return jsonify({"error": f"Unexpected error: {str(e)}"}), 500
+        # Always include fields array for frontend compatibility
+        return jsonify({
+            "status": "error", 
+            "message": f"Unexpected error: {str(e)}",
+            "fields": []
+        }), 500
 
 @main_bp.route('/save-integration', methods=['POST'])
 def save_integration():
