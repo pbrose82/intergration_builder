@@ -1,24 +1,77 @@
 /**
  * Main index page JavaScript file
  * Handles integration listing and management
+ * With improved debugging and event handling
  */
 
+// Enable debug logging
+const DEBUG = true;
+
+// Debug logger function
+function debugLog(message, type = 'info') {
+    if (!DEBUG) return;
+    
+    const styles = {
+        info: 'color: #3498db',
+        success: 'color: #2ecc71',
+        warning: 'color: #f39c12',
+        error: 'color: #e74c3c'
+    };
+    
+    console.log(`%c[Integration Manager] ${message}`, styles[type] || styles.info);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Index page initialized');
+    debugLog('DOM loaded, initializing index page');
     
     // Load integrations if on index page
     const integrationsContainer = document.getElementById('integrationsContainer');
     if (integrationsContainer) {
+        debugLog('Found integrations container, loading integrations');
         loadIntegrations();
+    } else {
+        debugLog('No integrations container found, skipping load', 'warning');
     }
     
     // Add event listener for adding new integration
     const addIntegrationBtn = document.getElementById('addIntegrationBtn');
     if (addIntegrationBtn) {
-        addIntegrationBtn.addEventListener('click', function() {
-            window.location.href = '/platform-select.html';
+        debugLog('Found Add Integration button, adding click handler');
+        
+        addIntegrationBtn.addEventListener('click', function(event) {
+            debugLog('Add Integration button clicked');
+            event.preventDefault(); // Prevent default button behavior
+            
+            // Directly navigate to the selection page
+            debugLog('Navigating to platform selection page');
+            window.location.href = '/select-platform.html';
+        });
+        
+        // Add direct inline onclick handler as backup
+        addIntegrationBtn.onclick = function() {
+            debugLog('Add Integration button onclick triggered');
+            window.location.href = '/select-platform.html';
+            return false; // Prevent default
+        };
+    } else {
+        debugLog('Add Integration button not found', 'warning');
+    }
+    
+    // Also look for addFirstIntegrationBtn which might be present in empty state
+    const addFirstIntegrationBtn = document.getElementById('addFirstIntegrationBtn');
+    if (addFirstIntegrationBtn) {
+        debugLog('Found Add First Integration button, adding click handler');
+        
+        addFirstIntegrationBtn.addEventListener('click', function(event) {
+            debugLog('Add First Integration button clicked');
+            event.preventDefault();
+            
+            debugLog('Navigating to platform selection page');
+            window.location.href = '/select-platform.html';
         });
     }
+    
+    debugLog('Index page initialization complete', 'success');
 });
 
 /**
@@ -27,6 +80,8 @@ document.addEventListener('DOMContentLoaded', function() {
 function loadIntegrations() {
     const integrationsContainer = document.getElementById('integrationsContainer');
     if (!integrationsContainer) return;
+    
+    debugLog('Loading integrations');
     
     // Show loading
     integrationsContainer.innerHTML = `
@@ -40,8 +95,13 @@ function loadIntegrations() {
     
     // Fetch integrations
     fetch('/integrations')
-        .then(response => response.json())
+        .then(response => {
+            debugLog(`Received response with status: ${response.status}`);
+            return response.json();
+        })
         .then(data => {
+            debugLog(`Processed response data: ${data.status}`, data.status === 'success' ? 'success' : 'warning');
+            
             if (data.status === 'success') {
                 displayIntegrations(data.integrations);
             } else {
@@ -49,6 +109,7 @@ function loadIntegrations() {
             }
         })
         .catch(error => {
+            debugLog(`Error loading integrations: ${error.message}`, 'error');
             console.error('Error loading integrations:', error);
             showError('Error loading integrations. Please try again later.');
         });
@@ -62,15 +123,17 @@ function displayIntegrations(integrations) {
     if (!integrationsContainer) return;
     
     if (!integrations || integrations.length === 0) {
+        debugLog('No integrations found, displaying empty state');
+        
         integrationsContainer.innerHTML = `
             <div class="text-center py-5">
                 <div class="empty-state">
                     <i class="fas fa-plug fa-3x text-muted mb-3"></i>
                     <h4>No Integrations Yet</h4>
                     <p class="text-muted">You haven't created any integrations yet. Click the button below to get started.</p>
-                    <button id="addFirstIntegrationBtn" class="btn btn-primary mt-3">
+                    <a href="/select-platform.html" class="btn btn-primary mt-3" id="addFirstIntegrationBtn">
                         <i class="fas fa-plus me-2"></i>Create Integration
-                    </button>
+                    </a>
                 </div>
             </div>
         `;
@@ -78,8 +141,10 @@ function displayIntegrations(integrations) {
         // Add event listener to the new button
         const addFirstIntegrationBtn = document.getElementById('addFirstIntegrationBtn');
         if (addFirstIntegrationBtn) {
-            addFirstIntegrationBtn.addEventListener('click', function() {
-                window.location.href = '/platform-select.html';
+            addFirstIntegrationBtn.addEventListener('click', function(event) {
+                debugLog('Add First Integration button clicked');
+                event.preventDefault(); // Prevent default anchor behavior
+                window.location.href = '/select-platform.html';
             });
         }
         
@@ -87,6 +152,8 @@ function displayIntegrations(integrations) {
     }
     
     // Create integrations table
+    debugLog(`Displaying ${integrations.length} integrations`);
+    
     let html = `
         <div class="table-responsive">
             <table class="table table-hover">
@@ -182,6 +249,8 @@ function displayIntegrations(integrations) {
  * Show error message
  */
 function showError(message) {
+    debugLog(`Showing error: ${message}`, 'error');
+    
     const integrationsContainer = document.getElementById('integrationsContainer');
     if (!integrationsContainer) return;
     
@@ -232,7 +301,7 @@ function capitalize(string) {
  * View integration details
  */
 function viewIntegration(id) {
-    console.log('Viewing integration', id);
+    debugLog(`Viewing integration ${id}`);
     // Navigate to view page
     window.location.href = `/view-integration.html?id=${id}`;
 }
@@ -241,6 +310,7 @@ function viewIntegration(id) {
  * Confirm deletion of integration
  */
 function confirmDeleteIntegration(id) {
+    debugLog(`Confirming deletion of integration ${id}`);
     if (confirm('Are you sure you want to delete this integration? This action cannot be undone.')) {
         deleteIntegration(id);
     }
@@ -250,6 +320,8 @@ function confirmDeleteIntegration(id) {
  * Delete integration
  */
 function deleteIntegration(id) {
+    debugLog(`Deleting integration ${id}`);
+    
     // Show loading on the row
     const row = document.querySelector(`tr[data-integration-id="${id}"]`);
     if (row) {
@@ -270,6 +342,8 @@ function deleteIntegration(id) {
     })
         .then(response => response.json())
         .then(data => {
+            debugLog(`Delete response: ${data.status}`, data.status === 'success' ? 'success' : 'error');
+            
             if (data.status === 'success') {
                 // Remove row with animation
                 if (row) {
@@ -297,6 +371,7 @@ function deleteIntegration(id) {
             }
         })
         .catch(error => {
+            debugLog(`Error deleting integration: ${error.message}`, 'error');
             console.error('Error deleting integration:', error);
             showToast('error', 'Error deleting integration. Please try again.');
             loadIntegrations();
@@ -307,6 +382,8 @@ function deleteIntegration(id) {
  * Show toast notification
  */
 function showToast(type, message) {
+    debugLog(`Showing toast: ${type} - ${message}`);
+    
     // Create toast container if it doesn't exist
     let toastContainer = document.getElementById('toastContainer');
     if (!toastContainer) {
