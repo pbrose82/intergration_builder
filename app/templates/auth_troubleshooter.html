@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Alchemy Authentication Troubleshooter</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --alchemy-blue: #0047BB;
+            --alchemy-light-blue: #3F88F6;
+            --alchemy-blue-bg: #E7F0FF;
+            --alchemy-dark: #001952;
+            --alchemy-green: #00A86B;
+            --alchemy-red: #E4002B;
+            --alchemy-grey: #6C757D;
+            --alchemy-light-grey: #F8F9FA;
+        }
+        
+        body {
+            background-color: #f4f6f9;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        
+        .header {
+            background-color: white;
+            padding: 15px 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .header-title {
+            color: var(--alchemy-dark);
+            font-weight: 500;
+            font-size: 24px;
+            margin: 0;
+            text-align: center;
+        }
+        
+        .card {
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .card-header {
+            background-color: var(--alchemy-blue);
+            color: white;
+            font-weight: 500;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+        }
+        
+        .btn-primary {
+            background-color: var(--alchemy-blue);
+            border-color: var(--alchemy-blue);
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--alchemy-light-blue);
+            border-color: var(--alchemy-light-blue);
+        }
+        
+        pre {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .response-container {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        
+        .password-toggle {
+            cursor: pointer;
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 10;
+        }
+        
+        .input-group {
+            position: relative;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="container">
+            <h1 class="header-title">
+                <i class="fas fa-tools me-2"></i>
+                Alchemy Authentication Troubleshooter
+            </h1>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-6">
+                <!-- Authentication Test Panel -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Test Authentication</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="authForm">
+                            <div class="mb-3">
+                                <label for="tenantId" class="form-label">Tenant ID</label>
+                                <input type="text" class="form-control" id="tenantId" placeholder="e.g. tenant-123">
+                            </div>
+                            <div class="mb-3">
+                                <label for="refreshToken" class="form-label">Refresh Token</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="refreshToken" placeholder="Refresh token from Alchemy">
+                                    <span class="password-toggle" id="toggleToken">
+                                        <i class="fas fa-eye"></i>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="authUrl" class="form-label">Auth URL (Optional)</label>
+                                <input type="text" class="form-control" id="authUrl" placeholder="Leave blank for default">
+                                <div class="form-text">Default: https://core-production.alchemy.cloud/auth/realms/{tenantId}/protocol/openid-connect/token</div>
+                            </div>
+                            <button type="button" id="testAuthBtn" class="btn btn-primary">
+                                <i class="fas fa-key me-2"></i>Test Authentication
+                            </button>
+                        </form>
+                        
+                        <div id="authResults" class="response-container mt-3" style="display: none;">
+                            <h6>Auth Response:</h6>
+                            <pre id="authResponseContent"></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-6">
+                <!-- Record Types Panel -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Test API - Get Record Types</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted mb-3">Use the access token from a successful authentication to test the record types API.</p>
+                        
+                        <div class="mb-3">
+                            <label for="recordTypesTenantId" class="form-label">Tenant ID</label>
+                            <input type="text" class="form-control" id="recordTypesTenantId" placeholder="e.g. tenant-123">
+                        </div>
+                        <div class="mb-3">
+                            <label for="accessToken" class="form-label">Access Token</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="accessToken" placeholder="Access token from authentication response">
+                                <span class="password-toggle" id="toggleAccessToken">
+                                    <i class="fas fa-eye"></i>
+                                </span>
+                            </div>
+                        </div>
+                        <button type="button" id="testRecordTypesBtn" class="btn btn-primary">
+                            <i class="fas fa-list me-2"></i>Get Record Types
+                        </button>
+                        
+                        <div id="recordTypesResults" class="response-container mt-3" style="display: none;">
+                            <h6>Record Types Response:</h6>
+                            <pre id="recordTypesResponseContent"></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Field Fetching Panel -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Test API - Get Fields for Record Type</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="fieldsFetchTenantId" class="form-label">Tenant ID</label>
+                            <input type="text" class="form-control" id="fieldsFetchTenantId" placeholder="e.g. tenant-123">
+                        </div>
+                        <div class="mb-3">
+                            <label for="fieldsAccessToken" class="form-label">Access Token</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="fieldsAccessToken" placeholder="Access token from authentication">
+                                <span class="password-toggle" id="toggleFieldsToken">
+                                    <i class="fas fa-eye"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="recordType" class="form-label">Record Type</label>
+                            <input type="text" class="form-control" id="recordType" placeholder="e.g. Material, Sample, etc.">
+                        </div>
+                        <div class="mb-3">
+                            <label for="apiEndpoint" class="form-label">API Endpoint (Optional)</label>
+                            <input type="text" class="form-control" id="apiEndpoint" placeholder="Leave blank for default">
+                            <div class="form-text">Default: https://core-production.alchemy.cloud/core/api/v2/filter-records</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <button type="button" id="testFieldsBtn" class="btn btn-primary">
+                    <i class="fas fa-columns me-2"></i>Get Fields
+                </button>
+                
+                <div id="fieldsResults" class="response-container mt-3" style="display: none;">
+                    <h6>Fields Response:</h6>
+                    <pre id="fieldsResponseContent"></pre>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Debug Panel -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Debug Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="accordion" id="debugAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAuth">
+                                Authentication Flow
+                            </button>
+                        </h2>
+                        <div id="collapseAuth" class="accordion-collapse collapse" data-bs-parent="#debugAccordion">
+                            <div class="accordion-body">
+                                <ol>
+                                    <li>Authentication begins with obtaining a refresh token from Alchemy</li>
+                                    <li>The refresh token is used to obtain an access token</li>
+                                    <li>The access token is used for API calls to Alchemy</li>
+                                    <li>Access tokens expire quickly (typically 5-10 minutes)</li>
+                                    <li>Refresh tokens last longer (typically days to weeks)</li>
+                                </ol>
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    For troubleshooting, check:
+                                    <ul>
+                                        <li>Correct tenant ID format</li>
+                                        <li>Valid, non-expired refresh token</li>
+                                        <li>Proper token exchange protocol</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAPI">
+                                API Structure
+                            </button>
+                        </h2>
+                        <div id="collapseAPI" class="accordion-collapse collapse" data-bs-parent="#debugAccordion">
+                            <div class="accordion-body">
+                                <h6>Record Templates API</h6>
+                                <pre>GET https://core-production.alchemy.cloud/core/api/v2/record-templates</pre>
+                                <p>Returns all record templates (types) available to the user</p>
+                                
+                                <h6>Filter Records API (For Fields)</h6>
+                                <pre>PUT https://core-production.alchemy.cloud/core/api/v2/filter-records
+Content-Type: application/json
+
+{
+  "queryTerm": "Result.Status == 'Valid'",
+  "recordTemplateIdentifier": "YOUR_RECORD_TYPE",
+  "drop": 0,
+  "take": 1,
+  "lastChangedOnFrom": "2021-03-03T00:00:00Z",
+  "lastChangedOnTo": "2028-03-04T00:00:00Z"
+}</pre>
+                                <p>Returns records of the specified type, from which we extract field information</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseErrors">
+                                Common Errors
+                            </button>
+                        </h2>
+                        <div id="collapseErrors" class="accordion-collapse collapse" data-bs-parent="#debugAccordion">
+                            <div class="accordion-body">
+                                <div class="alert alert-danger">
+                                    <strong>401 Unauthorized</strong>: Invalid or expired token. Try re-authenticating.
+                                </div>
+                                <div class="alert alert-danger">
+                                    <strong>403 Forbidden</strong>: Insufficient permissions. The user needs access to the requested resource.
+                                </div>
+                                <div class="alert alert-danger">
+                                    <strong>404 Not Found</strong>: Record type doesn't exist or is misspelled.
+                                </div>
+                                <div class="alert alert-warning">
+                                    <strong>Empty Response</strong>: No records of the specified type exist in the system.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Toggle password/token visibility
+            function setupToggle(toggleId, inputId) {
+                const toggle = document.getElementById(toggleId);
+                const input = document.getElementById(inputId);
+                
+                if (toggle && input) {
+                    toggle.addEventListener('click', function() {
+                        const type = input.type === 'password' ? 'text' : 'password';
+                        input.type = type;
+                        
+                        const icon = toggle.querySelector('i');
+                        if (type === 'text') {
+                            icon.classList.remove('fa-eye');
+                            icon.classList.add('fa-eye-slash');
+                        } else {
+                            icon.classList.remove('fa-eye-slash');
+                            icon.classList.add('fa-eye');
+                        }
+                    });
+                }
+            }
+            
+            // Set up toggles
+            setupToggle('toggleToken', 'refreshToken');
+            setupToggle('toggleAccessToken', 'accessToken');
+            setupToggle('toggleFieldsToken', 'fieldsAccessToken');
+            
+            // Test authentication
+            const testAuthBtn = document.getElementById('testAuthBtn');
+            if (testAuthBtn) {
+                testAuthBtn.addEventListener('click', function() {
+                    const tenantId = document.getElementById('tenantId').value.trim();
+                    const refreshToken = document.getElementById('refreshToken').value.trim();
+                    const authUrl = document.getElementById('authUrl').value.trim();
+                    
+                    if (!tenantId || !refreshToken) {
+                        alert('Please provide both Tenant ID and Refresh Token');
+                        return;
+                    }
+                    
+                    // Show loading state
+                    testAuthBtn.disabled = true;
+                    testAuthBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Testing...';
+                    
+                    // Reset results
+                    const resultsContainer = document.getElementById('authResults');
+                    const responseContent = document.getElementById('authResponseContent');
+                    responseContent.textContent = 'Loading...';
+                    resultsContainer.style.display = 'block';
+                    
+                    // Make API call
+                    fetch('/test-alchemy-auth', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            tenant_id: tenantId,
+                            refresh_token: refreshToken,
+                            auth_url: authUrl
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        // Reset button
+                        testAuthBtn.disabled = false;
+                        testAuthBtn.innerHTML = '<i class="fas fa-key me-2"></i>Test Authentication';
+                        
+                        // Display results
+                        responseContent.textContent = JSON.stringify(data, null, 2);
+                        
+                        // If successful, copy values to the record types section
+                        if (data.status === 'success' && data.access_token) {
+                            document.getElementById('recordTypesTenantId').value = tenantId;
+                            document.getElementById('accessToken').value = data.access_token;
+                            document.getElementById('fieldsFetchTenantId').value = tenantId;
+                            document.getElementById('fieldsAccessToken').value = data.access_token;
+                        }
+                    })
+                    .catch(error => {
+                        // Reset button
+                        testAuthBtn.disabled = false;
+                        testAuthBtn.innerHTML = '<i class="fas fa-key me-2"></i>Test Authentication';
+                        
+                        // Display error
+                        responseContent.textContent = 'Error: ' + error.message;
+                    });
+                });
+            }
+            
+            // Test record types API
+            const testRecordTypesBtn = document.getElementById('testRecordTypesBtn');
+            if (testRecordTypesBtn) {
+                testRecordTypesBtn.addEventListener('click', function() {
+                    const tenantId = document.getElementById('recordTypesTenantId').value.trim();
+                    const accessToken = document.getElementById('accessToken').value.trim();
+                    
+                    if (!tenantId || !accessToken) {
+                        alert('Please provide both Tenant ID and Access Token');
+                        return;
+                    }
+                    
+                    // Show loading state
+                    testRecordTypesBtn.disabled = true;
+                    testRecordTypesBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Fetching...';
+                    
+                    // Reset results
+                    const resultsContainer = document.getElementById('recordTypesResults');
+                    const responseContent = document.getElementById('recordTypesResponseContent');
+                    responseContent.textContent = 'Loading...';
+                    resultsContainer.style.display = 'block';
+                    
+                    // Make API call
+                    fetch('/test-record-types', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            tenant_id: tenantId,
+                            access_token: accessToken
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        // Reset button
+                        testRecordTypesBtn.disabled = false;
+                        testRecordTypesBtn.innerHTML = '<i class="fas fa-list me-2"></i>Get Record Types';
+                        
+                        // Display results
+                        responseContent.textContent = JSON.stringify(data, null, 2);
+                    })
+                    .catch(error => {
+                        // Reset button
+                        testRecordTypesBtn.disabled = false;
+                        testRecordTypesBtn.innerHTML = '<i class="fas fa-list me-2"></i>Get Record Types';
+                        
+                        // Display error
+                        responseContent.textContent = 'Error: ' + error.message;
+                    });
+                });
+            }
+            
+            // Test fields API
+            const testFieldsBtn = document.getElementById('testFieldsBtn');
+            if (testFieldsBtn) {
+                testFieldsBtn.addEventListener('click', function() {
+                    const tenantId = document.getElementById('fieldsFetchTenantId').value.trim();
+                    const accessToken = document.getElementById('fieldsAccessToken').value.trim();
+                    const recordType = document.getElementById('recordType').value.trim();
+                    const apiEndpoint = document.getElementById('apiEndpoint').value.trim();
+                    
+                    if (!tenantId || !accessToken || !recordType) {
+                        alert('Please provide Tenant ID, Access Token, and Record Type');
+                        return;
+                    }
+                    
+                    // Show loading state
+                    testFieldsBtn.disabled = true;
+                    testFieldsBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Fetching Fields...';
+                    
+                    // Reset results
+                    const resultsContainer = document.getElementById('fieldsResults');
+                    const responseContent = document.getElementById('fieldsResponseContent');
+                    responseContent.textContent = 'Loading...';
+                    resultsContainer.style.display = 'block';
+                    
+                    // Make API call (this would need to be implemented in the backend)
+                    fetch('/get-alchemy-fields', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            tenant_id: tenantId,
+                            access_token: accessToken,
+                            record_type: recordType,
+                            api_endpoint: apiEndpoint
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        // Reset button
+                        testFieldsBtn.disabled = false;
+                        testFieldsBtn.innerHTML = '<i class="fas fa-columns me-2"></i>Get Fields';
+                        
+                        // Display results
+                        responseContent.textContent = JSON.stringify(data, null, 2);
+                    })
+                    .catch(error => {
+                        // Reset button
+                        testFieldsBtn.disabled = false;
+                        testFieldsBtn.innerHTML = '<i class="fas fa-columns me-2"></i>Get Fields';
+                        
+                        // Display error
+                        responseContent.textContent = 'Error: ' + error.message;
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html>
