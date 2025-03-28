@@ -13,7 +13,7 @@ def authorize():
     Start Salesforce OAuth flow
     """
     # Get Salesforce OAuth settings from form or config
-    client_id = request.args.get('client_id')
+    client_id = request.args.get('client_id') or current_app.config.get('SALESFORCE_CLIENT_ID')
     redirect_uri = request.args.get('redirect_uri') or url_for('salesforce.callback', _external=True)
     
     if not client_id:
@@ -55,9 +55,9 @@ def callback():
         return jsonify({"status": "error", "message": "No authorization code received"}), 400
     
     # Retrieve saved OAuth settings
-    client_id = session.get('salesforce_client_id')
-    client_secret = session.get('salesforce_client_secret') 
-    redirect_uri = session.get('salesforce_redirect_uri')
+    client_id = session.get('salesforce_client_id') or current_app.config.get('SALESFORCE_CLIENT_ID')
+    client_secret = session.get('salesforce_client_secret') or current_app.config.get('SALESFORCE_CLIENT_SECRET')
+    redirect_uri = session.get('salesforce_redirect_uri') or url_for('salesforce.callback', _external=True)
     
     if not client_id or not redirect_uri:
         return jsonify({"status": "error", "message": "Missing OAuth settings"}), 400
@@ -102,31 +102,47 @@ def callback():
         
         current_app.logger.info(f"Successfully authenticated with Salesforce")
         
-        # Redirect to success page or return response
-        return jsonify({
-            "status": "success",
-            "message": "Successfully authenticated with Salesforce",
-            "instance_url": instance_url
-        })
+        # Render success page that will communicate with the parent window
+        return f"""
+        <html>
+        <head>
+            <title>Salesforce Authentication Complete</title>
+            <script>
+                window.onload = function() {{
+                    window.opener.postMessage({{
+                        status: 'success',
+                        message: 'Successfully authenticated with Salesforce',
+                        instance_url: '{instance_url}'
+                    }}, '*');
+                    setTimeout(function() {{ window.close(); }}, 2000);
+                }};
+            </script>
+        </head>
+        <body>
+            <h3>Authentication Successful!</h3>
+            <p>You may close this window and return to the application.</p>
+        </body>
+        </html>
+        """
         
     except Exception as e:
         current_app.logger.error(f"Error in Salesforce callback: {str(e)}")
         return jsonify({"status": "error", "message": f"Error: {str(e)}"}), 500
+
 @salesforce_bp.route('/direct-auth', methods=['POST'])
 def direct_auth():
     """
     Directly authenticate with Salesforce using provided credentials
-    This is useful for testing without going through the OAuth flow
     """
     try:
         data = request.get_json()
         
-        # Get credentials from request
-        client_id = data.get('client_id')
-        client_secret = data.get('client_secret')
-        username = data.get('username')
-        password = data.get('password')
-        security_token = data.get('security_token', '')
+        # Get credentials from request or config
+        client_id = data.get('client_id') or current_app.config.get('SALESFORCE_CLIENT_ID')
+        client_secret = data.get('client_secret') or current_app.config.get('SALESFORCE_CLIENT_SECRET')
+        username = data.get('username') or current_app.config.get('SALESFORCE_USERNAME')
+        password = data.get('password') or current_app.config.get('SALESFORCE_PASSWORD')
+        security_token = data.get('security_token', '') or current_app.config.get('SALESFORCE_SECURITY_TOKEN', '')
         
         # Validate required fields
         if not client_id or not client_secret or not username or not password:
@@ -147,6 +163,8 @@ def direct_auth():
             'username': username,
             'password': password_with_token
         }
+        
+        current_app.logger.info(f"Authenticating with Salesforce using direct auth for user: {username}")
         
         response = requests.post(auth_url, data=payload)
         data = response.json()
@@ -208,6 +226,8 @@ def get_fields():
         if not sf_tokens or 'access_token' not in sf_tokens or 'instance_url' not in sf_tokens:
             return jsonify({"status": "error", "message": "Not authenticated with Salesforce"}), 401
         
+        current_app.logger.info(f"Fetching fields for Salesforce object: {object_name}")
+        
         # Create Salesforce client
         sf = Salesforce(
             instance_url=sf_tokens['instance_url'],
@@ -227,6 +247,8 @@ def get_fields():
                     'type': field['type'],
                     'required': field['nillable'] == False and field['createable'] == True
                 })
+            
+            current_app.logger.info(f"Successfully fetched {len(fields)} fields for Salesforce object {object_name}")
             
             return jsonify({
                 "status": "success",
@@ -256,6 +278,8 @@ def get_objects():
         if not sf_tokens or 'access_token' not in sf_tokens or 'instance_url' not in sf_tokens:
             return jsonify({"status": "error", "message": "Not authenticated with Salesforce"}), 401
         
+        current_app.logger.info("Fetching Salesforce objects")
+        
         # Create Salesforce client
         sf = Salesforce(
             instance_url=sf_tokens['instance_url'],
@@ -281,6 +305,8 @@ def get_objects():
             # Sort objects by label
             objects.sort(key=lambda x: x['label'])
             
+            current_app.logger.info(f"Successfully fetched {len(objects)} Salesforce objects")
+            
             return jsonify({
                 "status": "success",
                 "message": f"Successfully fetched {len(objects)} objects",
@@ -297,3 +323,22 @@ def get_objects():
     except Exception as e:
         current_app.logger.error(f"Error in get_objects: {str(e)}")
         return jsonify({"status": "error", "message": f"Error: {str(e)}"}), 500
+
+@salesforce_bp.route('/status')
+def status():
+    """
+    Check Salesforce authentication status
+    """
+    # Get Salesforce tokens from session
+    sf_tokens = session.get('salesforce_tokens')
+    if not sf_tokens or 'access_token' not in sf_tokens or 'instance_url' not in sf_tokens:
+        return jsonify({
+            "status": "unauthenticated",
+            "message": "Not authenticated with Salesforce"
+        })
+    
+    return jsonify({
+        "status": "authenticated",
+        "message": "Authenticated with Salesforce",
+        "instance_url": sf_tokens.get('instance_url')
+    })
