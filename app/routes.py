@@ -188,7 +188,7 @@ def save_integration():
 def authenticate_alchemy():
     """
     Authenticate with Alchemy using username/password to get a refresh token
-    and store it in the session
+    and store both token and credentials in the session
     """
     try:
         data = request.get_json()
@@ -274,7 +274,7 @@ def authenticate_alchemy():
             'timestamp': datetime.now().isoformat()
         }
         
-        # Also store the credentials in the session
+        # Also store the credentials in the session for direct authentication if needed
         if 'alchemy_credentials' not in session:
             session['alchemy_credentials'] = {}
             
@@ -301,7 +301,7 @@ def authenticate_alchemy():
             "status": "error",
             "message": f"Error: {str(e)}"
         }), 500
-
+        
 @main_bp.route('/get-session-token', methods=['POST'])
 def get_session_token():
     """
