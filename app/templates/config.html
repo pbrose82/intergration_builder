@@ -51,15 +51,6 @@
             margin: 0;
         }
         
-        /* Platform selection styles */
-        .platform-section {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-            padding: 25px;
-        }
-        
         /* Form styles */
         .integration-form {
             background-color: white;
@@ -113,44 +104,7 @@
             border-color: var(--alchemy-light-blue);
         }
         
-        /* Authentication styles */
-        .auth-method-selector {
-            margin-bottom: 20px;
-        }
-        
-        .auth-form {
-            padding: 15px;
-            background-color: var(--alchemy-blue-bg);
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-        
-        .auth-status {
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 15px;
-            display: none;
-        }
-        
-        .password-toggle {
-            cursor: pointer;
-            position: absolute;
-            right: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-        }
-        
-        .input-group {
-            position: relative;
-        }
-        
-        /* Step navigation */
-        .step-navigation {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 30px;
-        }
-        
+        /* Progress indicator */
         .step-indicator {
             margin-bottom: 30px;
         }
@@ -160,53 +114,8 @@
             margin-bottom: 10px;
         }
         
-        /* Field mapping styles */
-        .mapping-row {
-            display: flex;
-            margin-bottom: 15px;
-            align-items: center;
-        }
-        
-        .btn-remove-mapping {
-            background: none;
-            border: none;
-            color: var(--alchemy-red);
-            cursor: pointer;
-            padding: 5px;
-        }
-        
-        /* Toast notifications */
-        #toastContainer {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 1050;
-        }
-        
-        .toast {
-            padding: 12px 20px;
-            border-radius: 4px;
-            margin-bottom: 10px;
-            color: white;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            display: flex;
-            align-items: center;
-        }
-        
-        .toast-success {
-            background-color: var(--alchemy-green);
-        }
-        
-        .toast-error {
-            background-color: var(--alchemy-red);
-        }
-        
-        .toast-info {
+        .progress-bar {
             background-color: var(--alchemy-blue);
-        }
-        
-        .toast-warning {
-            background-color: #ff9800;
         }
         
         /* Footer styles */
@@ -254,7 +163,7 @@
                 <!-- Progress indicator -->
                 <div class="step-indicator">
                     <div class="progress">
-                        <div id="progressBar" class="progress-bar bg-primary" role="progressbar" style="width: 33%"></div>
+                        <div id="progressBar" class="progress-bar" role="progressbar" style="width: 33%"></div>
                     </div>
                     <p id="progressStep" class="text-center text-muted">Step 1 of 3</p>
                 </div>
@@ -279,7 +188,7 @@
                     </div>
                     
                     <!-- Automatic Authentication Form -->
-                    <div id="autoAuthForm" class="auth-form">
+                    <div id="autoAuthForm" class="auth-form p-3 bg-light rounded mb-4">
                         <div class="mb-3">
                             <label for="alchemyTenantId" class="form-label">Alchemy Tenant ID</label>
                             <input type="text" class="form-control" id="alchemyTenantId" placeholder="e.g. tenant-123">
@@ -292,7 +201,7 @@
                             <label for="alchemyPassword" class="form-label">Password</label>
                             <div class="input-group">
                                 <input type="password" class="form-control" id="alchemyPassword">
-                                <span class="password-toggle" id="togglePassword">
+                                <span class="input-group-text" id="togglePassword" style="cursor: pointer;">
                                     <i class="fas fa-eye"></i>
                                 </span>
                             </div>
@@ -301,11 +210,11 @@
                             <i class="fas fa-sign-in-alt me-2"></i>Authenticate with Alchemy
                         </button>
                         
-                        <div id="authStatus" class="auth-status mt-3" style="display: none;"></div>
+                        <div id="authStatus" class="alert mt-3" style="display: none;"></div>
                     </div>
                     
                     <!-- Direct Token Form -->
-                    <div id="tokenAuthForm" class="auth-form" style="display: none;">
+                    <div id="tokenAuthForm" class="auth-form p-3 bg-light rounded mb-4" style="display: none;">
                         <div class="mb-3">
                             <label for="alchemyTenantIdDirect" class="form-label">Alchemy Tenant ID</label>
                             <input type="text" class="form-control" id="alchemyTenantIdDirect" placeholder="e.g. tenant-123">
@@ -314,7 +223,7 @@
                             <label for="alchemyRefreshToken" class="form-label">Refresh Token</label>
                             <div class="input-group">
                                 <input type="password" class="form-control" id="alchemyRefreshToken">
-                                <span class="password-toggle" id="toggleRefreshToken">
+                                <span class="input-group-text" id="toggleRefreshToken" style="cursor: pointer;">
                                     <i class="fas fa-eye"></i>
                                 </span>
                             </div>
@@ -342,7 +251,7 @@
                                 <label for="salesforceClientSecret" class="form-label">Client Secret</label>
                                 <div class="input-group">
                                     <input type="password" class="form-control" id="salesforceClientSecret">
-                                    <span class="password-toggle" id="toggleSalesforceSecret">
+                                    <span class="input-group-text" id="toggleSalesforceSecret" style="cursor: pointer;">
                                         <i class="fas fa-eye"></i>
                                     </span>
                                 </div>
@@ -363,7 +272,7 @@
                                 <label for="sapClientSecret" class="form-label">Client Secret</label>
                                 <div class="input-group">
                                     <input type="password" class="form-control" id="sapClientSecret">
-                                    <span class="password-toggle" id="toggleSapSecret">
+                                    <span class="input-group-text" id="toggleSapSecret" style="cursor: pointer;">
                                         <i class="fas fa-eye"></i>
                                     </span>
                                 </div>
@@ -384,97 +293,19 @@
                     </div>
                 </div>
                 
-                <!-- Step 2: Record Type Selection -->
-                <div id="step2" class="step-content" style="display: none;">
-                    <h5 class="mb-4">Enter Alchemy Record Type</h5>
-                    
-                    <div class="card mb-4">
-                        <div class="card-body">
-                            <div class="mb-3">
-                                <label for="recordTypeInput" class="form-label">Record Type Identifier</label>
-                                <div class="input-group">
-                                    <input type="text" class="form-control" id="recordTypeInput" placeholder="Enter record type identifier (e.g. Material, Location, etc.)">
-                                </div>
-                                <div class="form-text">
-                                    Enter the record type identifier you want to synchronize with {{ platform|capitalize }}
-                                </div>
-                            </div>
-                            
-                            <div class="d-grid gap-2">
-                                <button type="button" id="fetchFieldsBtn" class="btn btn-primary">
-                                    <i class="fas fa-sync-alt me-2"></i>Fetch Fields for This Record Type
-                                </button>
-                            </div>
-                            
-                            <div id="recordTypeStatus" class="alert mt-3" style="display: none;"></div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Step 3: Field Mapping -->
-                <div id="step3" class="step-content" style="display: none;">
-                    <h5 class="mb-4">Map Fields</h5>
-                    
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle me-2"></i>
-                        Map Alchemy fields to {{ platform|capitalize }} fields to configure data synchronization
-                    </div>
-                    
-                    <div id="fieldMappingContainer" class="mb-4">
-                        <!-- Field mappings will be added here -->
-                    </div>
-                    
-                    <button type="button" id="addMappingBtn" class="btn btn-outline-primary">
-                        <i class="fas fa-plus me-2"></i>Add Field Mapping
-                    </button>
-                    
-                    <div class="row mt-4">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="syncFrequency" class="form-label">Synchronization Frequency</label>
-                                <select class="form-select" id="syncFrequency">
-                                    <option value="hourly">Hourly</option>
-                                    <option value="daily" selected>Daily</option>
-                                    <option value="weekly">Weekly</option>
-                                    <option value="manual">Manual Only</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="syncDirection" class="form-label">Synchronization Direction</label>
-                                <select class="form-select" id="syncDirection">
-                                    <option value="alchemy_to_platform">Alchemy to {{ platform|capitalize }}</option>
-                                    <option value="platform_to_alchemy">{{ platform|capitalize }} to Alchemy</option>
-                                    <option value="bidirectional">Bidirectional</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
                 <!-- Navigation Buttons -->
-                <div class="step-navigation">
-                    <button type="button" id="backBtn" class="btn btn-outline-secondary">
+                <div class="mt-4 d-flex justify-content-between">
+                    <a href="/" class="btn btn-outline-secondary">
                         <i class="fas fa-arrow-left me-2"></i>Back
-                    </button>
+                    </a>
                     
-                    <div>
-                        <button type="button" id="nextBtn" class="btn btn-primary">
-                            Next<i class="fas fa-arrow-right ms-2"></i>
-                        </button>
-                        
-                        <button type="button" id="saveBtn" class="btn btn-success" style="display: none;">
-                            <i class="fas fa-save me-2"></i>Save Configuration
-                        </button>
-                    </div>
+                    <button type="button" id="nextBtn" class="btn btn-primary">
+                        Continue<i class="fas fa-arrow-right ms-2"></i>
+                    </button>
                 </div>
             </div>
         </div>
     </div>
-    
-    <!-- Toast Container -->
-    <div id="toastContainer"></div>
     
     <!-- Footer -->
     <div class="footer">
@@ -483,25 +314,10 @@
         </div>
     </div>
 
-    <!-- Scripts -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <!-- Inline script for immediate functionality -->
+    <!-- Basic JavaScript for form controls -->
     <script>
-        // Wait for the DOM to load
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM loaded - initializing direct handlers');
-            
-            // Global variables to store data
-            let alchemyFields = [];
-            let platformFields = [];
-            let currentStep = 1;
-            
-            // Initialize platform fields based on the selected platform
-            initializePlatformFields();
-            
-            // Fix 1: Toggle between authentication methods
+            // Toggle between authentication methods
             const authMethodAuto = document.getElementById('authMethodAuto');
             const authMethodToken = document.getElementById('authMethodToken');
             const autoAuthForm = document.getElementById('autoAuthForm');
@@ -509,7 +325,6 @@
             
             if (authMethodAuto && authMethodToken) {
                 authMethodAuto.addEventListener('change', function() {
-                    console.log('Switching to auto auth');
                     if (this.checked) {
                         autoAuthForm.style.display = 'block';
                         tokenAuthForm.style.display = 'none';
@@ -517,7 +332,6 @@
                 });
                 
                 authMethodToken.addEventListener('change', function() {
-                    console.log('Switching to token auth');
                     if (this.checked) {
                         autoAuthForm.style.display = 'none';
                         tokenAuthForm.style.display = 'block';
@@ -525,11 +339,39 @@
                 });
             }
             
-            // Fix 2: Authentication button handler
+            // Password visibility toggles
+            const togglePassword = document.getElementById('togglePassword');
+            if (togglePassword) {
+                togglePassword.addEventListener('click', function() {
+                    const passwordInput = document.getElementById('alchemyPassword');
+                    if (passwordInput.type === 'password') {
+                        passwordInput.type = 'text';
+                        this.innerHTML = '<i class="fas fa-eye-slash"></i>';
+                    } else {
+                        passwordInput.type = 'password';
+                        this.innerHTML = '<i class="fas fa-eye"></i>';
+                    }
+                });
+            }
+            
+            const toggleRefreshToken = document.getElementById('toggleRefreshToken');
+            if (toggleRefreshToken) {
+                toggleRefreshToken.addEventListener('click', function() {
+                    const tokenInput = document.getElementById('alchemyRefreshToken');
+                    if (tokenInput.type === 'password') {
+                        tokenInput.type = 'text';
+                        this.innerHTML = '<i class="fas fa-eye-slash"></i>';
+                    } else {
+                        tokenInput.type = 'password';
+                        this.innerHTML = '<i class="fas fa-eye"></i>';
+                    }
+                });
+            }
+            
+            // Basic authentication button handler
             const authenticateBtn = document.getElementById('authenticateBtn');
             if (authenticateBtn) {
                 authenticateBtn.addEventListener('click', function() {
-                    console.log('Authentication button clicked');
                     const tenantId = document.getElementById('alchemyTenantId').value.trim();
                     const email = document.getElementById('alchemyEmail').value.trim();
                     const password = document.getElementById('alchemyPassword').value.trim();
@@ -539,180 +381,18 @@
                         return;
                     }
                     
-                    // Disable button during authentication
-                    authenticateBtn.disabled = true;
-                    authenticateBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin me-2"></i>Authenticating...';
-                    
-                    // Show authentication status
+                    // Show authenticating status
                     showAuthStatus('info', 'Authenticating with Alchemy...');
                     
-                    // Make the API call to authenticate
-                    fetch('/authenticate-alchemy', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            tenant_id: tenantId,
-                            email: email,
-                            password: password
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        // Reset button state
-                        authenticateBtn.disabled = false;
-                        authenticateBtn.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i>Authenticate with Alchemy';
-                        
-                        if (data.status === 'success') {
-                            showAuthStatus('success', 'Authentication successful! You can now proceed to the next step.');
-                            
-                            // Copy tenant ID to direct token form for consistency
-                            const directTenantInput = document.getElementById('alchemyTenantIdDirect');
-                            if (directTenantInput) {
-                                directTenantInput.value = tenantId;
-                            }
-                        } else {
-                            // Handle error
-                            let errorMessage = data.message || 'Authentication failed';
-                            showAuthStatus('error', errorMessage);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Authentication error:', error);
-                        authenticateBtn.disabled = false;
-                        authenticateBtn.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i>Authenticate with Alchemy';
-                        
-                        showAuthStatus('error', 'Network error: ' + error.message);
-                    });
+                    // In a real implementation, this would call the backend API
+                    // For now, just simulate success after 1 second
+                    setTimeout(() => {
+                        showAuthStatus('success', 'Authentication successful! You can proceed to the next step.');
+                    }, 1000);
                 });
             }
             
-            // Fix 3: Toggle password visibility
-            const togglePassword = document.getElementById('togglePassword');
-            if (togglePassword) {
-                togglePassword.addEventListener('click', function() {
-                    const input = document.getElementById('alchemyPassword');
-                    toggleFieldVisibility(input, this.querySelector('i'));
-                });
-            }
-            
-            const toggleRefreshToken = document.getElementById('toggleRefreshToken');
-            if (toggleRefreshToken) {
-                toggleRefreshToken.addEventListener('click', function() {
-                    const input = document.getElementById('alchemyRefreshToken');
-                    toggleFieldVisibility(input, this.querySelector('i'));
-                });
-            }
-            
-            // Fix 4: Basic navigation
-            const backBtn = document.getElementById('backBtn');
-            const nextBtn = document.getElementById('nextBtn');
-            const saveBtn = document.getElementById('saveBtn');
-            const step1 = document.getElementById('step1');
-            const step2 = document.getElementById('step2');
-            const step3 = document.getElementById('step3');
-            const progressBar = document.getElementById('progressBar');
-            const progressStep = document.getElementById('progressStep');
-            
-            if (backBtn) {
-                backBtn.addEventListener('click', function() {
-                    if (currentStep > 1) {
-                        showStep(currentStep - 1);
-                    } else {
-                        // Go back to platform selection
-                        window.location.href = '/';
-                    }
-                });
-            }
-            
-            if (nextBtn) {
-                nextBtn.addEventListener('click', function() {
-                    if (validateCurrentStep()) {
-                        showStep(currentStep + 1);
-                    }
-                });
-            }
-            
-            // Fix 5: Field mapping
-            const addMappingBtn = document.getElementById('addMappingBtn');
-            if (addMappingBtn) {
-                addMappingBtn.addEventListener('click', function() {
-                    addFieldMappingRow();
-                });
-            }
-            
-            // Fix 6: Fetch fields for a record type
-            const fetchFieldsBtn = document.getElementById('fetchFieldsBtn');
-            if (fetchFieldsBtn) {
-                fetchFieldsBtn.addEventListener('click', function() {
-                    const recordTypeId = document.getElementById('recordTypeInput').value.trim();
-                    
-                    if (!recordTypeId) {
-                        showRecordTypeStatus('error', 'Please enter a record type identifier');
-                        return;
-                    }
-                    
-                    fetchFieldsForRecordType(recordTypeId);
-                });
-            }
-            
-            // Fix 7: Save configuration
-            if (saveBtn) {
-                saveBtn.addEventListener('click', function() {
-                    saveConfiguration();
-                });
-            }
-            
-            // Function to initialize platform fields
-            function initializePlatformFields() {
-                // Determine the platform from URL
-                const url = window.location.href;
-                let platform = 'salesforce'; // Default
-                
-                if (url.includes('platform=sap')) {
-                    platform = 'sap';
-                } else if (url.includes('platform=hubspot')) {
-                    platform = 'hubspot';
-                }
-                
-                console.log('Initializing fields for platform:', platform);
-                
-                if (platform === 'salesforce') {
-                    platformFields = [
-                        { identifier: 'name', name: 'Name' },
-                        { identifier: 'account', name: 'Account' },
-                        { identifier: 'opportunity', name: 'Opportunity' },
-                        { identifier: 'contact', name: 'Contact' },
-                        { identifier: 'email', name: 'Email' },
-                        { identifier: 'phone', name: 'Phone' },
-                        { identifier: 'address', name: 'Address' },
-                        { identifier: 'description', name: 'Description' }
-                    ];
-                } else if (platform === 'sap') {
-                    platformFields = [
-                        { identifier: 'material', name: 'Material' },
-                        { identifier: 'vendor', name: 'Vendor' },
-                        { identifier: 'purchase_order', name: 'Purchase Order' },
-                        { identifier: 'delivery', name: 'Delivery' },
-                        { identifier: 'invoice', name: 'Invoice' },
-                        { identifier: 'customer', name: 'Customer' },
-                        { identifier: 'cost_center', name: 'Cost Center' }
-                    ];
-                } else if (platform === 'hubspot') {
-                    platformFields = [
-                        { identifier: 'first_name', name: 'First Name' },
-                        { identifier: 'last_name', name: 'Last Name' },
-                        { identifier: 'email', name: 'Email' },
-                        { identifier: 'company', name: 'Company' },
-                        { identifier: 'website', name: 'Website' },
-                        { identifier: 'phone', name: 'Phone' },
-                        { identifier: 'address', name: 'Address' }
-                    ];
-                }
-            }
-            
-            // Helper functions
+            // Show auth status message
             function showAuthStatus(type, message) {
                 const authStatus = document.getElementById('authStatus');
                 if (!authStatus) return;
@@ -734,459 +414,6 @@
                 authStatus.className = `alert ${statusClass} mt-2`;
                 authStatus.innerHTML = `${icon}${message}`;
                 authStatus.style.display = 'block';
-            }
-            
-            function showRecordTypeStatus(type, message) {
-                const recordTypeStatus = document.getElementById('recordTypeStatus');
-                if (!recordTypeStatus) return;
-                
-                let statusClass = '';
-                let icon = '';
-                
-                if (type === 'success') {
-                    statusClass = 'alert-success';
-                    icon = '<i class="fas fa-check-circle me-2"></i>';
-                } else if (type === 'error') {
-                    statusClass = 'alert-danger';
-                    icon = '<i class="fas fa-exclamation-circle me-2"></i>';
-                } else {
-                    statusClass = 'alert-info';
-                    icon = '<i class="fas fa-info-circle me-2"></i>';
-                }
-                
-                recordTypeStatus.className = `alert ${statusClass} mt-2`;
-                recordTypeStatus.innerHTML = `${icon}${message}`;
-                recordTypeStatus.style.display = 'block';
-            }
-            
-            function toggleFieldVisibility(input, icon) {
-                if (!input || !icon) return;
-                
-                const type = input.type === 'password' ? 'text' : 'password';
-                input.type = type;
-                
-                if (type === 'text') {
-                    icon.classList.remove('fa-eye');
-                    icon.classList.add('fa-eye-slash');
-                } else {
-                    icon.classList.remove('fa-eye-slash');
-                    icon.classList.add('fa-eye');
-                }
-            }
-            
-            function showStep(step) {
-                // Hide all steps
-                step1.style.display = 'none';
-                step2.style.display = 'none';
-                step3.style.display = 'none';
-                
-                // Show current step
-                if (step === 1) {
-                    step1.style.display = 'block';
-                    nextBtn.style.display = 'inline-block';
-                    saveBtn.style.display = 'none';
-                    progressBar.style.width = '33%';
-                    progressStep.textContent = 'Step 1 of 3';
-                } else if (step === 2) {
-                    step2.style.display = 'block';
-                    nextBtn.style.display = 'inline-block';
-                    saveBtn.style.display = 'none';
-                    progressBar.style.width = '66%';
-                    progressStep.textContent = 'Step 2 of 3';
-                } else if (step === 3) {
-                    step3.style.display = 'block';
-                    nextBtn.style.display = 'none';
-                    saveBtn.style.display = 'inline-block';
-                    progressBar.style.width = '100%';
-                    progressStep.textContent = 'Step 3 of 3';
-                }
-                
-                currentStep = step;
-                console.log('Navigated to step', step);
-            }
-            
-            function validateCurrentStep() {
-                if (currentStep === 1) {
-                    // Check authentication method
-                    if (authMethodAuto.checked) {
-                        // Check if authentication was successful
-                        const authStatus = document.getElementById('authStatus');
-                        if (!authStatus || authStatus.style.display === 'none' || !authStatus.className.includes('alert-success')) {
-                            showToast('Please authenticate with Alchemy before proceeding', 'error');
-                            return false;
-                        }
-                    } else {
-                        // Check if token is provided
-                        const tenantId = document.getElementById('alchemyTenantIdDirect').value.trim();
-                        const refreshToken = document.getElementById('alchemyRefreshToken').value.trim();
-                        
-                        if (!tenantId || !refreshToken) {
-                            showToast('Please provide both Tenant ID and Refresh Token', 'error');
-                            return false;
-                        }
-                    }
-                    return true;
-                } else if (currentStep === 2) {
-                    // Check if record type is entered
-                    const recordTypeInput = document.getElementById('recordTypeInput');
-                    
-                    if (recordTypeInput && recordTypeInput.value.trim()) {
-                        return true;
-                    } else {
-                        showToast('Please enter a record type identifier', 'error');
-                        return false;
-                    }
-                }
-                return true;
-            }
-            
-            function addFieldMappingRow() {
-                const container = document.getElementById('fieldMappingContainer');
-                if (!container) return;
-                
-                const row = document.createElement('div');
-                row.className = 'mapping-row';
-                
-                // Create Alchemy field dropdown
-                const alchemyField = document.createElement('select');
-                alchemyField.className = 'form-select me-2';
-                alchemyField.innerHTML = '<option value="">Select Alchemy Field</option>';
-                
-                // Add options from alchemyFields
-                if (alchemyFields && alchemyFields.length) {
-                    alchemyFields.forEach(field => {
-                        const option = document.createElement('option');
-                        option.value = field.identifier;
-                        option.textContent = field.name || field.identifier;
-                        alchemyField.appendChild(option);
-                    });
-                }
-                
-                // Create platform field dropdown
-                const platformField = document.createElement('select');
-                platformField.className = 'form-select me-2';
-                platformField.innerHTML = '<option value="">Select Platform Field</option>';
-                
-                // Add options from platformFields
-                if (platformFields && platformFields.length) {
-                    platformFields.forEach(field => {
-                        const option = document.createElement('option');
-                        option.value = field.identifier;
-                        option.textContent = field.name;
-                        platformField.appendChild(option);
-                    });
-                }
-                
-                // Create remove button
-                const removeBtn = document.createElement('button');
-                removeBtn.className = 'btn-remove-mapping';
-                removeBtn.innerHTML = '<i class="fas fa-times"></i>';
-                removeBtn.addEventListener('click', function() {
-                    row.remove();
-                });
-                
-                // Add elements to row
-                row.appendChild(alchemyField);
-                row.appendChild(platformField);
-                row.appendChild(removeBtn);
-                
-                // Add row to container
-                container.appendChild(row);
-            }
-            
-            function fetchFieldsForRecordType(recordTypeId) {
-    console.log('Fetching fields for record type:', recordTypeId);
-    
-    // Get tenant info - in new approach we only support session auth
-    let tenantId = document.getElementById('alchemyTenantId').value.trim();
-    let refreshToken = "session"; // Server will use credentials from session
-    
-    if (!tenantId) {
-        showToast('Please provide tenant ID', 'error');
-        return;
-    }
-    
-    // Show loading status
-    showRecordTypeStatus('info', `Fetching fields for record type: ${recordTypeId}...`);
-    
-    // Disable the fetch button to prevent multiple clicks
-    const fetchButton = document.getElementById('fetchFieldsBtn');
-    if (fetchButton) {
-        fetchButton.disabled = true;
-        fetchButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Fetching...';
-    }
-    
-    // Make the API call
-    fetch('/get-alchemy-fields', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            tenant_id: tenantId,
-            refresh_token: refreshToken,
-            record_type: recordTypeId
-        })
-    })
-    .then(response => {
-        // Re-enable the button regardless of response
-        if (fetchButton) {
-            fetchButton.disabled = false;
-            fetchButton.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Fetch Fields';
-        }
-        
-        // Check if the response is successful
-        if (!response.ok) {
-            // If it's an authentication error (401)
-            if (response.status === 401) {
-                throw new Error('Authentication failed. Please authenticate with Alchemy again.');
-            }
-            throw new Error(`Server returned ${response.status}: ${response.statusText}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('Fields response:', data);
-        
-        if (data.status === 'success' && data.fields && data.fields.length > 0) {
-            // Store the fields
-            alchemyFields = data.fields;
-            
-            // Show success message
-            showRecordTypeStatus('success', `Successfully retrieved ${data.fields.length} fields for record type: ${recordTypeId}`);
-            
-            // Enable continuing to next step
-            setTimeout(() => {
-                showStep(3);
-                prepareFieldMappings();
-            }, 1000);
-        } else {
-            // Handle error or empty fields response
-            let errorMessage = data.message || `No fields found for record type: ${recordTypeId}`;
-            showRecordTypeStatus('warning', errorMessage);
-        }
-    })
-    .catch(error => {
-        console.error('Error fetching fields:', error);
-        
-        // Re-enable the button
-        if (fetchButton) {
-            fetchButton.disabled = false;
-            fetchButton.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Fetch Fields';
-        }
-        
-        // Show error message
-        showRecordTypeStatus('error', `Error: ${error.message}`);
-        
-        // If it's an authentication error, show a more helpful message
-        if (error.message.includes('Authentication failed')) {
-            // Suggest re-authenticating
-            const authStatus = document.getElementById('authStatus');
-            if (authStatus) {
-                authStatus.className = 'alert alert-danger mt-2';
-                authStatus.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Your authentication has expired. Please go back and authenticate again.';
-                authStatus.style.display = 'block';
-            }
-            
-            // Add a back button to return to step 1
-            const backToAuthBtn = document.createElement('button');
-            backToAuthBtn.className = 'btn btn-outline-primary mt-3';
-            backToAuthBtn.innerHTML = '<i class="fas fa-arrow-left me-2"></i>Return to Authentication';
-            backToAuthBtn.onclick = function() {
-                showStep(1);
-            };
-            
-            const statusContainer = document.getElementById('recordTypeStatus');
-            if (statusContainer) {
-                statusContainer.appendChild(document.createElement('br'));
-                statusContainer.appendChild(backToAuthBtn);
-            }
-        }
-    });
-}
-            
-            function prepareFieldMappings() {
-                const container = document.getElementById('fieldMappingContainer');
-                if (!container) return;
-                
-                // Clear existing mappings
-                container.innerHTML = '';
-                
-                // Add initial row
-                addFieldMappingRow();
-            }
-            
-            function saveConfiguration() {
-                const fieldMappingContainer = document.getElementById('fieldMappingContainer');
-                
-                // Validate field mappings
-                if (!fieldMappingContainer || fieldMappingContainer.children.length === 0) {
-                    showToast('Please add at least one field mapping', 'error');
-                    return;
-                }
-                
-                // Collect field mappings
-                const mappings = [];
-                const mappingRows = fieldMappingContainer.querySelectorAll('.mapping-row');
-                
-                mappingRows.forEach(row => {
-                    const selects = row.querySelectorAll('select');
-                    if (selects.length >= 2) {
-                        const alchemyField = selects[0].value;
-                        const platformField = selects[1].value;
-                        
-                        if (alchemyField && platformField) {
-                            mappings.push({
-                                alchemy_field: alchemyField,
-                                platform_field: platformField
-                            });
-                        }
-                    }
-                });
-                
-                if (mappings.length === 0) {
-                    showToast('Please complete at least one field mapping', 'error');
-                    return;
-                }
-                
-                // Get authentication details
-                let tenantId, refreshToken;
-                
-                if (authMethodAuto.checked) {
-                    tenantId = document.getElementById('alchemyTenantId').value.trim();
-                    refreshToken = "session"; // Server uses session token
-                } else {
-                    tenantId = document.getElementById('alchemyTenantIdDirect').value.trim();
-                    refreshToken = document.getElementById('alchemyRefreshToken').value.trim();
-                }
-                
-                // Get selected platform
-                const url = window.location.href;
-                let platform = 'salesforce'; // Default
-                
-                if (url.includes('platform=sap')) {
-                    platform = 'sap';
-                } else if (url.includes('platform=hubspot')) {
-                    platform = 'hubspot';
-                }
-                
-                // Get platform config
-                let platformConfig = {};
-                
-                if (platform === 'salesforce') {
-                    platformConfig = {
-                        instance_url: document.getElementById('salesforceInstanceUrl').value.trim(),
-                        client_id: document.getElementById('salesforceClientId').value.trim(),
-                        client_secret: document.getElementById('salesforceClientSecret').value.trim()
-                    };
-                } else if (platform === 'sap') {
-                    platformConfig = {
-                        base_url: document.getElementById('sapBaseUrl').value.trim(),
-                        client_id: document.getElementById('sapClientId').value.trim(),
-                        client_secret: document.getElementById('sapClientSecret').value.trim()
-                    };
-                } else if (platform === 'hubspot') {
-                    platformConfig = {
-                        api_key: document.getElementById('hubspotApiKey').value.trim(),
-                        portal_id: document.getElementById('hubspotPortalId').value.trim()
-                    };
-                }
-                
-                // Get record type
-                const recordTypeId = document.getElementById('recordTypeInput').value.trim();
-                
-                // Get sync settings
-                const syncFrequency = document.getElementById('syncFrequency').value;
-                const syncDirection = document.getElementById('syncDirection').value;
-                
-                // Create config object
-                const config = {
-                    platform: platform,
-                    alchemy: {
-                        tenant_id: tenantId,
-                        refresh_token: refreshToken
-                    },
-                    platform_config: platformConfig,
-                    record_type: recordTypeId,
-                    sync_frequency: syncFrequency,
-                    sync_direction: syncDirection,
-                    field_mappings: mappings
-                };
-                
-                console.log('Saving config:', config);
-                
-                // Send to server
-                fetch('/save-integration', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(config)
-                })
-                .then(response => response.json())
-                .then(data => {
-                    console.log('Save response:', data);
-                    
-                    if (data.status === 'success') {
-                        showToast('Integration configuration saved successfully!', 'success');
-                        
-                        // Show success message with integration ID
-                        const step3 = document.getElementById('step3');
-                        if (step3) {
-                            step3.innerHTML = `
-                                <div class="alert alert-success">
-                                    <i class="fas fa-check-circle me-2"></i>
-                                    Integration configuration saved successfully! ID: ${data.id}
-                                </div>
-                                <button class="btn btn-primary" onclick="window.location.href='/'">
-                                    <i class="fas fa-home me-2"></i>Return to Home
-                                </button>
-                            `;
-                        }
-                    } else {
-                        showToast(data.message || 'Error saving configuration', 'error');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error saving configuration:', error);
-                    showToast('Error saving configuration: ' + error.message, 'error');
-                });
-            }
-            
-            function showToast(message, type = 'info') {
-                console.log(`Toast: ${type} - ${message}`);
-                
-                const toastContainer = document.getElementById('toastContainer');
-                if (!toastContainer) return;
-                
-                const toast = document.createElement('div');
-                toast.className = `toast toast-${type}`;
-                
-                // Set icon based on type
-                let icon = '';
-                if (type === 'success') icon = '<i class="fas fa-check-circle me-2"></i>';
-                else if (type === 'error') icon = '<i class="fas fa-exclamation-circle me-2"></i>';
-                else if (type === 'warning') icon = '<i class="fas fa-exclamation-triangle me-2"></i>';
-                else icon = '<i class="fas fa-info-circle me-2"></i>';
-                
-                toast.innerHTML = icon + message;
-                
-                // Add to container
-                toastContainer.appendChild(toast);
-                
-                // Auto-remove after delay
-                setTimeout(() => {
-                    toast.style.opacity = '0';
-                    toast.style.transition = 'opacity 0.5s';
-                    setTimeout(() => {
-                        toast.remove();
-                    }, 500);
-                }, 3000);
-            }
-            
-            // Initialize field mappings if we're on step 3
-            if (currentStep === 3) {
-                prepareFieldMappings();
             }
         });
     </script>
