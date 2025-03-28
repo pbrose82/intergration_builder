@@ -4,6 +4,7 @@ Routes for HubSpot integration with OAuth support
 from flask import Blueprint, request, jsonify, current_app
 from services.hubspot_service import get_hubspot_service
 import logging
+import traceback
 
 # Set up logger
 logger = logging.getLogger(__name__)
@@ -27,6 +28,7 @@ def validate_hubspot():
             client_secret = data.get('client_secret')
             
             if not access_token:
+                logger.error("Missing access token in validation request")
                 return jsonify({
                     "status": "error",
                     "message": "Missing access token"
@@ -36,15 +38,16 @@ def validate_hubspot():
             masked_token = access_token[:5] + "..." if len(access_token) > 5 else "***"
             logger.info(f"Validating HubSpot OAuth credentials with token {masked_token}")
             
-            # Validate credentials
+            # Validate credentials - remove any whitespace
             hubspot_service = get_hubspot_service(
-                access_token=access_token, 
-                client_secret=client_secret, 
+                access_token=access_token.strip() if access_token else None, 
+                client_secret=client_secret.strip() if client_secret else None, 
                 oauth_mode=True
             )
         else:
             api_key = data.get('api_key')
             if not api_key:
+                logger.error("Missing API key in validation request")
                 return jsonify({
                     "status": "error",
                     "message": "Missing API key"
@@ -54,8 +57,8 @@ def validate_hubspot():
             masked_key = api_key[:5] + "..." if len(api_key) > 5 else "***"
             logger.info(f"Validating HubSpot API key {masked_key}")
             
-            # Validate credentials
-            hubspot_service = get_hubspot_service(access_token=api_key)
+            # Validate credentials - remove any whitespace
+            hubspot_service = get_hubspot_service(access_token=api_key.strip() if api_key else None)
         
         is_valid, message = hubspot_service.validate_credentials()
         
@@ -65,6 +68,7 @@ def validate_hubspot():
                 "message": message
             })
         else:
+            logger.warning(f"HubSpot validation failed: {message}")
             return jsonify({
                 "status": "error",
                 "message": message
@@ -72,6 +76,7 @@ def validate_hubspot():
     
     except Exception as e:
         logger.error(f"Error validating HubSpot credentials: {str(e)}")
+        logger.error(traceback.format_exc())
         return jsonify({
             "status": "error",
             "message": f"Error: {str(e)}"
@@ -93,27 +98,29 @@ def get_object_types():
             client_secret = data.get('client_secret')
             
             if not access_token:
+                logger.error("Missing access token for object types request")
                 return jsonify({
                     "status": "error",
                     "message": "Missing access token"
                 }), 400
             
-            # Create service with OAuth credentials
+            # Create service with OAuth credentials - remove any whitespace
             hubspot_service = get_hubspot_service(
-                access_token=access_token, 
-                client_secret=client_secret, 
+                access_token=access_token.strip() if access_token else None, 
+                client_secret=client_secret.strip() if client_secret else None, 
                 oauth_mode=True
             )
         else:
             api_key = data.get('api_key')
             if not api_key:
+                logger.error("Missing API key for object types request")
                 return jsonify({
                     "status": "error",
                     "message": "Missing API key"
                 }), 400
             
-            # Create service with API key
-            hubspot_service = get_hubspot_service(access_token=api_key)
+            # Create service with API key - remove any whitespace
+            hubspot_service = get_hubspot_service(access_token=api_key.strip() if api_key else None)
         
         logger.info(f"Fetching HubSpot object types")
         
@@ -127,6 +134,7 @@ def get_object_types():
                 "object_types": object_types
             })
         else:
+            logger.warning("No object types found or error occurred")
             return jsonify({
                 "status": "warning",
                 "message": "No object types found or error occurred",
@@ -135,6 +143,7 @@ def get_object_types():
     
     except Exception as e:
         logger.error(f"Error getting HubSpot object types: {str(e)}")
+        logger.error(traceback.format_exc())
         return jsonify({
             "status": "error",
             "message": f"Error: {str(e)}",
@@ -154,6 +163,7 @@ def get_fields():
         object_type = data.get('object_type')
         
         if not object_type:
+            logger.error("Missing object type in fields request")
             return jsonify({
                 "status": "error",
                 "message": "Missing object type",
@@ -165,29 +175,31 @@ def get_fields():
             client_secret = data.get('client_secret')
             
             if not access_token:
+                logger.error("Missing access token in fields request")
                 return jsonify({
                     "status": "error",
                     "message": "Missing access token",
                     "fields": []
                 }), 400
             
-            # Create service with OAuth credentials
+            # Create service with OAuth credentials - remove any whitespace
             hubspot_service = get_hubspot_service(
-                access_token=access_token, 
-                client_secret=client_secret, 
+                access_token=access_token.strip() if access_token else None, 
+                client_secret=client_secret.strip() if client_secret else None, 
                 oauth_mode=True
             )
         else:
             api_key = data.get('api_key')
             if not api_key:
+                logger.error("Missing API key in fields request")
                 return jsonify({
                     "status": "error",
                     "message": "Missing API key",
                     "fields": []
                 }), 400
             
-            # Create service with API key
-            hubspot_service = get_hubspot_service(access_token=api_key)
+            # Create service with API key - remove any whitespace
+            hubspot_service = get_hubspot_service(access_token=api_key.strip() if api_key else None)
         
         logger.info(f"Fetching HubSpot fields for object type: {object_type}")
         
@@ -209,6 +221,7 @@ def get_fields():
                 {"identifier": "phone", "name": "Phone Number"}
             ]
             
+            logger.warning(f"Using fallback fields for {object_type}")
             return jsonify({
                 "status": "warning",
                 "message": f"Using fallback fields for {object_type}",
@@ -217,6 +230,7 @@ def get_fields():
     
     except Exception as e:
         logger.error(f"Error getting HubSpot fields: {str(e)}")
+        logger.error(traceback.format_exc())
         return jsonify({
             "status": "error",
             "message": f"Error: {str(e)}",
