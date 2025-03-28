@@ -4,8 +4,9 @@
  */
 
 // Global variables
-let hubspotObjectTypes = [];
-let hubspotFields = [];
+window.hubspotObjectTypes = [];
+window.hubspotFields = [];
+let hubspotRecordIdentifier = '';
 
 // Initialize HubSpot integration
 document.addEventListener('DOMContentLoaded', function() {
@@ -71,6 +72,14 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Handle record identifier input
+    const recordIdentifierInput = document.getElementById('hubspotRecordIdentifier');
+    if (recordIdentifierInput) {
+        recordIdentifierInput.addEventListener('input', function() {
+            hubspotRecordIdentifier = this.value.trim();
+        });
+    }
+    
     // Override save button for HubSpot
     const saveBtn = document.getElementById('saveBtn');
     if (saveBtn) {
@@ -82,123 +91,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Setup HubSpot specific UI elements
 function setupHubSpotUI() {
-    // Add HubSpot object type selection
-    const hubspotConfig = document.getElementById('hubspotConfig');
-    
-    if (hubspotConfig) {
-        // Check if validate button already exists
-        if (!document.getElementById('validateHubspotBtn')) {
-            // Add validate button (now handled by the HTML)
-            console.log('Adding validate button UI');
-        }
-        
-        // Add HubSpot object type selection
-        if (!document.getElementById('hubspotObjectContainer')) {
-            // Create element container
-            const objectContainer = document.createElement('div');
-            objectContainer.id = 'hubspotObjectContainer';
-            objectContainer.className = 'mt-4';
-            objectContainer.style.display = 'none';
-            
-            objectContainer.innerHTML = `
-                <h5 class="mb-3">HubSpot Object Type</h5>
-                <div class="mb-3">
-                    <label for="hubspotObjectType" class="form-label">Select Object Type</label>
-                    <div class="input-group">
-                        <select class="form-select" id="hubspotObjectType" disabled>
-                            <option value="">-- Select Object Type --</option>
-                        </select>
-                        <button class="btn btn-outline-secondary" type="button" id="fetchHubspotObjectsBtn" disabled>
-                            <i class="fas fa-sync-alt me-2"></i>Refresh Object Types
-                        </button>
-                    </div>
-                    <div class="form-text">
-                        Select the HubSpot object type to map with Alchemy records
-                    </div>
-                </div>
-                <div id="hubspotObjectStatus" class="alert mt-3" style="display: none;"></div>
-            `;
-            
-            hubspotConfig.appendChild(objectContainer);
-        }
-        
-        // Add fields section
-        if (!document.getElementById('hubspotFieldContainer')) {
-            const fieldContainer = document.createElement('div');
-            fieldContainer.id = 'hubspotFieldContainer';
-            fieldContainer.className = 'mt-4';
-            fieldContainer.style.display = 'none';
-            
-            fieldContainer.innerHTML = `
-                <h5 class="mb-3">HubSpot Fields</h5>
-                <div class="mb-3">
-                    <p>Fetch fields for object type: <strong id="hubspotObjectTypeLabel">None Selected</strong></p>
-                    <button class="btn btn-primary" type="button" id="fetchHubspotFieldsBtn" disabled>
-                        <i class="fas fa-list me-2"></i>Fetch Fields
-                    </button>
-                </div>
-                <div id="hubspotFieldStatus" class="alert mt-3" style="display: none;"></div>
-            `;
-            
-            hubspotConfig.appendChild(fieldContainer);
-        }
-        
-        // Add sync options
-        if (!document.getElementById('syncOptionsContainer')) {
-            const syncContainer = document.createElement('div');
-            syncContainer.id = 'syncOptionsContainer';
-            syncContainer.className = 'mt-4';
-            
-            syncContainer.innerHTML = `
-                <h5 class="mb-3">Synchronization Options</h5>
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label for="syncFrequency" class="form-label">Sync Frequency</label>
-                        <select class="form-select" id="syncFrequency">
-                            <option value="realtime">Real-time</option>
-                            <option value="hourly">Hourly</option>
-                            <option value="daily" selected>Daily</option>
-                            <option value="weekly">Weekly</option>
-                            <option value="manual">Manual Only</option>
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label for="syncDirection" class="form-label">Sync Direction</label>
-                        <select class="form-select" id="syncDirection">
-                            <option value="alchemy_to_hubspot">Alchemy to HubSpot</option>
-                            <option value="hubspot_to_alchemy">HubSpot to Alchemy</option>
-                            <option value="bidirectional" selected>Bidirectional</option>
-                        </select>
-                    </div>
-                </div>
-            `;
-            
-            hubspotConfig.appendChild(syncContainer);
-        }
-    }
-    
-    // Add script to load HubSpot fields in Step 2
-    const step2 = document.getElementById('step2');
-    if (step2 && !document.getElementById('hubspotStep2Info')) {
-        const infoDiv = document.createElement('div');
-        infoDiv.id = 'hubspotStep2Info';
-        infoDiv.className = 'mt-4';
-        infoDiv.style.display = 'none';
-        
-        infoDiv.innerHTML = `
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle me-2"></i>
-                After fetching Alchemy fields, you'll be asked to select a HubSpot object type and fetch its fields for mapping.
-            </div>
-        `;
-        
-        step2.appendChild(infoDiv);
-        
-        // Show this info for HubSpot
-        if (window.location.href.includes('platform=hubspot')) {
-            infoDiv.style.display = 'block';
-        }
-    }
+    // Much of this is now in the main HTML
+    // This function is kept for backward compatibility
+    console.log('HubSpot UI elements setup complete');
 }
 
 // Validate HubSpot credentials
@@ -216,7 +111,7 @@ function validateHubSpotCredentials() {
     const clientSecret = clientSecretInput.value.trim();
     
     console.log("Validating credentials:", accessToken ? "Token provided" : "No token", 
-                                         clientSecret ? "Secret provided" : "No secret");
+                                          clientSecret ? "Secret provided" : "No secret");
     
     if (!accessToken) {
         showHubSpotStatus('error', 'Please enter HubSpot Access Token');
@@ -472,12 +367,6 @@ function fetchHubSpotObjectTypes() {
     // Show status
     showObjectStatus('info', 'Fetching HubSpot object types...');
     
-    // Show object container
-    const objectContainer = document.getElementById('hubspotObjectContainer');
-    if (objectContainer) {
-        objectContainer.style.display = 'block';
-    }
-    
     // Make API call with OAuth credentials
     fetch('/hubspot/object-types', {
         method: 'POST',
@@ -496,12 +385,12 @@ function fetchHubSpotObjectTypes() {
         // Reset button
         if (fetchBtn) {
             fetchBtn.disabled = false;
-            fetchBtn.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Refresh Object Types';
+            fetchBtn.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Refresh';
         }
         
         if (data.status === 'success' || data.status === 'warning') {
             // Store object types
-            hubspotObjectTypes = data.object_types || [];
+            window.hubspotObjectTypes = data.object_types || [];
             
             // Update object type select
             const select = document.getElementById('hubspotObjectType');
@@ -510,7 +399,7 @@ function fetchHubSpotObjectTypes() {
                 select.innerHTML = '<option value="">-- Select Object Type --</option>';
                 
                 // Add new options
-                hubspotObjectTypes.forEach(function(obj) {
+                window.hubspotObjectTypes.forEach(function(obj) {
                     const option = document.createElement('option');
                     option.value = obj.id;
                     option.textContent = obj.name;
@@ -521,20 +410,20 @@ function fetchHubSpotObjectTypes() {
                 select.disabled = false;
             }
             
-            // Show field container
-            const fieldContainer = document.getElementById('hubspotFieldContainer');
-            if (fieldContainer) {
-                fieldContainer.style.display = 'block';
-            }
-            
             // Show success message
             showObjectStatus(
                 data.status === 'warning' ? 'warning' : 'success', 
-                data.message || `Found ${hubspotObjectTypes.length} object types`
+                data.message || `Found ${window.hubspotObjectTypes.length} object types`
             );
             
+            // Show record identifier field
+            const recordIdentifierContainer = document.getElementById('hubspotRecordIdentifierContainer');
+            if (recordIdentifierContainer) {
+                recordIdentifierContainer.style.display = 'block';
+            }
+            
             // Show toast
-            showToast('success', `Found ${hubspotObjectTypes.length} HubSpot object types`);
+            showToast('success', `Found ${window.hubspotObjectTypes.length} HubSpot object types`);
         } else {
             // Show error message
             showObjectStatus('error', data.message || 'Failed to fetch object types');
@@ -549,7 +438,7 @@ function fetchHubSpotObjectTypes() {
         // Reset button
         if (fetchBtn) {
             fetchBtn.disabled = false;
-            fetchBtn.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Refresh Object Types';
+            fetchBtn.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Refresh';
         }
         
         // Show error message
@@ -609,49 +498,61 @@ function fetchHubSpotFields(objectType) {
         // Reset button
         if (fetchBtn) {
             fetchBtn.disabled = false;
-            fetchBtn.innerHTML = '<i class="fas fa-list me-2"></i>Refresh Fields';
+            fetchBtn.innerHTML = '<i class="fas fa-list me-2"></i>Fetch Fields';
         }
         
         if (data.status === 'success' || data.status === 'warning') {
             // Store fields
-            hubspotFields = data.fields || [];
+            window.hubspotFields = data.fields || [];
             
             // Show success message
             showFieldStatus(
                 data.status === 'warning' ? 'warning' : 'success',
-                data.message || `Retrieved ${hubspotFields.length} fields for mapping`
+                data.message || `Retrieved ${window.hubspotFields.length} fields for mapping`
             );
+            
+            // Check record identifier
+            const recordIdentifier = document.getElementById('hubspotRecordIdentifier').value.trim();
+            if (!recordIdentifier) {
+                showToast('warning', 'Please provide a HubSpot record identifier field');
+                document.getElementById('hubspotRecordIdentifier').focus();
+                return;
+            }
+            
+            hubspotRecordIdentifier = recordIdentifier;
             
             // Proceed to field mapping if we have Alchemy fields
             if (window.alchemyFields && window.alchemyFields.length > 0) {
-                prepareFieldMapping(hubspotFields);
-                
                 // Move to next step
-                if (typeof updateProgressUI === 'function') {
-                    currentStep = 3;
-                    updateProgressUI();
+                if (typeof window.currentStep !== 'undefined') {
+                    window.currentStep = 3;
+                    if (typeof updateProgressUI === 'function') {
+                        updateProgressUI();
+                    } else {
+                        // Manual UI update
+                        document.getElementById('step2').style.display = 'none';
+                        document.getElementById('step3').style.display = 'block';
+                        document.getElementById('progressBar').style.width = '100%';
+                        document.getElementById('progressStep').textContent = 'Step 3 of 3';
+                        document.getElementById('nextBtn').style.display = 'none';
+                        document.getElementById('saveBtn').style.display = 'inline-block';
+                    }
+                }
+                
+                // Prepare field mapping
+                if (typeof populateFieldMappings === 'function') {
+                    populateFieldMappings(window.alchemyFields);
                 } else {
-                    // Manually update UI
-                    const step2 = document.getElementById('step2');
-                    const step3 = document.getElementById('step3');
-                    if (step2 && step3) {
-                        step2.style.display = 'none';
-                        step3.style.display = 'block';
-                    }
-                    
-                    const nextBtn = document.getElementById('nextBtn');
-                    const saveBtn = document.getElementById('saveBtn');
-                    if (nextBtn && saveBtn) {
-                        nextBtn.style.display = 'none';
-                        saveBtn.style.display = 'inline-block';
-                    }
+                    // Try to use direct mapping
+                    prepareFieldMapping(window.hubspotFields);
                 }
             } else {
                 showToast('warning', 'Please fetch Alchemy fields first');
+                showFieldStatus('warning', 'Please fetch Alchemy fields before proceeding');
             }
             
             // Show toast
-            showToast('success', `Retrieved ${hubspotFields.length} fields for mapping`);
+            showToast('success', `Retrieved ${window.hubspotFields.length} fields for mapping`);
         } else {
             // Show error message
             showFieldStatus('error', data.message || 'Failed to fetch fields');
@@ -666,7 +567,7 @@ function fetchHubSpotFields(objectType) {
         // Reset button
         if (fetchBtn) {
             fetchBtn.disabled = false;
-            fetchBtn.innerHTML = '<i class="fas fa-list me-2"></i>Refresh Fields';
+            fetchBtn.innerHTML = '<i class="fas fa-list me-2"></i>Fetch Fields';
         }
         
         // Show error message
@@ -706,6 +607,12 @@ function prepareFieldMapping(hubspotFields) {
     headerDiv.className = 'alert alert-info mb-3';
     headerDiv.innerHTML = '<i class="fas fa-info-circle me-2"></i>Map fields between Alchemy and HubSpot';
     mappingContainer.appendChild(headerDiv);
+    
+    // Add record identifier reminder
+    const identifierDiv = document.createElement('div');
+    identifierDiv.className = 'alert alert-secondary mb-3';
+    identifierDiv.innerHTML = `<i class="fas fa-key me-2"></i>Using <strong>${hubspotRecordIdentifier || 'id'}</strong> as the HubSpot record identifier field`;
+    mappingContainer.appendChild(identifierDiv);
     
     // Create table for mapping
     const table = document.createElement('table');
@@ -812,8 +719,8 @@ function addMappingRow(tableBody, alchemyField = null, hubspotField = null) {
     hubspotSelect.appendChild(option);
     
     // Add HubSpot field options
-    if (hubspotFields) {
-        hubspotFields.forEach(function(field) {
+    if (window.hubspotFields) {
+        window.hubspotFields.forEach(function(field) {
             option = document.createElement('option');
             option.value = field.identifier;
             option.textContent = field.name;
@@ -1047,6 +954,9 @@ function saveHubSpotIntegration() {
         return;
     }
     
+    // Get record identifier
+    const recordIdentifier = document.getElementById('hubspotRecordIdentifier').value.trim() || hubspotRecordIdentifier || 'id';
+    
     // Get sync settings
     const syncFrequencySelect = document.getElementById('syncFrequency');
     const syncDirectionSelect = document.getElementById('syncDirection');
@@ -1065,7 +975,8 @@ function saveHubSpotIntegration() {
         hubspot: {
             access_token: accessToken,
             client_secret: clientSecret,
-            object_type: objectType
+            object_type: objectType,
+            record_identifier: recordIdentifier
         },
         sync_config: {
             frequency: syncFrequency,
@@ -1081,6 +992,8 @@ function saveHubSpotIntegration() {
         saveBtn.disabled = true;
         saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
     }
+    
+    console.log('Saving integration with data:', integrationData);
     
     // Make API call
     fetch('/save-integration', {
