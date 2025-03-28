@@ -208,30 +208,29 @@ function fetchRecordTypes() {
     });
 }
 
-// Fetch fields for a record type
 function fetchFieldsForRecordType(recordTypeId) {
-    log('Fetching fields for record type: ' + recordTypeId);
+    console.log('Fetching fields for record type:', recordTypeId);
     
-    // Get credentials
-    let tenantId, refreshToken;
-    const authMethodAuto = document.getElementById('authMethodAuto');
-    
-    if (authMethodAuto && authMethodAuto.checked) {
-        tenantId = document.getElementById('alchemyTenantId').value;
-        refreshToken = "session"; // Server will use session token
-    } else {
-        tenantId = document.getElementById('alchemyTenantIdDirect').value;
-        refreshToken = document.getElementById('alchemyRefreshToken').value;
-    }
+    // Get tenant info - in new approach we only support session auth
+    let tenantId = document.getElementById('alchemyTenantId').value.trim();
+    let refreshToken = "session"; // Server will use credentials from session
     
     if (!tenantId) {
-        showToast('Please enter Alchemy tenant ID', 'error');
+        showToast('Please provide tenant ID', 'error');
         return;
     }
     
-    showToast('Fetching fields for ' + recordTypeId + '...', 'info');
+    // Show loading status
+    showRecordTypeStatus('info', `Fetching fields for record type: ${recordTypeId}...`);
     
-    // Make API request
+    // Disable the fetch button to prevent multiple clicks
+    const fetchButton = document.getElementById('fetchFieldsBtn');
+    if (fetchButton) {
+        fetchButton.disabled = true;
+        fetchButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Fetching...';
+    }
+    
+    // Make the API call
     fetch('/get-alchemy-fields', {
         method: 'POST',
         headers: {
@@ -244,32 +243,86 @@ function fetchFieldsForRecordType(recordTypeId) {
         })
     })
     .then(response => {
+        // Re-enable the button regardless of response
+        if (fetchButton) {
+            fetchButton.disabled = false;
+            fetchButton.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Fetch Fields';
+        }
+        
+        // Check if the response is successful
         if (!response.ok) {
-            throw new Error('API returned status ' + response.status);
+            // If it's an authentication error (401)
+            if (response.status === 401) {
+                throw new Error('Authentication failed. Please authenticate with Alchemy again.');
+            }
+            throw new Error(`Server returned ${response.status}: ${response.statusText}`);
         }
         return response.json();
     })
     .then(data => {
-        log('Received API response for fields');
+        console.log('Fields response:', data);
         
+        // Check if fields exist and we have at least one
         if (data.fields && data.fields.length > 0) {
-            // Store fields and proceed to step 3
-            window.alchemyFields = data.fields;
-            generatePlatformFields();
-            showStep(3);
-            prepareFieldMapping();
-            showToast('Successfully loaded ' + data.fields.length + ' fields from Alchemy', 'success');
+            // Store the fields
+            alchemyFields = data.fields;
+            
+            // Show appropriate message
+            if (data.status === 'warning') {
+                showRecordTypeStatus('warning', `${data.message || 'Using fallback fields'}`);
+            } else {
+                showRecordTypeStatus('success', `Successfully retrieved ${data.fields.length} fields for record type: ${recordTypeId}`);
+            }
+            
+            // Enable continuing to next step
+            setTimeout(() => {
+                showStep(3);
+                prepareFieldMappings();
+            }, 1000);
         } else {
-            // Handle empty response
-            showToast('No fields returned from API', 'error');
+            // Handle empty fields response
+            let errorMessage = data.message || `No fields found for record type: ${recordTypeId}`;
+            showRecordTypeStatus('warning', errorMessage);
         }
     })
     .catch(error => {
-        log('Error fetching fields: ' + error.message);
-        showToast('Error fetching fields: ' + error.message, 'error');
+        console.error('Error fetching fields:', error);
+        
+        // Re-enable the button
+        if (fetchButton) {
+            fetchButton.disabled = false;
+            fetchButton.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Fetch Fields';
+        }
+        
+        // Show error message
+        showRecordTypeStatus('error', `Error: ${error.message}`);
+        
+        // If it's an authentication error, show a more helpful message
+        if (error.message.includes('Authentication failed')) {
+            // Suggest re-authenticating
+            const authStatus = document.getElementById('authStatus');
+            if (authStatus) {
+                authStatus.className = 'alert alert-danger mt-2';
+                authStatus.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Your authentication has expired. Please go back and authenticate again.';
+                authStatus.style.display = 'block';
+            }
+            
+            // Add a back button to return to step 1
+            const backToAuthBtn = document.createElement('button');
+            backToAuthBtn.className = 'btn btn-outline-primary mt-3';
+            backToAuthBtn.innerHTML = '<i class="fas fa-arrow-left me-2"></i>Return to Authentication';
+            backToAuthBtn.onclick = function() {
+                showStep(1);
+            };
+            
+            const statusContainer = document.getElementById('recordTypeStatus');
+            if (statusContainer) {
+                statusContainer.appendChild(document.createElement('br'));
+                statusContainer.appendChild(backToAuthBtn);
+            }
+        }
     });
 }
-
 // Generate platform fields based on selected platform
 function generatePlatformFields() {
     // Determine the selected platform
