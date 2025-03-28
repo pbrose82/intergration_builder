@@ -13,11 +13,11 @@ class HubSpotService:
     """
     Service for interacting with the HubSpot API
     """
-    def __init__(self, access_token=None, client_secret=None):
+    def __init__(self, access_token=None, client_secret=None, oauth_mode=False):
         self.access_token = access_token
         self.client_secret = client_secret
         self.base_url = "https://api.hubapi.com"
-        self.oauth_mode = access_token and not client_secret 
+        self.oauth_mode = oauth_mode
     
     def validate_credentials(self):
         """
@@ -27,14 +27,43 @@ class HubSpotService:
             bool: True if valid, False otherwise
         """
         try:
-            # Use the /oauth/v1/access-tokens/info API endpoint to validate OAuth credentials
-            url = f"{self.base_url}/oauth/v1/access-tokens/info"
-            headers = {
-                "Authorization": f"Bearer {self.access_token}"
-            }
+            # Check if we have a token
+            if not self.access_token:
+                logger.error("No access token provided")
+                return False, "No access token provided"
             
-            logger.info(f"Validating HubSpot credentials")
-            response = requests.get(url, headers=headers)
+            # Check if the token starts with 'pat-' - HubSpot private app token format
+            is_pat = self.access_token.startswith('pat-')
+            
+            # Normalize token - remove any whitespace
+            token = self.access_token.strip()
+            
+            # Log token format (masked)
+            masked_token = token[:6] + "..." if len(token) > 6 else "***"
+            logger.info(f"Validating HubSpot credentials with token format: {masked_token}")
+            
+            # Use different endpoint based on token type
+            if is_pat:
+                # For Private App tokens
+                url = f"{self.base_url}/crm/v3/objects/contacts"
+                headers = {
+                    "Authorization": f"Bearer {token}",
+                    "Content-Type": "application/json"
+                }
+                params = {"limit": 1}  # Just request a single contact to minimize data transfer
+            else:
+                # For OAuth tokens (original code path)
+                url = f"{self.base_url}/oauth/v1/access-tokens/info"
+                headers = {
+                    "Authorization": f"Bearer {token}"
+                }
+                params = {}
+            
+            logger.info(f"Making validation request to: {url}")
+            response = requests.get(url, headers=headers, params=params)
+            
+            # Log the response status
+            logger.info(f"HubSpot API response status: {response.status_code}")
             
             if response.status_code == 200:
                 logger.info("HubSpot credentials are valid")
@@ -44,9 +73,12 @@ class HubSpotService:
                 if response.text:
                     try:
                         error_detail = response.json()
-                        error_msg = f"{error_msg} - {error_detail.get('message', '')}"
+                        if isinstance(error_detail, dict) and 'message' in error_detail:
+                            error_msg = f"{error_msg} - {error_detail['message']}"
+                        else:
+                            error_msg = f"{error_msg} - {response.text[:100]}"
                     except:
-                        error_msg = f"{error_msg} - {response.text}"
+                        error_msg = f"{error_msg} - {response.text[:100]}"
                         
                 logger.error(error_msg)
                 return False, error_msg
@@ -71,11 +103,14 @@ class HubSpotService:
                 {"id": "product", "name": "Product", "description": "Store product information"}
             ]
             
+            # Normalize token - remove any whitespace
+            token = self.access_token.strip() if self.access_token else ""
+            
             # Try to fetch schema metadata to verify our access
             try:
                 url = f"{self.base_url}/crm/v3/schemas"
                 headers = {
-                    "Authorization": f"Bearer {self.access_token}",
+                    "Authorization": f"Bearer {token}",
                     "Content-Type": "application/json"
                 }
                 
@@ -85,7 +120,7 @@ class HubSpotService:
                     logger.info("Successfully verified API access with schema metadata")
                     # We could add custom objects here if needed
                 else:
-                    logger.warning(f"Could not fetch schema metadata: {response.status_code} - {response.text}")
+                    logger.warning(f"Could not fetch schema metadata: {response.status_code} - {response.text[:100]}")
             except Exception as e:
                 logger.warning(f"Error fetching schema metadata: {str(e)}")
             
@@ -107,6 +142,9 @@ class HubSpotService:
         try:
             logger.info(f"Fetching fields for HubSpot object type: {object_type}")
             
+            # Normalize token - remove any whitespace
+            token = self.access_token.strip() if self.access_token else ""
+            
             # Use the appropriate endpoint based on object type
             if object_type in ["contact", "company", "deal", "ticket", "product"]:
                 url = f"{self.base_url}/crm/v3/properties/{object_type}"
@@ -115,14 +153,14 @@ class HubSpotService:
                 url = f"{self.base_url}/crm/v3/properties/{object_type}"
             
             headers = {
-                "Authorization": f"Bearer {self.access_token}",
+                "Authorization": f"Bearer {token}",
                 "Content-Type": "application/json"
             }
             
             response = requests.get(url, headers=headers)
             
             if response.status_code != 200:
-                logger.error(f"Error fetching fields: {response.status_code} - {response.text}")
+                logger.error(f"Error fetching fields: {response.status_code} - {response.text[:100]}")
                 return []
             
             # Parse the response
@@ -186,4 +224,4 @@ def get_hubspot_service(access_token=None, client_secret=None, oauth_mode=False)
         else:
             access_token = current_app.config.get('HUBSPOT_API_KEY')
     
-    return HubSpotService(access_token=access_token, client_secret=client_secret)
+    return HubSpotService(access_token=access_token, client_secret=client_secret, oauth_mode=oauth_mode)
