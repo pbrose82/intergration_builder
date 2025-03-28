@@ -7,6 +7,7 @@ from app.models import SalesforceIntegration
 import logging
 import json
 from datetime import datetime
+import traceback
 
 # Set up logger
 logger = logging.getLogger(__name__)
@@ -21,6 +22,7 @@ def save_integration():
     """
     try:
         data = request.get_json()
+        logger.info(f"Received integration save request: {json.dumps(data)[:500]}...")
         
         if not data:
             return jsonify({
@@ -69,10 +71,6 @@ def save_integration():
             salesforce_username=f"{platform}_integration"  # Using this field to store the platform
         )
         
-        # Store the field mappings as JSON
-        mapping_json = json.dumps(field_mappings)
-        integration.field_mappings = mapping_json
-        
         # Set sync frequency
         sync_config = data.get('sync_config', {})
         integration.sync_frequency = sync_config.get('frequency', 'daily')
@@ -101,10 +99,14 @@ def save_integration():
         elif platform == 'hubspot':
             hs_config = data.get('hubspot', {})
             platform_config = {
-                'api_key': hs_config.get('api_key'),
-                'portal_id': hs_config.get('portal_id'),
-                'object_type': hs_config.get('object_type')
+                'access_token': hs_config.get('access_token'),
+                'client_secret': hs_config.get('client_secret'),
+                'object_type': hs_config.get('object_type'),
+                'record_identifier': hs_config.get('record_identifier', 'id')  # Add record identifier with default
             }
+            
+            # Log the HubSpot config
+            logger.info(f"HubSpot config: object_type={platform_config['object_type']}, record_identifier={platform_config['record_identifier']}")
         
         # Store Alchemy configuration
         alchemy_config_to_store = {
@@ -141,7 +143,137 @@ def save_integration():
         
     except Exception as e:
         logger.error(f"Error saving integration: {str(e)}")
+        logger.error(traceback.format_exc())
         return jsonify({
             "status": "error",
             "message": f"Error: {str(e)}"
+        }), 500
+
+@integration_bp.route('/integrations', methods=['GET'])
+def list_integrations():
+    """
+    List all saved integrations
+    """
+    try:
+        integrations = SalesforceIntegration.query.all()
+        result = []
+        
+        for integration in integrations:
+            try:
+                # Parse the field mappings to extract platform and other info
+                mappings_data = json.loads(integration.field_mappings)
+                config = mappings_data.get('config', {})
+                platform = config.get('platform', 'unknown')
+                
+                # Get platform-specific details
+                platform_config = config.get(platform, {})
+                
+                # Add to result list
+                result.append({
+                    'id': integration.id,
+                    'platform': platform,
+                    'created_at': integration.created_at.isoformat() if integration.created_at else None,
+                    'updated_at': integration.updated_at.isoformat() if integration.updated_at else None,
+                    'is_active': integration.is_active,
+                    'sync_frequency': integration.sync_frequency,
+                    'details': {
+                        'alchemy_record_type': config.get('alchemy', {}).get('record_type'),
+                        'platform_object_type': platform_config.get('object_type') if platform == 'hubspot' else None,
+                        'mapping_count': len(mappings_data.get('mappings', []))
+                    }
+                })
+            except Exception as e:
+                logger.error(f"Error processing integration {integration.id}: {str(e)}")
+                # Continue with next integration
+        
+        return jsonify({
+            'status': 'success',
+            'integrations': result
+        })
+        
+    except Exception as e:
+        logger.error(f"Error listing integrations: {str(e)}")
+        logger.error(traceback.format_exc())
+        return jsonify({
+            'status': 'error',
+            'message': f"Error: {str(e)}"
+        }), 500
+
+@integration_bp.route('/integration/<int:integration_id>', methods=['GET'])
+def get_integration(integration_id):
+    """
+    Get a specific integration by ID
+    """
+    try:
+        integration = SalesforceIntegration.query.get(integration_id)
+        
+        if not integration:
+            return jsonify({
+                'status': 'error',
+                'message': f"Integration with ID {integration_id} not found"
+            }), 404
+        
+        # Parse the field mappings to extract configuration and mappings
+        mappings_data = json.loads(integration.field_mappings)
+        config = mappings_data.get('config', {})
+        mappings = mappings_data.get('mappings', [])
+        platform = config.get('platform', 'unknown')
+        
+        # Build response
+        response = {
+            'id': integration.id,
+            'platform': platform,
+            'created_at': integration.created_at.isoformat() if integration.created_at else None,
+            'updated_at': integration.updated_at.isoformat() if integration.updated_at else None,
+            'is_active': integration.is_active,
+            'sync_frequency': integration.sync_frequency,
+            'alchemy_config': config.get('alchemy', {}),
+            'platform_config': config.get(platform, {}),
+            'field_mappings': mappings
+        }
+        
+        return jsonify({
+            'status': 'success',
+            'integration': response
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting integration {integration_id}: {str(e)}")
+        logger.error(traceback.format_exc())
+        return jsonify({
+            'status': 'error',
+            'message': f"Error: {str(e)}"
+        }), 500
+
+@integration_bp.route('/integration/<int:integration_id>', methods=['DELETE'])
+def delete_integration(integration_id):
+    """
+    Delete an integration by ID
+    """
+    try:
+        integration = SalesforceIntegration.query.get(integration_id)
+        
+        if not integration:
+            return jsonify({
+                'status': 'error',
+                'message': f"Integration with ID {integration_id} not found"
+            }), 404
+        
+        # Delete the integration
+        db.session.delete(integration)
+        db.session.commit()
+        
+        logger.info(f"Deleted integration with ID {integration_id}")
+        
+        return jsonify({
+            'status': 'success',
+            'message': f"Integration with ID {integration_id} deleted successfully"
+        })
+        
+    except Exception as e:
+        logger.error(f"Error deleting integration {integration_id}: {str(e)}")
+        logger.error(traceback.format_exc())
+        return jsonify({
+            'status': 'error',
+            'message': f"Error: {str(e)}"
         }), 500
