@@ -170,6 +170,15 @@
         .toast.warning {
             border-left-color: #FFC107;
         }
+        
+        /* HubSpot additional fields */
+        .hubspot-object-config {
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid #eee;
+        }
     </style>
 </head>
 <body>
@@ -319,11 +328,11 @@
                                     </span>
                                 </div>
                                 <div class="form-text">
-                                    Enter your HubSpot OAuth Access Token
+                                    Enter your HubSpot API Key or Private App Token (starts with 'pat-')
                                 </div>
                             </div>
                             <div class="mb-3">
-                                <label for="hubspotPortalId" class="form-label">Client Secret</label>
+                                <label for="hubspotPortalId" class="form-label">Client Secret (optional)</label>
                                 <div class="input-group">
                                     <input type="password" class="form-control" id="hubspotPortalId" placeholder="HubSpot Client Secret">
                                     <span class="input-group-text" id="toggleHubspotSecret" style="cursor: pointer;">
@@ -331,7 +340,7 @@
                                     </span>
                                 </div>
                                 <div class="form-text">
-                                    Your HubSpot Client Secret for OAuth
+                                    Your HubSpot Client Secret for OAuth (leave blank if using API Key)
                                 </div>
                             </div>
                             <div class="text-end mb-3">
@@ -361,6 +370,42 @@
                         </button>
                     </div>
                     <div id="recordTypeStatus" class="alert mt-3" style="display: none;"></div>
+                    
+                    <!-- HubSpot specific object type selection -->
+                    <div id="hubspotObjectContainer" class="hubspot-object-config mt-4" style="display: none;">
+                        <h5 class="mb-3">HubSpot Object Type</h5>
+                        <div class="mb-3">
+                            <label for="hubspotObjectType" class="form-label">Select Object Type</label>
+                            <div class="input-group">
+                                <select class="form-select" id="hubspotObjectType" disabled>
+                                    <option value="">-- Select Object Type --</option>
+                                </select>
+                                <button class="btn btn-outline-secondary" type="button" id="fetchHubspotObjectsBtn" disabled>
+                                    <i class="fas fa-sync-alt me-2"></i>Refresh
+                                </button>
+                            </div>
+                            <div class="form-text">
+                                Select the HubSpot object type to map with Alchemy records
+                            </div>
+                        </div>
+                        <div id="hubspotObjectStatus" class="alert mt-3" style="display: none;"></div>
+                        
+                        <div id="hubspotRecordIdentifierContainer" class="mb-3" style="display: none;">
+                            <label for="hubspotRecordIdentifier" class="form-label">HubSpot Record Identifier Field</label>
+                            <input type="text" class="form-control" id="hubspotRecordIdentifier" placeholder="e.g. id, hubspot_id, external_id">
+                            <div class="form-text">
+                                Enter the field name that will be used to identify the HubSpot record for synchronization
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <p>Fetch fields for object type: <strong id="hubspotObjectTypeLabel">None Selected</strong></p>
+                            <button class="btn btn-primary" type="button" id="fetchHubspotFieldsBtn" disabled>
+                                <i class="fas fa-list me-2"></i>Fetch Fields
+                            </button>
+                        </div>
+                        <div id="hubspotFieldStatus" class="alert mt-3" style="display: none;"></div>
+                    </div>
                 </div>
                 
                 <!-- Step 3: Field Mapping -->
@@ -369,13 +414,38 @@
                     <div id="fieldMappings" class="mb-4">
                         <!-- Field mappings will be generated here -->
                     </div>
+                    
+                    <!-- Sync options -->
+                    <div id="syncOptionsContainer" class="mt-4 p-3 bg-light rounded">
+                        <h5 class="mb-3">Synchronization Options</h5>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="syncFrequency" class="form-label">Sync Frequency</label>
+                                <select class="form-select" id="syncFrequency">
+                                    <option value="realtime">Real-time</option>
+                                    <option value="hourly">Hourly</option>
+                                    <option value="daily" selected>Daily</option>
+                                    <option value="weekly">Weekly</option>
+                                    <option value="manual">Manual Only</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="syncDirection" class="form-label">Sync Direction</label>
+                                <select class="form-select" id="syncDirection">
+                                    <option value="alchemy_to_platform">Alchemy to {{ platform|capitalize }}</option>
+                                    <option value="platform_to_alchemy">{{ platform|capitalize }} to Alchemy</option>
+                                    <option value="bidirectional" selected>Bidirectional</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Navigation Buttons -->
                 <div class="mt-4 d-flex justify-content-between">
-                    <a href="/" class="btn btn-outline-secondary">
+                    <button type="button" id="backBtn" class="btn btn-outline-secondary">
                         <i class="fas fa-arrow-left me-2"></i>Back
-                    </a>
+                    </button>
                     
                     <div>
                         <button type="button" id="nextBtn" class="btn btn-primary">
@@ -409,6 +479,9 @@
     
     <!-- HubSpot Integration JavaScript -->
     <script src="{{ url_for('static', filename='js/hubspot-integration.js') }}"></script>
+    
+    <!-- Debug helper for troubleshooting -->
+    <script src="{{ url_for('static', filename='js/debug-helper.js') }}"></script>
     
     <!-- Main JavaScript -->
     <script>
@@ -539,6 +612,19 @@
                 // Move to next step
                 currentStep++;
                 updateProgressUI();
+                
+                // For HubSpot integration, show additional fields in step 2
+                if (currentStep === 2 && window.location.href.includes('platform=hubspot')) {
+                    $('#hubspotObjectContainer').show();
+                }
+            });
+            
+            // Back button
+            $('#backBtn').click(function() {
+                if (currentStep > 1) {
+                    currentStep--;
+                    updateProgressUI();
+                }
             });
             
             // Save button 
@@ -609,10 +695,13 @@
                             
                             // For HubSpot, we need an extra step for object selection
                             if (window.location.href.includes('platform=hubspot')) {
-                                // Let the HubSpot JS handle this
-                                // It will show object type selection
+                                // Enable object type selection if not already done
+                                if ($('#hubspotObjectType').prop('disabled')) {
+                                    $('#fetchHubspotObjectsBtn').prop('disabled', false);
+                                    $('#hubspotRecordIdentifierContainer').show();
+                                }
                             } else {
-                                // Proceed to next step
+                                // For other platforms, proceed to next step
                                 currentStep++;
                                 updateProgressUI();
                                 
@@ -833,6 +922,11 @@
                         {id: 'company', name: 'Company Name'},
                         {id: 'website', name: 'Website'}
                     ];
+                    
+                    // If we have HubSpot fields loaded, use them instead
+                    if (window.hubspotFields && window.hubspotFields.length) {
+                        platformFields = window.hubspotFields;
+                    }
                 } else if (platform === 'sap') {
                     platformFields = [
                         {id: 'material_number', name: 'Material Number'},
@@ -845,7 +939,9 @@
                 }
                 
                 platformFields.forEach(f => {
-                    platformSelect.append(`<option value="${f.id}">${f.name}</option>`);
+                    const fieldId = f.identifier || f.id;
+                    const fieldName = f.name;
+                    platformSelect.append(`<option value="${fieldId}">${fieldName}</option>`);
                 });
                 
                 // Add remove button handler
@@ -963,6 +1059,66 @@
                 });
             }
             
+            // Set up direct event handler for back button
+            const backBtn = document.getElementById('backBtn');
+            if (backBtn) {
+                backBtn.addEventListener('click', function() {
+                    console.log('Back button clicked (direct handler)');
+                    const currentStepElement = document.getElementById('progressStep');
+                    let currentStep = 1;
+                    
+                    if (currentStepElement) {
+                        const stepText = currentStepElement.textContent;
+                        const match = stepText.match(/Step (\d+) of/);
+                        if (match && match[1]) {
+                            currentStep = parseInt(match[1]);
+                        }
+                    }
+                    
+                    if (currentStep > 1) {
+                        // Go back one step
+                        const newStep = currentStep - 1;
+                        console.log(`Moving from step ${currentStep} to step ${newStep}`);
+                        
+                        // Hide all steps
+                        document.querySelectorAll('.step-content').forEach(step => {
+                            step.style.display = 'none';
+                        });
+                        
+                        // Show the new step
+                        const stepToShow = document.getElementById(`step${newStep}`);
+                        if (stepToShow) {
+                            stepToShow.style.display = 'block';
+                        }
+                        
+                        // Update progress bar
+                        const progressBar = document.getElementById('progressBar');
+                        if (progressBar) {
+                            progressBar.style.width = `${(newStep / 3) * 100}%`;
+                        }
+                        
+                        // Update step text
+                        if (currentStepElement) {
+                            currentStepElement.textContent = `Step ${newStep} of 3`;
+                        }
+                        
+                        // Update buttons
+                        const nextBtn = document.getElementById('nextBtn');
+                        const saveBtn = document.getElementById('saveBtn');
+                        
+                        if (nextBtn && saveBtn) {
+                            nextBtn.style.display = 'inline-block';
+                            saveBtn.style.display = 'none';
+                        }
+                        
+                        // Update global variable if it exists
+                        if (typeof window.currentStep !== 'undefined') {
+                            window.currentStep = newStep;
+                        }
+                    }
+                });
+            }
+            
             // Set up direct event handler for fetch fields button
             const fetchFieldsBtn = document.getElementById('fetchFieldsBtn');
             if (fetchFieldsBtn) {
@@ -1022,10 +1178,10 @@
                         fetchFieldsBtn.disabled = false;
                         fetchFieldsBtn.innerHTML = '<i class="fas fa-search me-2"></i>Fetch Fields';
                         
+                        // Store fields globally
+                        window.alchemyFields = data.fields || [];
+                        
                         if (data.status === 'success' || data.status === 'warning') {
-                            // Store fields in global variable
-                            window.alchemyFields = data.fields;
-                            
                             // Show appropriate status message
                             if (data.status === 'warning') {
                                 if (recordTypeStatus) {
@@ -1041,40 +1197,59 @@
                                 showDirectToast('success', 'Successfully fetched ' + data.fields.length + ' fields');
                             }
                             
-                            // Move to next step or prepare UI
-                            setTimeout(function() {
-                                // Simulate click on next button or manually update UI
-                                const isHubSpot = window.location.href.includes('platform=hubspot');
-                                if (!isHubSpot) {
-                                    // Move to step 3 manually by showing/hiding elements
-                                    const step2 = document.getElementById('step2');
-                                    const step3 = document.getElementById('step3');
-                                    const nextBtn = document.getElementById('nextBtn');
-                                    const saveBtn = document.getElementById('saveBtn');
+                            // Check if on HubSpot platform
+                            const isHubSpot = window.location.href.includes('platform=hubspot');
+                            if (isHubSpot) {
+                                // Show HubSpot specific container
+                                const hubspotObjectContainer = document.getElementById('hubspotObjectContainer');
+                                if (hubspotObjectContainer) {
+                                    hubspotObjectContainer.style.display = 'block';
+                                }
+                                
+                                // Enable object type selection
+                                const fetchHubspotObjectsBtn = document.getElementById('fetchHubspotObjectsBtn');
+                                if (fetchHubspotObjectsBtn) {
+                                    fetchHubspotObjectsBtn.disabled = false;
+                                }
+                                
+                                // Show record identifier field
+                                const hubspotRecordIdentifierContainer = document.getElementById('hubspotRecordIdentifierContainer');
+                                if (hubspotRecordIdentifierContainer) {
+                                    hubspotRecordIdentifierContainer.style.display = 'block';
+                                }
+                            } else {
+                                // For other platforms, move to step 3
+                                const step2 = document.getElementById('step2');
+                                const step3 = document.getElementById('step3');
+                                if (step2 && step3) {
+                                    step2.style.display = 'none';
+                                    step3.style.display = 'block';
+                                    
+                                    // Update progress indicator
                                     const progressBar = document.getElementById('progressBar');
                                     const progressStep = document.getElementById('progressStep');
                                     
-                                    if (step2 && step3) {
-                                        step2.style.display = 'none';
-                                        step3.style.display = 'block';
-                                        
-                                        if (nextBtn) nextBtn.style.display = 'none';
-                                        if (saveBtn) saveBtn.style.display = 'inline-block';
-                                        if (progressBar) progressBar.style.width = '100%';
-                                        if (progressStep) progressStep.textContent = 'Step 3 of 3';
-                                        
+                                    if (progressBar) progressBar.style.width = '100%';
+                                    if (progressStep) progressStep.textContent = 'Step 3 of 3';
+                                    
+                                    // Update buttons
+                                    const nextBtn = document.getElementById('nextBtn');
+                                    const saveBtn = document.getElementById('saveBtn');
+                                    
+                                    if (nextBtn) nextBtn.style.display = 'none';
+                                    if (saveBtn) saveBtn.style.display = 'inline-block';
+                                    
+                                    // Update global step
+                                    if (typeof window.currentStep !== 'undefined') {
                                         window.currentStep = 3;
-                                        
-                                        // Call field mapping function - fallback to direct DOM manipulation
-                                        // if the jQuery function fails
-                                        if (typeof populateFieldMappings === 'function') {
-                                            populateFieldMappings(data.fields);
-                                        } else {
-                                            populateFieldMappingsDirect(data.fields);
-                                        }
+                                    }
+                                    
+                                    // Generate field mappings
+                                    if (typeof populateFieldMappings === 'function') {
+                                        populateFieldMappings(data.fields);
                                     }
                                 }
-                            }, 1000);
+                            }
                         } else {
                             // Show error message
                             if (recordTypeStatus) {
@@ -1089,7 +1264,7 @@
                         fetchFieldsBtn.disabled = false;
                         fetchFieldsBtn.innerHTML = '<i class="fas fa-search me-2"></i>Fetch Fields';
                         
-                        // Show error
+                        // Show error message
                         if (recordTypeStatus) {
                             recordTypeStatus.className = 'alert alert-danger mt-3';
                             recordTypeStatus.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Error: ' + error.message;
@@ -1284,184 +1459,6 @@
                 }
                 showDirectToast('error', 'Error: ' + error.message);
             });
-        }
-        
-        // Fallback implementation of populateFieldMappings using direct DOM manipulation
-        function populateFieldMappingsDirect(fields) {
-            const mappingContainer = document.getElementById('fieldMappings');
-            if (!mappingContainer) return;
-            
-            // Clear existing content
-            mappingContainer.innerHTML = '';
-            
-            // Get platform info from URL
-            const urlParams = new URLSearchParams(window.location.search);
-            const platform = urlParams.get('platform') || 'salesforce';
-            const platformCapitalized = platform.charAt(0).toUpperCase() + platform.slice(1);
-            
-            // Create header
-            const headerDiv = document.createElement('div');
-            headerDiv.className = 'alert alert-info mb-3';
-            headerDiv.innerHTML = `<i class="fas fa-info-circle me-2"></i>Map fields between Alchemy and ${platformCapitalized}`;
-            mappingContainer.appendChild(headerDiv);
-            
-            // Define platform-specific fields
-            let platformFields = [];
-            if (platform === 'salesforce') {
-                platformFields = [
-                    {id: 'name', name: 'Name'},
-                    {id: 'description', name: 'Description'},
-                    {id: 'status', name: 'Status'},
-                    {id: 'owner', name: 'Owner'},
-                    {id: 'created_date', name: 'Created Date'},
-                    {id: 'modified_date', name: 'Modified Date'}
-                ];
-            } else if (platform === 'hubspot') {
-                platformFields = [
-                    {id: 'firstname', name: 'First Name'},
-                    {id: 'lastname', name: 'Last Name'},
-                    {id: 'email', name: 'Email'},
-                    {id: 'phone', name: 'Phone Number'},
-                    {id: 'company', name: 'Company Name'},
-                    {id: 'website', name: 'Website'}
-                ];
-            } else if (platform === 'sap') {
-                platformFields = [
-                    {id: 'material_number', name: 'Material Number'},
-                    {id: 'description', name: 'Description'},
-                    {id: 'material_type', name: 'Material Type'},
-                    {id: 'plant', name: 'Plant'},
-                    {id: 'storage_location', name: 'Storage Location'},
-                    {id: 'batch', name: 'Batch'}
-                ];
-            }
-            
-            // Create mapping rows
-            const fieldCount = Math.min(5, fields.length);
-            for (let i = 0; i < fieldCount; i++) {
-                const field = fields[i];
-                
-                // Create row container
-                const row = document.createElement('div');
-                row.className = 'row mb-3 mapping-row';
-                
-                // Create Alchemy field select
-                const alchemyCol = document.createElement('div');
-                alchemyCol.className = 'col-5';
-                
-                const alchemySelect = document.createElement('select');
-                alchemySelect.className = 'form-select alchemy-field';
-                
-                // Add default option
-                let option = document.createElement('option');
-                option.value = '';
-                option.textContent = '-- Select Alchemy Field --';
-                alchemySelect.appendChild(option);
-                
-                // Add field options
-                fields.forEach(f => {
-                    option = document.createElement('option');
-                    option.value = f.identifier;
-                    option.textContent = f.name || f.identifier;
-                    alchemySelect.appendChild(option);
-                });
-                
-                // Set selected field
-                alchemySelect.value = field.identifier;
-                
-                alchemyCol.appendChild(alchemySelect);
-                row.appendChild(alchemyCol);
-                
-                // Create arrow icon
-                const arrowCol = document.createElement('div');
-                arrowCol.className = 'col-1 text-center pt-2';
-                arrowCol.innerHTML = '<i class="fas fa-arrows-alt-h"></i>';
-                row.appendChild(arrowCol);
-                
-                // Create platform field select
-                const platformCol = document.createElement('div');
-                platformCol.className = 'col-5';
-                
-                const platformSelect = document.createElement('select');
-                platformSelect.className = 'form-select platform-field';
-                
-                // Add default option
-                option = document.createElement('option');
-                option.value = '';
-                option.textContent = `-- Select ${platformCapitalized} Field --`;
-                platformSelect.appendChild(option);
-                
-                // Add platform field options
-                platformFields.forEach(f => {
-                    option = document.createElement('option');
-                    option.value = f.id;
-                    option.textContent = f.name;
-                    platformSelect.appendChild(option);
-                });
-                
-                platformCol.appendChild(platformSelect);
-                row.appendChild(platformCol);
-                
-                // Create remove button
-                const buttonCol = document.createElement('div');
-                buttonCol.className = 'col-1';
-                
-                const removeBtn = document.createElement('button');
-                removeBtn.className = 'btn btn-sm btn-outline-danger remove-mapping';
-                removeBtn.innerHTML = '<i class="fas fa-times"></i>';
-                
-                // Add event listener
-                removeBtn.addEventListener('click', function() {
-                    row.parentNode.removeChild(row);
-                });
-                
-                buttonCol.appendChild(removeBtn);
-                row.appendChild(buttonCol);
-                
-                // Add to container
-                mappingContainer.appendChild(row);
-            }
-            
-            // Add button to add more mappings
-            const addButton = document.createElement('button');
-            addButton.type = 'button';
-            addButton.className = 'btn btn-outline-primary';
-            addButton.id = 'addMappingBtn';
-            addButton.innerHTML = '<i class="fas fa-plus me-2"></i>Add Field Mapping';
-            
-            // Add event listener
-            addButton.addEventListener('click', function() {
-                // Get the first mapping row to clone
-                const firstRow = mappingContainer.querySelector('.mapping-row');
-                if (!firstRow) return;
-                
-                // Clone the row
-                const newRow = firstRow.cloneNode(true);
-                
-                // Reset selections
-                const selects = newRow.querySelectorAll('select');
-                selects.forEach(select => {
-                    select.value = '';
-                });
-                
-                // Add remove button handler
-                const removeBtn = newRow.querySelector('.remove-mapping');
-                if (removeBtn) {
-                    // Remove old handler
-                    const newRemoveBtn = removeBtn.cloneNode(true);
-                    removeBtn.parentNode.replaceChild(newRemoveBtn, removeBtn);
-                    
-                    // Add new handler
-                    newRemoveBtn.addEventListener('click', function() {
-                        newRow.parentNode.removeChild(newRow);
-                    });
-                }
-                
-                // Insert before add button
-                mappingContainer.insertBefore(newRow, addButton);
-            });
-            
-            mappingContainer.appendChild(addButton);
         }
     </script>
 </body>
