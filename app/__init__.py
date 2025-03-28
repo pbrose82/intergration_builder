@@ -24,7 +24,7 @@ def create_app():
 
     # Import and register troubleshooting routes
     try:
-        from troubleshoot_routes import troubleshoot_bp
+        from .troubleshoot_routes import troubleshoot_bp
         app.register_blueprint(troubleshoot_bp)
         app.logger.info("Troubleshooting routes registered successfully")
     except Exception as e:
