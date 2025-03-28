@@ -78,29 +78,37 @@ def get_fields():
         
         current_app.logger.info(f"Field fetch request for record type: {record_type} in tenant: {tenant_id}")
 
-        # Try to get token from session if not provided directly
+        # We need the email and password for direct authentication
         if refresh_token == "session" and tenant_id:
-            if 'alchemy_tokens' in session and tenant_id in session['alchemy_tokens']:
-                refresh_token = session['alchemy_tokens'][tenant_id].get('refresh_token')
-                current_app.logger.info(f"Using refresh token from session for tenant {tenant_id}")
+            # Get email and password from session
+            if 'alchemy_credentials' in session and tenant_id in session['alchemy_credentials']:
+                credentials = session['alchemy_credentials'][tenant_id]
+                current_app.logger.info(f"Using credentials from session for tenant {tenant_id}")
             else:
-                current_app.logger.error(f"No session token found for tenant {tenant_id}")
+                current_app.logger.error(f"No credentials found in session for tenant {tenant_id}")
                 return jsonify({
                     "status": "error",
-                    "message": f"Authentication required: No session token found for tenant {tenant_id}"
+                    "message": "Authentication required. Please authenticate with email and password first."
                 }), 401
+        else:
+            # They're using direct token authentication which we don't support anymore
+            current_app.logger.error("Direct token authentication not supported")
+            return jsonify({
+                "status": "error",
+                "message": "Direct token authentication is not supported. Please use email/password authentication."
+            }), 400
 
-        if not tenant_id or not refresh_token or not record_type:
+        if not tenant_id or not credentials or not record_type:
             current_app.logger.error("Missing required parameters")
             return jsonify({
                 "status": "error", 
                 "message": "Missing one or more required fields"
             }), 400
 
-        # Call the service to fetch fields
+        # Call the service to fetch fields with credentials
         current_app.logger.info(f"Fetching fields for record type {record_type}")
         try:
-            fields = fetch_alchemy_fields(tenant_id, refresh_token, record_type)
+            fields = fetch_alchemy_fields(tenant_id, credentials, record_type)
             
             if not fields:
                 current_app.logger.warning(f"No fields returned for record type {record_type}")
@@ -264,6 +272,15 @@ def authenticate_alchemy():
         session['alchemy_tokens'][tenant_id] = {
             'refresh_token': refresh_token,
             'timestamp': datetime.now().isoformat()
+        }
+        
+        # Also store the credentials in the session
+        if 'alchemy_credentials' not in session:
+            session['alchemy_credentials'] = {}
+            
+        session['alchemy_credentials'][tenant_id] = {
+            'email': email,
+            'password': password
         }
         
         # Also store the current tenant ID for convenience
