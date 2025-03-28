@@ -334,7 +334,12 @@
                                     Your HubSpot Client Secret for OAuth
                                 </div>
                             </div>
-                            <!-- Validate button for HubSpot is dynamically added by hubspot-integration.js -->
+                            <div class="text-end mb-3">
+                                <button type="button" id="validateHubspotBtn" class="btn btn-outline-primary">
+                                    <i class="fas fa-check-circle me-2"></i>Validate Credentials
+                                </button>
+                            </div>
+                            <div id="hubspotStatus" class="alert mt-3" style="display: none;"></div>
                         </div>
                     </div>
                 </div>
@@ -355,6 +360,7 @@
                             <i class="fas fa-search me-2"></i>Fetch Fields
                         </button>
                     </div>
+                    <div id="recordTypeStatus" class="alert mt-3" style="display: none;"></div>
                 </div>
                 
                 <!-- Step 3: Field Mapping -->
@@ -398,7 +404,10 @@
     <!-- jQuery for easier DOM manipulation -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     
-    <!-- HubSpot Integration JavaScript - Fixed Filename -->
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- HubSpot Integration JavaScript -->
     <script src="{{ url_for('static', filename='js/hubspot-integration.js') }}"></script>
     
     <!-- Main JavaScript -->
@@ -532,13 +541,8 @@
                 updateProgressUI();
             });
             
-            // Save button (for demo, just show success)
+            // Save button 
             $('#saveBtn').click(function() {
-                // If on HubSpot platform, the click event is handled by hubspot-integration.js
-                if (window.location.href.includes('platform=hubspot')) {
-                    return;
-                }
-                
                 showToast('success', 'Configuration saved successfully!');
                 setTimeout(function() {
                     window.location.href = '/';
@@ -573,7 +577,7 @@
                 $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Fetching Fields...');
                 
                 // Show status message
-                $('#step2').append('<div id="fetchStatus" class="alert alert-info mt-3"><i class="fas fa-info-circle me-2"></i>Fetching fields for record type: ' + recordType + '...</div>');
+                showRecordTypeStatus('info', 'Fetching fields for record type: ' + recordType + '...');
                 
                 // Make API call to the backend
                 $.ajax({
@@ -589,9 +593,6 @@
                         // Re-enable button
                         $('#fetchFieldsBtn').prop('disabled', false).html('<i class="fas fa-search me-2"></i>Fetch Fields');
                         
-                        // Remove status message
-                        $('#fetchStatus').remove();
-                        
                         // Handle success
                         if (response.status === 'success' || response.status === 'warning') {
                             // Store fields in global variable
@@ -600,8 +601,10 @@
                             // Show toast with appropriate message
                             if (response.status === 'warning') {
                                 showToast('warning', response.message || 'Using fallback fields');
+                                showRecordTypeStatus('warning', response.message || 'Using fallback fields');
                             } else {
                                 showToast('success', 'Successfully fetched ' + response.fields.length + ' fields');
+                                showRecordTypeStatus('success', 'Successfully fetched ' + response.fields.length + ' fields');
                             }
                             
                             // For HubSpot, we need an extra step for object selection
@@ -619,24 +622,12 @@
                         } else {
                             // Handle non-success but valid response
                             showToast('error', response.message || 'Failed to fetch fields');
-                            
-                            // Show error status
-                            $('#step2').append('<div id="fetchError" class="alert alert-danger mt-3"><i class="fas fa-exclamation-circle me-2"></i>' + (response.message || 'Failed to fetch fields') + '</div>');
-                            
-                            // Remove error after 5 seconds
-                            setTimeout(function() {
-                                $('#fetchError').fadeOut(300, function() {
-                                    $(this).remove();
-                                });
-                            }, 5000);
+                            showRecordTypeStatus('error', response.message || 'Failed to fetch fields');
                         }
                     },
                     error: function(xhr, status, error) {
                         // Re-enable button
                         $('#fetchFieldsBtn').prop('disabled', false).html('<i class="fas fa-search me-2"></i>Fetch Fields');
-                        
-                        // Remove status message
-                        $('#fetchStatus').remove();
                         
                         // Parse error message
                         let errorMessage = 'Failed to fetch fields';
@@ -649,16 +640,7 @@
                         
                         // Show error toast
                         showToast('error', errorMessage);
-                        
-                        // Show error status
-                        $('#step2').append('<div id="fetchError" class="alert alert-danger mt-3"><i class="fas fa-exclamation-circle me-2"></i>' + errorMessage + '</div>');
-                        
-                        // Remove error after 5 seconds
-                        setTimeout(function() {
-                            $('#fetchError').fadeOut(300, function() {
-                                $(this).remove();
-                            });
-                        }, 5000);
+                        showRecordTypeStatus('error', errorMessage);
                     }
                 });
             });
@@ -722,6 +704,29 @@
                      .show();
         }
         
+        // Show record type status
+        function showRecordTypeStatus(type, message) {
+            const statusDiv = $('#recordTypeStatus');
+            let alertClass = 'alert-info';
+            let icon = '<i class="fas fa-info-circle me-2"></i>';
+            
+            if (type === 'success') {
+                alertClass = 'alert-success';
+                icon = '<i class="fas fa-check-circle me-2"></i>';
+            } else if (type === 'error') {
+                alertClass = 'alert-danger';
+                icon = '<i class="fas fa-exclamation-circle me-2"></i>';
+            } else if (type === 'warning') {
+                alertClass = 'alert-warning';
+                icon = '<i class="fas fa-exclamation-triangle me-2"></i>';
+            }
+            
+            statusDiv.removeClass('alert-success alert-danger alert-info alert-warning')
+                    .addClass(alertClass)
+                    .html(icon + message)
+                    .show();
+        }
+        
         // Show toast notification
         function showToast(type, message) {
             const toast = $('<div>').addClass('toast');
@@ -755,123 +760,709 @@
             mappingContainer.empty();
             
             // Get the platform name from URL 
-const urlParams = new URLSearchParams(window.location.search);
-const platform = urlParams.get('platform') || 'salesforce';
-const platformCapitalized = platform.charAt(0).toUpperCase() + platform.slice(1);
+            const urlParams = new URLSearchParams(window.location.search);
+            const platform = urlParams.get('platform') || 'salesforce';
+            const platformCapitalized = platform.charAt(0).toUpperCase() + platform.slice(1);
 
-// Create field mapping header
-mappingContainer.append(`
-    <div class="alert alert-info mb-3">
-        <i class="fas fa-info-circle me-2"></i>
-        Map fields between Alchemy and ${platformCapitalized}
-    </div>
-`);
+            // Create field mapping header
+            mappingContainer.append(`
+                <div class="alert alert-info mb-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Map fields between Alchemy and ${platformCapitalized}
+                </div>
+            `);
 
-// Create mapping rows
-for (let i = 0; i < Math.min(5, fields.length); i++) {
-    const field = fields[i];
-    
-    // Create a mapping row
-    const row = $(`
-        <div class="row mb-3 mapping-row">
-            <div class="col-5">
-                <select class="form-select alchemy-field">
-                    <option value="">-- Select Alchemy Field --</option>
-                </select>
-            </div>
-            <div class="col-1 text-center pt-2">
-                <i class="fas fa-arrows-alt-h"></i>
-            </div>
-            <div class="col-5">
-                <select class="form-select platform-field">
-                    <option value="">-- Select ${platformCapitalized} Field --</option>
-                </select>
-            </div>
-            <div class="col-1">
-                <button class="btn btn-sm btn-outline-danger remove-mapping">
-                    <i class="fas fa-times"></i>
+            // Create mapping rows
+            for (let i = 0; i < Math.min(5, fields.length); i++) {
+                const field = fields[i];
+                
+                // Create a mapping row
+                const row = $(`
+                    <div class="row mb-3 mapping-row">
+                        <div class="col-5">
+                            <select class="form-select alchemy-field">
+                                <option value="">-- Select Alchemy Field --</option>
+                            </select>
+                        </div>
+                        <div class="col-1 text-center pt-2">
+                            <i class="fas fa-arrows-alt-h"></i>
+                        </div>
+                        <div class="col-5">
+                            <select class="form-select platform-field">
+                                <option value="">-- Select ${platformCapitalized} Field --</option>
+                            </select>
+                        </div>
+                        <div class="col-1">
+                            <button class="btn btn-sm btn-outline-danger remove-mapping">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                `);
+                
+                // Add Alchemy field options
+                const alchemySelect = row.find('.alchemy-field');
+                fields.forEach(f => {
+                    alchemySelect.append(`<option value="${f.identifier}">${f.name || f.identifier}</option>`);
+                });
+                
+                // Pre-select the current field
+                alchemySelect.val(field.identifier);
+                
+                // Add platform-specific field options
+                const platformSelect = row.find('.platform-field');
+                
+                // Define platform-specific fields
+                let platformFields = [];
+                
+                if (platform === 'salesforce') {
+                    platformFields = [
+                        {id: 'name', name: 'Name'},
+                        {id: 'description', name: 'Description'},
+                        {id: 'status', name: 'Status'},
+                        {id: 'owner', name: 'Owner'},
+                        {id: 'created_date', name: 'Created Date'},
+                        {id: 'modified_date', name: 'Modified Date'}
+                    ];
+                } else if (platform === 'hubspot') {
+                    platformFields = [
+                        {id: 'firstname', name: 'First Name'},
+                        {id: 'lastname', name: 'Last Name'},
+                        {id: 'email', name: 'Email'},
+                        {id: 'phone', name: 'Phone Number'},
+                        {id: 'company', name: 'Company Name'},
+                        {id: 'website', name: 'Website'}
+                    ];
+                } else if (platform === 'sap') {
+                    platformFields = [
+                        {id: 'material_number', name: 'Material Number'},
+                        {id: 'description', name: 'Description'},
+                        {id: 'material_type', name: 'Material Type'},
+                        {id: 'plant', name: 'Plant'},
+                        {id: 'storage_location', name: 'Storage Location'},
+                        {id: 'batch', name: 'Batch'}
+                    ];
+                }
+                
+                platformFields.forEach(f => {
+                    platformSelect.append(`<option value="${f.id}">${f.name}</option>`);
+                });
+                
+                // Add remove button handler
+                row.find('.remove-mapping').click(function() {
+                    row.remove();
+                });
+                
+                // Add to container
+                mappingContainer.append(row);
+            }
+
+            // Add button to add more mappings
+            mappingContainer.append(`
+                <button type="button" class="btn btn-outline-primary" id="addMappingBtn">
+                    <i class="fas fa-plus me-2"></i>Add Field Mapping
                 </button>
-            </div>
-        </div>
-    `);
-    
-    // Add Alchemy field options
-    const alchemySelect = row.find('.alchemy-field');
-    fields.forEach(f => {
-        alchemySelect.append(`<option value="${f.identifier}">${f.name || f.identifier}</option>`);
-    });
-    
-    // Pre-select the current field
-    alchemySelect.val(field.identifier);
-    
-    // Add platform-specific field options
-    const platformSelect = row.find('.platform-field');
-    
-    // Define platform-specific fields
-    let platformFields = [];
-    
-    if (platform === 'salesforce') {
-        platformFields = [
-            {id: 'name', name: 'Name'},
-            {id: 'description', name: 'Description'},
-            {id: 'status', name: 'Status'},
-            {id: 'owner', name: 'Owner'},
-            {id: 'created_date', name: 'Created Date'},
-            {id: 'modified_date', name: 'Modified Date'}
-        ];
-    } else if (platform === 'hubspot') {
-        platformFields = [
-            {id: 'firstname', name: 'First Name'},
-            {id: 'lastname', name: 'Last Name'},
-            {id: 'email', name: 'Email'},
-            {id: 'phone', name: 'Phone Number'},
-            {id: 'company', name: 'Company Name'},
-            {id: 'website', name: 'Website'}
-        ];
-    } else if (platform === 'sap') {
-        platformFields = [
-            {id: 'material_number', name: 'Material Number'},
-            {id: 'description', name: 'Description'},
-            {id: 'material_type', name: 'Material Type'},
-            {id: 'plant', name: 'Plant'},
-            {id: 'storage_location', name: 'Storage Location'},
-            {id: 'batch', name: 'Batch'}
-        ];
-    }
-    
-    platformFields.forEach(f => {
-        platformSelect.append(`<option value="${f.id}">${f.name}</option>`);
-    });
-    
-    // Add remove button handler
-    row.find('.remove-mapping').click(function() {
-        row.remove();
-    });
-    
-    // Add to container
-    mappingContainer.append(row);
-}
+            `);
 
-// Add button to add more mappings
-mappingContainer.append(`
-    <button type="button" class="btn btn-outline-primary" id="addMappingBtn">
-        <i class="fas fa-plus me-2"></i>Add Field Mapping
-    </button>
-`);
+            // Add event handler for the add mapping button
+            $('#addMappingBtn').click(function() {
+                // Clone the first mapping row
+                const newRow = $('.mapping-row').first().clone();
+                
+                // Reset selections
+                newRow.find('select').val('');
+                
+                // Insert before the add button
+                $(this).before(newRow);
+                
+                // Re-attach remove button handler
+                newRow.find('.remove-mapping').click(function() {
+                    newRow.remove();
+                });
+            });
+        }
+    </script>
+    
+    <!-- Fallback script in case jQuery fails - uses direct DOM methods for critical functionality -->
+    <script>
+        // This script serves as a fallback for the authentication buttons
+        // in case jQuery or other scripts fail to load or execute properly
+        
+        // Run this code after DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Fallback script loaded - setting up direct event handlers');
+            
+            // Set up direct event handler for authentication button
+            const authenticateBtn = document.getElementById('authenticateBtn');
+            if (authenticateBtn) {
+                authenticateBtn.addEventListener('click', function() {
+                    console.log('Auth button clicked (direct handler)');
+                    const tenantId = document.getElementById('alchemyTenantId').value.trim();
+                    const email = document.getElementById('alchemyEmail').value.trim();
+                    const password = document.getElementById('alchemyPassword').value.trim();
+                    
+                    if (!tenantId || !email || !password) {
+                        showDirectAuthStatus('error', 'Please provide all required credentials');
+                        return;
+                    }
+                    
+                    // Disable button and show loading state
+                    authenticateBtn.disabled = true;
+                    authenticateBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Authenticating...';
+                    
+                    // Show authentication in progress
+                    showDirectAuthStatus('info', 'Authenticating with Alchemy...');
+                    
+                    // Use fetch API for the request
+                    fetch('/authenticate-alchemy', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            tenant_id: tenantId,
+                            email: email,
+                            password: password
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        // Re-enable button
+                        authenticateBtn.disabled = false;
+                        authenticateBtn.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i>Authenticate with Alchemy';
+                        
+                        if (data.status === 'success') {
+                            window.isAuthenticated = true;
+                            showDirectAuthStatus('success', 'Authentication successful! You can proceed to the next step.');
+                            
+                            // Copy tenant ID to direct form for consistency
+                            const directTenantInput = document.getElementById('alchemyTenantIdDirect');
+                            if (directTenantInput) {
+                                directTenantInput.value = tenantId;
+                            }
+                            
+                            // Enable next button
+                            const nextBtn = document.getElementById('nextBtn');
+                            if (nextBtn) {
+                                nextBtn.disabled = false;
+                            }
+                            
+                            // Show toast
+                            showDirectToast('success', 'Successfully authenticated with Alchemy');
+                        } else {
+                            showDirectAuthStatus('error', data.message || 'Authentication failed');
+                        }
+                    })
+                    .catch(error => {
+                        // Re-enable button
+                        authenticateBtn.disabled = false;
+                        authenticateBtn.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i>Authenticate with Alchemy';
+                        
+                        showDirectAuthStatus('error', 'Error: ' + error.message);
+                    });
+                });
+            }
+            
+            // Set up direct event handler for fetch fields button
+            const fetchFieldsBtn = document.getElementById('fetchFieldsBtn');
+            if (fetchFieldsBtn) {
+                fetchFieldsBtn.addEventListener('click', function() {
+                    console.log('Fetch fields button clicked (direct handler)');
+                    const recordType = document.getElementById('recordTypeInput').value.trim();
+                    
+                    if (!recordType) {
+                        showDirectToast('error', 'Please enter a record type');
+                        return;
+                    }
+                    
+                    // Determine which credentials to use based on the authentication method
+                    let tenantId, refreshToken;
+                    const authMethodAuto = document.getElementById('authMethodAuto');
+                    
+                    if (authMethodAuto && authMethodAuto.checked) {
+                        tenantId = document.getElementById('alchemyTenantId').value.trim();
+                        refreshToken = "session"; // Use token from session
+                    } else {
+                        tenantId = document.getElementById('alchemyTenantIdDirect').value.trim();
+                        refreshToken = document.getElementById('alchemyRefreshToken').value.trim();
+                    }
+                    
+                    if (!tenantId) {
+                        showDirectToast('error', 'Missing tenant ID');
+                        return;
+                    }
+                    
+                    // Disable button during fetch
+                    fetchFieldsBtn.disabled = true;
+                    fetchFieldsBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Fetching Fields...';
+                    
+                    // Show status message
+                    const recordTypeStatus = document.getElementById('recordTypeStatus');
+                    if (recordTypeStatus) {
+                        recordTypeStatus.className = 'alert alert-info mt-3';
+                        recordTypeStatus.innerHTML = '<i class="fas fa-info-circle me-2"></i>Fetching fields for record type: ' + recordType + '...';
+                        recordTypeStatus.style.display = 'block';
+                    }
+                    
+                    // Use fetch API for the request
+                    fetch('/get-alchemy-fields', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            tenant_id: tenantId,
+                            refresh_token: refreshToken,
+                            record_type: recordType
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        // Re-enable button
+                        fetchFieldsBtn.disabled = false;
+                        fetchFieldsBtn.innerHTML = '<i class="fas fa-search me-2"></i>Fetch Fields';
+                        
+                        if (data.status === 'success' || data.status === 'warning') {
+                            // Store fields in global variable
+                            window.alchemyFields = data.fields;
+                            
+                            // Show appropriate status message
+                            if (data.status === 'warning') {
+                                if (recordTypeStatus) {
+                                    recordTypeStatus.className = 'alert alert-warning mt-3';
+                                    recordTypeStatus.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>' + (data.message || 'Using fallback fields');
+                                }
+                                showDirectToast('warning', data.message || 'Using fallback fields');
+                            } else {
+                                if (recordTypeStatus) {
+                                    recordTypeStatus.className = 'alert alert-success mt-3';
+                                    recordTypeStatus.innerHTML = '<i class="fas fa-check-circle me-2"></i>Successfully fetched ' + data.fields.length + ' fields';
+                                }
+                                showDirectToast('success', 'Successfully fetched ' + data.fields.length + ' fields');
+                            }
+                            
+                            // Move to next step or prepare UI
+                            setTimeout(function() {
+                                // Simulate click on next button or manually update UI
+                                const isHubSpot = window.location.href.includes('platform=hubspot');
+                                if (!isHubSpot) {
+                                    // Move to step 3 manually by showing/hiding elements
+                                    const step2 = document.getElementById('step2');
+                                    const step3 = document.getElementById('step3');
+                                    const nextBtn = document.getElementById('nextBtn');
+                                    const saveBtn = document.getElementById('saveBtn');
+                                    const progressBar = document.getElementById('progressBar');
+                                    const progressStep = document.getElementById('progressStep');
+                                    
+                                    if (step2 && step3) {
+                                        step2.style.display = 'none';
+                                        step3.style.display = 'block';
+                                        
+                                        if (nextBtn) nextBtn.style.display = 'none';
+                                        if (saveBtn) saveBtn.style.display = 'inline-block';
+                                        if (progressBar) progressBar.style.width = '100%';
+                                        if (progressStep) progressStep.textContent = 'Step 3 of 3';
+                                        
+                                        window.currentStep = 3;
+                                        
+                                        // Call field mapping function - fallback to direct DOM manipulation
+                                        // if the jQuery function fails
+                                        if (typeof populateFieldMappings === 'function') {
+                                            populateFieldMappings(data.fields);
+                                        } else {
+                                            populateFieldMappingsDirect(data.fields);
+                                        }
+                                    }
+                                }
+                            }, 1000);
+                        } else {
+                            // Show error message
+                            if (recordTypeStatus) {
+                                recordTypeStatus.className = 'alert alert-danger mt-3';
+                                recordTypeStatus.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>' + (data.message || 'Failed to fetch fields');
+                            }
+                            showDirectToast('error', data.message || 'Failed to fetch fields');
+                        }
+                    })
+                    .catch(error => {
+                        // Re-enable button
+                        fetchFieldsBtn.disabled = false;
+                        fetchFieldsBtn.innerHTML = '<i class="fas fa-search me-2"></i>Fetch Fields';
+                        
+                        // Show error
+                        if (recordTypeStatus) {
+                            recordTypeStatus.className = 'alert alert-danger mt-3';
+                            recordTypeStatus.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Error: ' + error.message;
+                        }
+                        showDirectToast('error', 'Error: ' + error.message);
+                    });
+                });
+            }
+            
+            // Direct event handler for HubSpot validate button
+            const validateHubspotBtn = document.getElementById('validateHubspotBtn');
+            if (validateHubspotBtn) {
+                validateHubspotBtn.addEventListener('click', function() {
+                    console.log('Validate HubSpot button clicked (direct handler)');
+                    validateHubSpotCredentialsDirect();
+                });
+            }
+            
+            // Set up toggle buttons for password visibility
+            setupPasswordToggles();
+        });
 
-// Add event handler for the add mapping button
-$('#addMappingBtn').click(function() {
-    // Clone the first mapping row
-    const newRow = $('.mapping-row').first().clone();
-    
-    // Reset selections
-    newRow.find('select').val('');
-    
-    // Insert before the add button
-    $(this).before(newRow);
-    
-    // Re-attach remove button handler
-    newRow.find('.remove-mapping').click(function() {
-        newRow.remove();
-    });
-});
+        // Direct implementation of showAuthStatus function
+        function showDirectAuthStatus(type, message) {
+            const authStatus = document.getElementById('authStatus');
+            if (!authStatus) return;
+            
+            let alertClass = 'alert-info';
+            let icon = '<i class="fas fa-info-circle me-2"></i>';
+            
+            if (type === 'success') {
+                alertClass = 'alert-success';
+                icon = '<i class="fas fa-check-circle me-2"></i>';
+            } else if (type === 'error') {
+                alertClass = 'alert-danger';
+                icon = '<i class="fas fa-exclamation-circle me-2"></i>';
+            }
+            
+            authStatus.className = 'alert ' + alertClass + ' mt-3';
+            authStatus.innerHTML = icon + message;
+            authStatus.style.display = 'block';
+        }
+        
+        // Direct implementation of showToast function
+        function showDirectToast(type, message) {
+            const toastContainer = document.getElementById('toastContainer');
+            if (!toastContainer) return;
+            
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            
+            let icon = '<i class="fas fa-info-circle me-2"></i>';
+            
+            if (type === 'success') {
+                toast.classList.add('success');
+                icon = '<i class="fas fa-check-circle me-2"></i>';
+            } else if (type === 'error') {
+                toast.classList.add('error');
+                icon = '<i class="fas fa-exclamation-circle me-2"></i>';
+            } else if (type === 'warning') {
+                toast.classList.add('warning');
+                icon = '<i class="fas fa-exclamation-triangle me-2"></i>';
+            }
+            
+            toast.innerHTML = icon + message;
+            toastContainer.appendChild(toast);
+            
+            // Auto-remove after 3 seconds
+            setTimeout(function() {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.3s';
+                setTimeout(function() {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                }, 300);
+            }, 3000);
+        }
+        
+        // Setup password toggle buttons
+        function setupPasswordToggles() {
+            const toggles = [
+                { buttonId: 'togglePassword', inputId: 'alchemyPassword' },
+                { buttonId: 'toggleRefreshToken', inputId: 'alchemyRefreshToken' },
+                { buttonId: 'toggleHubspotApiKey', inputId: 'hubspotApiKey' },
+                { buttonId: 'toggleHubspotSecret', inputId: 'hubspotPortalId' },
+                { buttonId: 'toggleSalesforceSecret', inputId: 'salesforceClientSecret' },
+                { buttonId: 'toggleSapSecret', inputId: 'sapClientSecret' }
+            ];
+            
+            toggles.forEach(function(item) {
+                const toggleBtn = document.getElementById(item.buttonId);
+                const inputField = document.getElementById(item.inputId);
+                
+                if (toggleBtn && inputField) {
+                    toggleBtn.addEventListener('click', function() {
+                        const type = inputField.type === 'password' ? 'text' : 'password';
+                        inputField.type = type;
+                        
+                        const icon = toggleBtn.querySelector('i');
+                        if (icon) {
+                            if (type === 'text') {
+                                icon.classList.remove('fa-eye');
+                                icon.classList.add('fa-eye-slash');
+                            } else {
+                                icon.classList.remove('fa-eye-slash');
+                                icon.classList.add('fa-eye');
+                            }
+                        }
+                    });
+                }
+            });
+        }
+        
+        // Direct implementation of validateHubSpotCredentials
+        function validateHubSpotCredentialsDirect() {
+            const accessToken = document.getElementById('hubspotApiKey').value.trim();
+            const clientSecret = document.getElementById('hubspotPortalId').value.trim();
+            const hubspotStatus = document.getElementById('hubspotStatus');
+            
+            if (!accessToken) {
+                if (hubspotStatus) {
+                    hubspotStatus.className = 'alert alert-danger mt-3';
+                    hubspotStatus.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Please enter HubSpot Access Token';
+                    hubspotStatus.style.display = 'block';
+                }
+                showDirectToast('error', 'Please enter HubSpot Access Token');
+                return;
+            }
+            
+            // Show loading state
+            const validateBtn = document.getElementById('validateHubspotBtn');
+            if (validateBtn) {
+                validateBtn.disabled = true;
+                validateBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Validating...';
+            }
+            
+            // Show status
+            if (hubspotStatus) {
+                hubspotStatus.className = 'alert alert-info mt-3';
+                hubspotStatus.innerHTML = '<i class="fas fa-info-circle me-2"></i>Validating HubSpot credentials...';
+                hubspotStatus.style.display = 'block';
+            }
+            
+            // Make API request
+            fetch('/hubspot/validate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    access_token: accessToken,
+                    client_secret: clientSecret,
+                    oauth_mode: true
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Reset button
+                if (validateBtn) {
+                    validateBtn.disabled = false;
+                    validateBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Validate Credentials';
+                }
+                
+                if (data.status === 'success') {
+                    // Show success message
+                    if (hubspotStatus) {
+                        hubspotStatus.className = 'alert alert-success mt-3';
+                        hubspotStatus.innerHTML = '<i class="fas fa-check-circle me-2"></i>' + data.message;
+                    }
+                    showDirectToast('success', 'HubSpot credentials validated successfully');
+                } else {
+                    // Show error message
+                    if (hubspotStatus) {
+                        hubspotStatus.className = 'alert alert-danger mt-3';
+                        hubspotStatus.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>' + (data.message || 'Validation failed');
+                    }
+                    showDirectToast('error', data.message || 'HubSpot credential validation failed');
+                }
+            })
+            .catch(error => {
+                // Reset button
+                if (validateBtn) {
+                    validateBtn.disabled = false;
+                    validateBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Validate Credentials';
+                }
+                
+                // Show error message
+                if (hubspotStatus) {
+                    hubspotStatus.className = 'alert alert-danger mt-3';
+                    hubspotStatus.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Error: ' + error.message;
+                }
+                showDirectToast('error', 'Error: ' + error.message);
+            });
+        }
+        
+        // Fallback implementation of populateFieldMappings using direct DOM manipulation
+        function populateFieldMappingsDirect(fields) {
+            const mappingContainer = document.getElementById('fieldMappings');
+            if (!mappingContainer) return;
+            
+            // Clear existing content
+            mappingContainer.innerHTML = '';
+            
+            // Get platform info from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const platform = urlParams.get('platform') || 'salesforce';
+            const platformCapitalized = platform.charAt(0).toUpperCase() + platform.slice(1);
+            
+            // Create header
+            const headerDiv = document.createElement('div');
+            headerDiv.className = 'alert alert-info mb-3';
+            headerDiv.innerHTML = `<i class="fas fa-info-circle me-2"></i>Map fields between Alchemy and ${platformCapitalized}`;
+            mappingContainer.appendChild(headerDiv);
+            
+            // Define platform-specific fields
+            let platformFields = [];
+            if (platform === 'salesforce') {
+                platformFields = [
+                    {id: 'name', name: 'Name'},
+                    {id: 'description', name: 'Description'},
+                    {id: 'status', name: 'Status'},
+                    {id: 'owner', name: 'Owner'},
+                    {id: 'created_date', name: 'Created Date'},
+                    {id: 'modified_date', name: 'Modified Date'}
+                ];
+            } else if (platform === 'hubspot') {
+                platformFields = [
+                    {id: 'firstname', name: 'First Name'},
+                    {id: 'lastname', name: 'Last Name'},
+                    {id: 'email', name: 'Email'},
+                    {id: 'phone', name: 'Phone Number'},
+                    {id: 'company', name: 'Company Name'},
+                    {id: 'website', name: 'Website'}
+                ];
+            } else if (platform === 'sap') {
+                platformFields = [
+                    {id: 'material_number', name: 'Material Number'},
+                    {id: 'description', name: 'Description'},
+                    {id: 'material_type', name: 'Material Type'},
+                    {id: 'plant', name: 'Plant'},
+                    {id: 'storage_location', name: 'Storage Location'},
+                    {id: 'batch', name: 'Batch'}
+                ];
+            }
+            
+            // Create mapping rows
+            const fieldCount = Math.min(5, fields.length);
+            for (let i = 0; i < fieldCount; i++) {
+                const field = fields[i];
+                
+                // Create row container
+                const row = document.createElement('div');
+                row.className = 'row mb-3 mapping-row';
+                
+                // Create Alchemy field select
+                const alchemyCol = document.createElement('div');
+                alchemyCol.className = 'col-5';
+                
+                const alchemySelect = document.createElement('select');
+                alchemySelect.className = 'form-select alchemy-field';
+                
+                // Add default option
+                let option = document.createElement('option');
+                option.value = '';
+                option.textContent = '-- Select Alchemy Field --';
+                alchemySelect.appendChild(option);
+                
+                // Add field options
+                fields.forEach(f => {
+                    option = document.createElement('option');
+                    option.value = f.identifier;
+                    option.textContent = f.name || f.identifier;
+                    alchemySelect.appendChild(option);
+                });
+                
+                // Set selected field
+                alchemySelect.value = field.identifier;
+                
+                alchemyCol.appendChild(alchemySelect);
+                row.appendChild(alchemyCol);
+                
+                // Create arrow icon
+                const arrowCol = document.createElement('div');
+                arrowCol.className = 'col-1 text-center pt-2';
+                arrowCol.innerHTML = '<i class="fas fa-arrows-alt-h"></i>';
+                row.appendChild(arrowCol);
+                
+                // Create platform field select
+                const platformCol = document.createElement('div');
+                platformCol.className = 'col-5';
+                
+                const platformSelect = document.createElement('select');
+                platformSelect.className = 'form-select platform-field';
+                
+                // Add default option
+                option = document.createElement('option');
+                option.value = '';
+                option.textContent = `-- Select ${platformCapitalized} Field --`;
+                platformSelect.appendChild(option);
+                
+                // Add platform field options
+                platformFields.forEach(f => {
+                    option = document.createElement('option');
+                    option.value = f.id;
+                    option.textContent = f.name;
+                    platformSelect.appendChild(option);
+                });
+                
+                platformCol.appendChild(platformSelect);
+                row.appendChild(platformCol);
+                
+                // Create remove button
+                const buttonCol = document.createElement('div');
+                buttonCol.className = 'col-1';
+                
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'btn btn-sm btn-outline-danger remove-mapping';
+                removeBtn.innerHTML = '<i class="fas fa-times"></i>';
+                
+                // Add event listener
+                removeBtn.addEventListener('click', function() {
+                    row.parentNode.removeChild(row);
+                });
+                
+                buttonCol.appendChild(removeBtn);
+                row.appendChild(buttonCol);
+                
+                // Add to container
+                mappingContainer.appendChild(row);
+            }
+            
+            // Add button to add more mappings
+            const addButton = document.createElement('button');
+            addButton.type = 'button';
+            addButton.className = 'btn btn-outline-primary';
+            addButton.id = 'addMappingBtn';
+            addButton.innerHTML = '<i class="fas fa-plus me-2"></i>Add Field Mapping';
+            
+            // Add event listener
+            addButton.addEventListener('click', function() {
+                // Get the first mapping row to clone
+                const firstRow = mappingContainer.querySelector('.mapping-row');
+                if (!firstRow) return;
+                
+                // Clone the row
+                const newRow = firstRow.cloneNode(true);
+                
+                // Reset selections
+                const selects = newRow.querySelectorAll('select');
+                selects.forEach(select => {
+                    select.value = '';
+                });
+                
+                // Add remove button handler
+                const removeBtn = newRow.querySelector('.remove-mapping');
+                if (removeBtn) {
+                    // Remove old handler
+                    const newRemoveBtn = removeBtn.cloneNode(true);
+                    removeBtn.parentNode.replaceChild(newRemoveBtn, removeBtn);
+                    
+                    // Add new handler
+                    newRemoveBtn.addEventListener('click', function() {
+                        newRow.parentNode.removeChild(newRow);
+                    });
+                }
+                
+                // Insert before add button
+                mappingContainer.insertBefore(newRow, addButton);
+            });
+            
+            mappingContainer.appendChild(addButton);
+        }
+    </script>
+</body>
+</html>
