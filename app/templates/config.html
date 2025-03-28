@@ -895,69 +895,124 @@
             }
             
             function fetchFieldsForRecordType(recordTypeId) {
-                console.log('Fetching fields for record type:', recordTypeId);
-                
-                // Get tenant info
-                let tenantId, refreshToken;
-                
-                if (authMethodAuto.checked) {
-                    tenantId = document.getElementById('alchemyTenantId').value.trim();
-                    refreshToken = "session"; // Server uses session token
-                } else {
-                    tenantId = document.getElementById('alchemyTenantIdDirect').value.trim();
-                    refreshToken = document.getElementById('alchemyRefreshToken').value.trim();
-                }
-                
-                if (!tenantId) {
-                    showToast('Please provide tenant ID', 'error');
-                    return;
-                }
-                
-                // Show loading status
-                showRecordTypeStatus('info', `Fetching fields for record type: ${recordTypeId}...`);
-                
-                // Make the API call
-                fetch('/get-alchemy-fields', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        tenant_id: tenantId,
-                        refresh_token: refreshToken,
-                        record_type: recordTypeId
-                    })
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`Server returned ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('Fields response:', data);
-                    
-                    if (data.fields && data.fields.length > 0) {
-                        // Store the fields
-                        alchemyFields = data.fields;
-                        
-                        // Show success message
-                        showRecordTypeStatus('success', `Successfully retrieved ${data.fields.length} fields for record type: ${recordTypeId}`);
-                        
-                        // Enable continuing to next step
-                        setTimeout(() => {
-                            showStep(3);
-                            prepareFieldMappings();
-                        }, 1000);
-                    } else {
-                        showRecordTypeStatus('warning', `No fields found for record type: ${recordTypeId}`);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching fields:', error);
-                    showRecordTypeStatus('error', `Error fetching fields: ${error.message}`);
-                });
+    console.log('Fetching fields for record type:', recordTypeId);
+    
+    // Get tenant info
+    let tenantId, refreshToken;
+    
+    if (authMethodAuto.checked) {
+        tenantId = document.getElementById('alchemyTenantId').value.trim();
+        refreshToken = "session"; // Server uses session token
+    } else {
+        tenantId = document.getElementById('alchemyTenantIdDirect').value.trim();
+        refreshToken = document.getElementById('alchemyRefreshToken').value.trim();
+    }
+    
+    if (!tenantId) {
+        showToast('Please provide tenant ID', 'error');
+        return;
+    }
+    
+    // Show loading status
+    showRecordTypeStatus('info', `Fetching fields for record type: ${recordTypeId}...`);
+    
+    // Disable the fetch button to prevent multiple clicks
+    const fetchButton = document.getElementById('fetchFieldsBtn');
+    if (fetchButton) {
+        fetchButton.disabled = true;
+        fetchButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Fetching...';
+    }
+    
+    // Make the API call
+    fetch('/get-alchemy-fields', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            tenant_id: tenantId,
+            refresh_token: refreshToken,
+            record_type: recordTypeId
+        })
+    })
+    .then(response => {
+        // Re-enable the button regardless of response
+        if (fetchButton) {
+            fetchButton.disabled = false;
+            fetchButton.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Fetch Fields';
+        }
+        
+        // Check if the response is successful
+        if (!response.ok) {
+            // If it's an authentication error (401)
+            if (response.status === 401) {
+                throw new Error('Authentication failed. Please authenticate with Alchemy again.');
             }
+            throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Fields response:', data);
+        
+        if (data.status === 'success' && data.fields && data.fields.length > 0) {
+            // Store the fields
+            alchemyFields = data.fields;
+            
+            // Show success message
+            showRecordTypeStatus('success', `Successfully retrieved ${data.fields.length} fields for record type: ${recordTypeId}`);
+            
+            // Enable continuing to next step
+            setTimeout(() => {
+                showStep(3);
+                prepareFieldMappings();
+            }, 1000);
+        } else {
+            // Handle error or empty fields response
+            let errorMessage = data.message || `No fields found for record type: ${recordTypeId}`;
+            showRecordTypeStatus('warning', errorMessage);
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching fields:', error);
+        
+        // Re-enable the button
+        if (fetchButton) {
+            fetchButton.disabled = false;
+            fetchButton.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Fetch Fields';
+        }
+        
+        // Show error message
+        showRecordTypeStatus('error', `Error: ${error.message}`);
+        
+        // If it's an authentication error, show a more helpful message
+        if (error.message.includes('Authentication failed')) {
+            // If using auto auth, suggest re-authenticating
+            if (authMethodAuto.checked) {
+                const authStatus = document.getElementById('authStatus');
+                if (authStatus) {
+                    authStatus.className = 'alert alert-danger mt-2';
+                    authStatus.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Your authentication has expired. Please go back and authenticate again.';
+                    authStatus.style.display = 'block';
+                }
+                
+                // Add a back button to return to step 1
+                const backToAuthBtn = document.createElement('button');
+                backToAuthBtn.className = 'btn btn-outline-primary mt-3';
+                backToAuthBtn.innerHTML = '<i class="fas fa-arrow-left me-2"></i>Return to Authentication';
+                backToAuthBtn.onclick = function() {
+                    showStep(1);
+                };
+                
+                const statusContainer = document.getElementById('recordTypeStatus');
+                if (statusContainer) {
+                    statusContainer.appendChild(document.createElement('br'));
+                    statusContainer.appendChild(backToAuthBtn);
+                }
+            }
+        }
+    });
+}
             
             function prepareFieldMappings() {
                 const container = document.getElementById('fieldMappingContainer');
