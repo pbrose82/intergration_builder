@@ -5,7 +5,8 @@ from flask import Blueprint, render_template, request, jsonify, current_app
 import requests
 import logging
 import json
-from .services.alchemy_service import get_alchemy_access_token
+# Fix the import path to match your project structure
+from services.alchemy_service import get_alchemy_access_token
 
 # Create a blueprint for troubleshooting routes
 troubleshoot_bp = Blueprint('troubleshoot', __name__)
