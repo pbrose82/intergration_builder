@@ -22,8 +22,13 @@ def create_app():
     from .routes import main_bp
     app.register_blueprint(main_bp)
 
-    # No troubleshooting routes for now
-    # We'll add them back once the app is stable
+    # Import and register troubleshooting routes
+    try:
+        from troubleshoot_routes import troubleshoot_bp
+        app.register_blueprint(troubleshoot_bp)
+        app.logger.info("Troubleshooting routes registered successfully")
+    except Exception as e:
+        app.logger.warning(f"Could not register troubleshooting routes: {str(e)}")
 
     # Create database tables within the application context
     with app.app_context():
@@ -48,7 +53,7 @@ def configure_logging(app):
         '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
     ))
 
-    # Set log level from config - use DEBUG for now to get more information
+    # Set log level from config - use DEBUG for troubleshooting
     log_level = app.config.get('LOG_LEVEL', 'DEBUG')
     file_handler.setLevel(log_level)
     
@@ -57,8 +62,8 @@ def configure_logging(app):
     app.logger.setLevel(log_level)
     
     # Configure other loggers for debugging
-    logging.getLogger('urllib3').setLevel(logging.WARNING)
-    logging.getLogger('werkzeug').setLevel(logging.WARNING)
+    logging.getLogger('urllib3').setLevel(logging.INFO)
+    logging.getLogger('werkzeug').setLevel(logging.INFO)
     logging.getLogger('sqlalchemy').setLevel(logging.WARNING)
     
     # Make sure our service logger has DEBUG level
