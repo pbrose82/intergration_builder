@@ -7,6 +7,7 @@ from flask_marshmallow import Marshmallow
 import logging
 from logging.handlers import RotatingFileHandler
 import os
+import sys
 
 db = SQLAlchemy()
 ma = Marshmallow()
@@ -22,9 +23,15 @@ def create_app():
     from .routes import main_bp
     app.register_blueprint(main_bp)
 
+    # Add the parent directory to sys.path so imports work correctly
+    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if parent_dir not in sys.path:
+        sys.path.insert(0, parent_dir)
+
     # Import and register troubleshooting routes
     try:
-        from .troubleshoot_routes import troubleshoot_bp
+        # Import from the correct location
+        from app.troubleshoot_routes import troubleshoot_bp
         app.register_blueprint(troubleshoot_bp)
         app.logger.info("Troubleshooting routes registered successfully")
     except Exception as e:
