@@ -22,6 +22,7 @@ $(document).ready(function() {
     
     // Set up event handlers
     $(document).on('click', '#validateHubspotBtn', function() {
+        console.log('Validate HubSpot button clicked');
         validateHubSpotCredentials();
     });
     
@@ -157,6 +158,9 @@ function validateHubSpotCredentials() {
     const accessToken = $('#hubspotApiKey').val().trim();
     const clientSecret = $('#hubspotPortalId').val().trim();
     
+    console.log("Validating credentials:", accessToken ? "Token provided" : "No token", 
+                                         clientSecret ? "Secret provided" : "No secret");
+    
     if (!accessToken) {
         showToast('error', 'Please enter HubSpot Access Token');
         return false;
@@ -174,9 +178,104 @@ function validateHubSpotCredentials() {
         data: JSON.stringify({
             access_token: accessToken,
             client_secret: clientSecret,
+            object_type: objectType,
+            oauth_mode: true
+        },
+        sync_config: {
+            frequency: syncFrequency,
+            direction: syncDirection,
+            is_active: true
+        },
+        field_mappings: fieldMappings
+    };
+    
+    // Show saving state
+    $('#saveBtn').prop('disabled', true)
+        .html('<i class="fas fa-spinner fa-spin me-2"></i>Saving...');
+    
+    // Make API call
+    $.ajax({
+        url: '/save-integration',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(integrationData),
+        success: function(response) {
+            // Reset button
+            $('#saveBtn').prop('disabled', false)
+                .html('<i class="fas fa-save me-2"></i>Save Configuration');
+            
+            if (response.status === 'success') {
+                // Show success toast
+                showToast('success', 'Integration saved successfully!');
+                
+                // Show success message
+                $('#step3').html(`
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>
+                        HubSpot integration saved successfully! Integration ID: ${response.integration_id}
+                    </div>
+                    <p>The integration between Alchemy and HubSpot has been configured successfully.</p>
+                    <a href="/" class="btn btn-primary">
+                        <i class="fas fa-home me-2"></i>Return to Dashboard
+                    </a>
+                `);
+            } else {
+                // Show error toast
+                showToast('error', response.message || 'Failed to save integration');
+            }
+        },
+        error: function(xhr, status, error) {
+            // Reset button
+            $('#saveBtn').prop('disabled', false)
+                .html('<i class="fas fa-save me-2"></i>Save Configuration');
+            
+            // Parse error message
+            let errorMessage = 'Failed to save integration';
+            try {
+                const response = JSON.parse(xhr.responseText);
+                errorMessage = response.message || response.error || errorMessage;
+            } catch (e) {
+                errorMessage = `Error: ${error}`;
+            }
+            
+            // Show error toast
+            showToast('error', errorMessage);
+        }
+    });
+}
+
+// Show toast notification
+function showToast(type, message) {
+    const toast = $('<div>').addClass('toast');
+    
+    if (type === 'success') {
+        toast.addClass('success');
+        toast.html('<i class="fas fa-check-circle me-2"></i>' + message);
+    } else if (type === 'error') {
+        toast.addClass('error');
+        toast.html('<i class="fas fa-exclamation-circle me-2"></i>' + message);
+    } else if (type === 'warning') {
+        toast.addClass('warning');
+        toast.html('<i class="fas fa-exclamation-triangle me-2"></i>' + message);
+    } else {
+        toast.html('<i class="fas fa-info-circle me-2"></i>' + message);
+    }
+    
+    $('#toastContainer').append(toast);
+    
+    // Auto-remove after 3 seconds
+    setTimeout(function() {
+        toast.fadeOut(300, function() {
+            $(this).remove();
+        });
+    }, 3000);
+}
+            client_secret: clientSecret,
             oauth_mode: true
         }),
         success: function(response) {
+            console.log("Validation response:", response);
+            
             // Reset button
             $('#validateHubspotBtn').prop('disabled', false)
                 .html('<i class="fas fa-check-circle me-2"></i>Validate Credentials');
@@ -218,6 +317,9 @@ function validateHubSpotCredentials() {
             }
         },
         error: function(xhr, status, error) {
+            console.error("Validation error:", error);
+            console.error("Response:", xhr.responseText);
+            
             // Reset button
             $('#validateHubspotBtn').prop('disabled', false)
                 .html('<i class="fas fa-check-circle me-2"></i>Validate Credentials');
@@ -274,6 +376,8 @@ function fetchHubSpotObjectTypes() {
             oauth_mode: true
         }),
         success: function(response) {
+            console.log("Object types response:", response);
+            
             // Reset button
             $('#fetchHubspotObjectsBtn').prop('disabled', false)
                 .html('<i class="fas fa-sync-alt me-2"></i>Refresh Object Types');
@@ -316,6 +420,9 @@ function fetchHubSpotObjectTypes() {
             }
         },
         error: function(xhr, status, error) {
+            console.error("Object types error:", error);
+            console.error("Response:", xhr.responseText);
+            
             // Reset button
             $('#fetchHubspotObjectsBtn').prop('disabled', false)
                 .html('<i class="fas fa-sync-alt me-2"></i>Refresh Object Types');
@@ -376,9 +483,11 @@ function fetchHubSpotFields(objectType) {
             oauth_mode: true
         }),
         success: function(response) {
+            console.log("Fields response:", response);
+            
             // Reset button
             $('#fetchHubspotFieldsBtn').prop('disabled', false)
-                .html('<i class="fas fa-sync-alt me-2"></i>Refresh Fields');
+                .html('<i class="fas fa-list me-2"></i>Refresh Fields');
             
             if (response.status === 'success' || response.status === 'warning') {
                 // Store fields
@@ -410,9 +519,12 @@ function fetchHubSpotFields(objectType) {
             }
         },
         error: function(xhr, status, error) {
+            console.error("Fields error:", error);
+            console.error("Response:", xhr.responseText);
+            
             // Reset button
             $('#fetchHubspotFieldsBtn').prop('disabled', false)
-                .html('<i class="fas fa-sync-alt me-2"></i>Refresh Fields');
+                .html('<i class="fas fa-list me-2"></i>Refresh Fields');
             
             // Parse error message
             let errorMessage = 'Failed to fetch fields';
@@ -761,96 +873,3 @@ function saveHubSpotIntegration() {
         },
         hubspot: {
             access_token: accessToken,
-            client_secret: clientSecret,
-            object_type: objectType,
-            oauth_mode: true
-        },
-        sync_config: {
-            frequency: syncFrequency,
-            direction: syncDirection,
-            is_active: true
-        },
-        field_mappings: fieldMappings
-    };
-    
-    // Show saving state
-    $('#saveBtn').prop('disabled', true)
-        .html('<i class="fas fa-spinner fa-spin me-2"></i>Saving...');
-    
-    // Make API call
-    $.ajax({
-        url: '/save-integration',
-        type: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify(integrationData),
-        success: function(response) {
-            // Reset button
-            $('#saveBtn').prop('disabled', false)
-                .html('<i class="fas fa-save me-2"></i>Save Configuration');
-            
-            if (response.status === 'success') {
-                // Show success toast
-                showToast('success', 'Integration saved successfully!');
-                
-                // Show success message
-                $('#step3').html(`
-                    <div class="alert alert-success">
-                        <i class="fas fa-check-circle me-2"></i>
-                        HubSpot integration saved successfully! Integration ID: ${response.integration_id}
-                    </div>
-                    <p>The integration between Alchemy and HubSpot has been configured successfully.</p>
-                    <a href="/" class="btn btn-primary">
-                        <i class="fas fa-home me-2"></i>Return to Dashboard
-                    </a>
-                `);
-            } else {
-                // Show error toast
-                showToast('error', response.message || 'Failed to save integration');
-            }
-        },
-        error: function(xhr, status, error) {
-            // Reset button
-            $('#saveBtn').prop('disabled', false)
-                .html('<i class="fas fa-save me-2"></i>Save Configuration');
-            
-            // Parse error message
-            let errorMessage = 'Failed to save integration';
-            try {
-                const response = JSON.parse(xhr.responseText);
-                errorMessage = response.message || response.error || errorMessage;
-            } catch (e) {
-                errorMessage = `Error: ${error}`;
-            }
-            
-            // Show error toast
-            showToast('error', errorMessage);
-        }
-    });
-}
-
-// Show toast notification
-function showToast(type, message) {
-    const toast = $('<div>').addClass('toast');
-    
-    if (type === 'success') {
-        toast.addClass('success');
-        toast.html('<i class="fas fa-check-circle me-2"></i>' + message);
-    } else if (type === 'error') {
-        toast.addClass('error');
-        toast.html('<i class="fas fa-exclamation-circle me-2"></i>' + message);
-    } else if (type === 'warning') {
-        toast.addClass('warning');
-        toast.html('<i class="fas fa-exclamation-triangle me-2"></i>' + message);
-    } else {
-        toast.html('<i class="fas fa-info-circle me-2"></i>' + message);
-    }
-    
-    $('#toastContainer').append(toast);
-    
-    // Auto-remove after 3 seconds
-    setTimeout(function() {
-        toast.fadeOut(300, function() {
-            $(this).remove();
-        });
-    }, 3000);
-}
