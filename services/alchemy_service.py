@@ -1,41 +1,56 @@
 import requests
 import logging
+import json
 
 # Set up logging
 logger = logging.getLogger(__name__)
 
-def get_alchemy_access_token(refresh_token, tenant_id):
+def authenticate_with_credentials(tenant_id, email, password):
     """
-    Exchange refresh token for access token
+    Authenticate with Alchemy using email/password
     """
-    token_url = f"https://core-production.alchemy.cloud/auth/realms/{tenant_id}/protocol/openid-connect/token"
+    auth_url = "https://core-production.alchemy.cloud/core/api/v2/sign-in"
     
     try:
-        # Log token details (partially masked for security)
-        masked_token = refresh_token[:5] + "..." if refresh_token and len(refresh_token) > 5 else "None"
-        logger.info(f"Attempting to get access token for tenant {tenant_id} with refresh token starting with: {masked_token}")
+        logger.info(f"Authenticating with Alchemy for tenant: {tenant_id}")
         
-        response = requests.post(token_url, data={
-            "grant_type": "refresh_token",
-            "client_id": "alchemy-web-client",
-            "refresh_token": refresh_token
-        })
-
-        logger.info(f"Token response status: {response.status_code}")
+        response = requests.post(
+            auth_url,
+            json={"email": email, "password": password},
+            headers={"Content-Type": "application/json"}
+        )
+        
+        logger.info(f"Authentication response status: {response.status_code}")
         
         if response.status_code != 200:
-            logger.error(f"Token error response: {response.text}")
+            logger.error(f"Authentication error: {response.text}")
             return None
             
-        token_data = response.json()
-        access_token = token_data.get("access_token")
-        logger.info(f"Successfully obtained access token")
+        auth_data = response.json()
         
+        # Find token for the specified tenant
+        tenant_token = None
+        for token in auth_data.get('tokens', []):
+            if token.get('tenant') == tenant_id:
+                tenant_token = token
+                break
+                
+        if not tenant_token:
+            logger.error(f"No token found for tenant {tenant_id}")
+            return None
+            
+        # Extract access token
+        access_token = tenant_token.get('token')
+        if not access_token:
+            logger.error("No access token found in response")
+            return None
+            
+        logger.info(f"Successfully obtained access token for tenant {tenant_id}")
         return access_token
+        
     except Exception as e:
-        logger.error(f"Access token error: {str(e)}")
+        logger.error(f"Authentication error: {str(e)}")
         return None
-
 
 def get_alchemy_record_types(access_token, tenant_id):
     """
@@ -57,16 +72,25 @@ def get_alchemy_record_types(access_token, tenant_id):
         logger.error(f"Record type fetch error: {str(e)}")
         return []
 
-
-def fetch_alchemy_fields(tenant_id, refresh_token, record_type):
+def fetch_alchemy_fields(tenant_id, auth_info, record_type):
     """
     Pull fields for a given record type using the filter-records API
-    Strict authorization - no fallback to sample data
+    Using direct authentication instead of refresh tokens
     """
     logger.info(f"Fetching fields for record type {record_type} in tenant {tenant_id}")
     
-    # First get an access token
-    access_token = get_alchemy_access_token(refresh_token, tenant_id)
+    # Check if auth_info is a refresh token or credentials
+    access_token = None
+    
+    if isinstance(auth_info, dict) and 'email' in auth_info and 'password' in auth_info:
+        # It's credentials
+        logger.info("Using email/password for authentication")
+        access_token = authenticate_with_credentials(tenant_id, auth_info['email'], auth_info['password'])
+    else:
+        # It's a refresh token (which we know doesn't work), so return error
+        logger.error("Refresh token authentication is not supported")
+        raise Exception("Authentication method not supported. Please use email/password authentication.")
+    
     if not access_token:
         logger.error("Failed to obtain access token")
         raise Exception("Authentication failed: Could not obtain access token")
