@@ -6,7 +6,8 @@
 // Global variables
 window.hubspotObjectTypes = [];
 window.hubspotFields = [];
-let hubspotRecordIdentifier = '';
+window.hubspotRecords = [];
+let hubspotRecordIdentifier = 'id';
 
 // Initialize HubSpot integration
 document.addEventListener('DOMContentLoaded', function() {
@@ -52,10 +53,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (objectTypeLabel) {
                     objectTypeLabel.textContent = selectedType;
                 }
+                
+                // Enable record identifier input
+                const recordIdentifierInput = document.getElementById('hubspotRecordIdentifier');
+                if (recordIdentifierInput) {
+                    recordIdentifierInput.disabled = false;
+                }
+                
+                // Enable fetch records button if it exists
+                const fetchRecordsBtn = document.getElementById('fetchHubspotRecordsBtn');
+                if (fetchRecordsBtn) {
+                    fetchRecordsBtn.disabled = false;
+                }
             } else {
                 const fetchFieldsBtn = document.getElementById('fetchHubspotFieldsBtn');
                 if (fetchFieldsBtn) {
                     fetchFieldsBtn.disabled = true;
+                }
+                
+                // Disable record identifier input
+                const recordIdentifierInput = document.getElementById('hubspotRecordIdentifier');
+                if (recordIdentifierInput) {
+                    recordIdentifierInput.disabled = true;
+                }
+                
+                // Disable fetch records button if it exists
+                const fetchRecordsBtn = document.getElementById('fetchHubspotRecordsBtn');
+                if (fetchRecordsBtn) {
+                    fetchRecordsBtn.disabled = true;
                 }
             }
         });
@@ -72,11 +97,30 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Handle record fetch button
+    const fetchRecordsBtn = document.getElementById('fetchHubspotRecordsBtn');
+    if (fetchRecordsBtn) {
+        fetchRecordsBtn.addEventListener('click', function() {
+            const objectTypeSelect = document.getElementById('hubspotObjectType');
+            if (objectTypeSelect && objectTypeSelect.value) {
+                fetchHubSpotRecords(objectTypeSelect.value);
+            }
+        });
+    }
+    
     // Handle record identifier input
     const recordIdentifierInput = document.getElementById('hubspotRecordIdentifier');
     if (recordIdentifierInput) {
         recordIdentifierInput.addEventListener('input', function() {
-            hubspotRecordIdentifier = this.value.trim();
+            hubspotRecordIdentifier = this.value.trim() || 'id';
+        });
+    }
+    
+    // Handle validate mapping button
+    const validateMappingBtn = document.getElementById('validateMappingBtn');
+    if (validateMappingBtn) {
+        validateMappingBtn.addEventListener('click', function() {
+            validateFieldMapping();
         });
     }
     
@@ -91,8 +135,68 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Setup HubSpot specific UI elements
 function setupHubSpotUI() {
-    // Much of this is now in the main HTML
-    // This function is kept for backward compatibility
+    // Add record viewer section if it doesn't exist
+    const step2 = document.getElementById('step2');
+    if (step2 && !document.getElementById('hubspotRecordsContainer')) {
+        // Create records container
+        const recordsContainer = document.createElement('div');
+        recordsContainer.id = 'hubspotRecordsContainer';
+        recordsContainer.className = 'hubspot-object-config mt-4';
+        recordsContainer.style.display = 'none';
+        
+        recordsContainer.innerHTML = `
+            <h5 class="mb-3">HubSpot Records</h5>
+            <div class="mb-3">
+                <button class="btn btn-primary" type="button" id="fetchHubspotRecordsBtn" disabled>
+                    <i class="fas fa-database me-2"></i>Fetch Sample Records
+                </button>
+                <small class="form-text text-muted d-block mt-1">
+                    View sample records to help with field mapping
+                </small>
+            </div>
+            <div id="hubspotRecordsStatus" class="alert mt-3" style="display: none;"></div>
+            <div id="hubspotRecordsTable" class="table-responsive mt-3" style="display: none;">
+                <!-- Records will be displayed here -->
+            </div>
+        `;
+        
+        // Insert before the hubspot field status
+        const fieldStatus = document.getElementById('hubspotFieldStatus');
+        if (fieldStatus) {
+            step2.insertBefore(recordsContainer, fieldStatus);
+        } else {
+            step2.appendChild(recordsContainer);
+        }
+    }
+    
+    // Add validation button to step 3 if it doesn't exist
+    const step3 = document.getElementById('step3');
+    if (step3 && !document.getElementById('validateMappingBtn')) {
+        const syncOptionsContainer = document.getElementById('syncOptionsContainer');
+        if (syncOptionsContainer) {
+            const validationContainer = document.createElement('div');
+            validationContainer.className = 'mt-4 p-3 bg-light rounded';
+            validationContainer.innerHTML = `
+                <h5 class="mb-3">Validate Field Mapping</h5>
+                <p class="text-muted">
+                    Validate your field mapping configuration to ensure all required fields are mapped correctly.
+                </p>
+                <button type="button" id="validateMappingBtn" class="btn btn-outline-primary">
+                    <i class="fas fa-check-circle me-2"></i>Validate Mapping
+                </button>
+                <div id="validationStatus" class="alert mt-3" style="display: none;"></div>
+            `;
+            
+            step3.insertBefore(validationContainer, syncOptionsContainer);
+            
+            // Add event listener
+            const validateMappingBtn = document.getElementById('validateMappingBtn');
+            if (validateMappingBtn) {
+                validateMappingBtn.addEventListener('click', validateFieldMapping);
+            }
+        }
+    }
+    
     console.log('HubSpot UI elements setup complete');
 }
 
@@ -278,6 +382,60 @@ function showFieldStatus(type, message) {
     statusDiv.style.display = 'block';
 }
 
+// Show records status
+function showRecordsStatus(type, message) {
+    const statusDiv = document.getElementById('hubspotRecordsStatus');
+    if (!statusDiv) {
+        console.error('HubSpot records status div not found');
+        return;
+    }
+    
+    let alertClass = 'alert-info';
+    let icon = '<i class="fas fa-info-circle me-2"></i>';
+    
+    if (type === 'success') {
+        alertClass = 'alert-success';
+        icon = '<i class="fas fa-check-circle me-2"></i>';
+    } else if (type === 'error') {
+        alertClass = 'alert-danger';
+        icon = '<i class="fas fa-exclamation-circle me-2"></i>';
+    } else if (type === 'warning') {
+        alertClass = 'alert-warning';
+        icon = '<i class="fas fa-exclamation-triangle me-2"></i>';
+    }
+    
+    statusDiv.className = `alert ${alertClass} mt-3`;
+    statusDiv.innerHTML = icon + message;
+    statusDiv.style.display = 'block';
+}
+
+// Show validation status
+function showValidationStatus(type, message) {
+    const statusDiv = document.getElementById('validationStatus');
+    if (!statusDiv) {
+        console.error('Validation status div not found');
+        return;
+    }
+    
+    let alertClass = 'alert-info';
+    let icon = '<i class="fas fa-info-circle me-2"></i>';
+    
+    if (type === 'success') {
+        alertClass = 'alert-success';
+        icon = '<i class="fas fa-check-circle me-2"></i>';
+    } else if (type === 'error') {
+        alertClass = 'alert-danger';
+        icon = '<i class="fas fa-exclamation-circle me-2"></i>';
+    } else if (type === 'warning') {
+        alertClass = 'alert-warning';
+        icon = '<i class="fas fa-exclamation-triangle me-2"></i>';
+    }
+    
+    statusDiv.className = `alert ${alertClass} mt-3`;
+    statusDiv.innerHTML = icon + message;
+    statusDiv.style.display = 'block';
+}
+
 // Show toast notification
 function showToast(type, message) {
     // First try to use jQuery if available
@@ -420,6 +578,12 @@ function fetchHubSpotObjectTypes() {
             const recordIdentifierContainer = document.getElementById('hubspotRecordIdentifierContainer');
             if (recordIdentifierContainer) {
                 recordIdentifierContainer.style.display = 'block';
+            }
+            
+            // Show records container
+            const recordsContainer = document.getElementById('hubspotRecordsContainer');
+            if (recordsContainer) {
+                recordsContainer.style.display = 'block';
             }
             
             // Show toast
@@ -578,6 +742,187 @@ function fetchHubSpotFields(objectType) {
     });
 }
 
+// Fetch HubSpot records for a selected object type
+function fetchHubSpotRecords(objectType) {
+    const accessTokenInput = document.getElementById('hubspotApiKey');
+    if (!accessTokenInput) {
+        console.error('HubSpot API Key input not found');
+        return;
+    }
+    
+    const accessToken = accessTokenInput.value.trim();
+    
+    if (!accessToken) {
+        showToast('error', 'Please enter and validate your HubSpot Access Token first');
+        return;
+    }
+    
+    if (!objectType) {
+        showToast('error', 'Please select a HubSpot object type');
+        return;
+    }
+    
+    // Show loading state
+    const fetchBtn = document.getElementById('fetchHubspotRecordsBtn');
+    if (fetchBtn) {
+        fetchBtn.disabled = true;
+        fetchBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Fetching Records...';
+    }
+    
+    // Show status
+    showRecordsStatus('info', `Fetching records for ${objectType}...`);
+    
+    // Make API call using OAuth credentials
+    fetch('/hubspot/records', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            access_token: accessToken,
+            object_type: objectType,
+            limit: 10,  // Limit to 10 records for sample
+            oauth_mode: true
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log("Records response:", data);
+        
+        // Reset button
+        if (fetchBtn) {
+            fetchBtn.disabled = false;
+            fetchBtn.innerHTML = '<i class="fas fa-database me-2"></i>Fetch Sample Records';
+        }
+        
+        if (data.status === 'success') {
+            // Store records
+            window.hubspotRecords = data.records || [];
+            
+            // Show success message
+            showRecordsStatus('success', `Retrieved ${window.hubspotRecords.length} sample records`);
+            
+            // Display records in table
+            displayHubSpotRecords(window.hubspotRecords);
+            
+            // Show toast
+            showToast('success', `Retrieved ${window.hubspotRecords.length} sample records`);
+        } else {
+            // Show error message
+            showRecordsStatus('error', data.message || 'Failed to fetch records');
+            
+            // Hide records table
+            const recordsTable = document.getElementById('hubspotRecordsTable');
+            if (recordsTable) {
+                recordsTable.style.display = 'none';
+            }
+            
+            // Show toast
+            showToast('error', 'Failed to fetch HubSpot records');
+        }
+    })
+    .catch(error => {
+        console.error("Records error:", error);
+        
+        // Reset button
+        if (fetchBtn) {
+            fetchBtn.disabled = false;
+            fetchBtn.innerHTML = '<i class="fas fa-database me-2"></i>Fetch Sample Records';
+        }
+        
+        // Show error message
+        showRecordsStatus('error', 'Error: ' + error.message);
+        
+        // Hide records table
+        const recordsTable = document.getElementById('hubspotRecordsTable');
+        if (recordsTable) {
+            recordsTable.style.display = 'none';
+        }
+        
+        // Show toast
+        showToast('error', 'Error: ' + error.message);
+    });
+}
+
+// Display HubSpot records in a table
+function displayHubSpotRecords(records) {
+    const recordsTable = document.getElementById('hubspotRecordsTable');
+    if (!recordsTable) {
+        console.error('Records table container not found');
+        return;
+    }
+    
+    if (!records || records.length === 0) {
+        recordsTable.innerHTML = '<div class="alert alert-warning">No records found</div>';
+        recordsTable.style.display = 'block';
+        return;
+    }
+    
+    // Get common properties from the first record
+    const firstRecord = records[0];
+    const properties = firstRecord.properties || {};
+    const propertyKeys = Object.keys(properties).sort();
+    
+    // Create table HTML
+    let tableHtml = '<table class="table table-striped table-bordered table-sm">';
+    
+    // Create header row
+    tableHtml += '<thead class="table-light"><tr>';
+    tableHtml += '<th>ID</th>';
+    
+    // Add up to 5 property columns
+    let displayKeys = propertyKeys.slice(0, 5);
+    
+    // Ensure we include common properties if available
+    const commonProps = ['name', 'firstname', 'lastname', 'email', 'company'];
+    commonProps.forEach(prop => {
+        if (propertyKeys.includes(prop) && !displayKeys.includes(prop)) {
+            // Replace the last property with this common one
+            if (displayKeys.length >= 5) {
+                displayKeys[4] = prop;
+            } else {
+                displayKeys.push(prop);
+            }
+        }
+    });
+    
+    // Add headers for each property
+    displayKeys.forEach(key => {
+        tableHtml += `<th>${key}</th>`;
+    });
+    
+    tableHtml += '</tr></thead><tbody>';
+    
+    // Add rows for each record
+    records.forEach(record => {
+        const id = record.id;
+        const props = record.properties || {};
+        
+        tableHtml += '<tr>';
+        tableHtml += `<td>${id}</td>`;
+        
+        // Add cells for each property
+        displayKeys.forEach(key => {
+            const value = props[key] || '';
+            tableHtml += `<td>${value}</td>`;
+        });
+        
+        tableHtml += '</tr>';
+    });
+    
+    tableHtml += '</tbody></table>';
+    
+    // Add a note about additional properties
+    if (propertyKeys.length > 5) {
+        const hiddenCount = propertyKeys.length - 5;
+        tableHtml += `<div class="text-muted small mt-2">* Showing 5 of ${propertyKeys.length} properties. ${hiddenCount} properties are hidden for brevity.</div>`;
+    }
+    
+    // Set the HTML and show the table
+    recordsTable.innerHTML = tableHtml;
+    recordsTable.style.display = 'block';
+}
+
 // Prepare field mapping UI
 function prepareFieldMapping(hubspotFields) {
     // Check if we have both Alchemy fields and HubSpot fields
@@ -627,6 +972,7 @@ function prepareFieldMapping(hubspotFields) {
         <th>Alchemy Field</th>
         <th>HubSpot Field</th>
         <th width="100">Required</th>
+        <th width="100">Data Type</th>
         <th width="80">Actions</th>
     `;
     
@@ -695,6 +1041,12 @@ function addMappingRow(tableBody, alchemyField = null, hubspotField = null) {
             option = document.createElement('option');
             option.value = field.identifier;
             option.textContent = field.name || field.identifier;
+            
+            // Set data attribute for field type if available
+            if (field.type) {
+                option.setAttribute('data-type', field.type);
+            }
+            
             alchemySelect.appendChild(option);
         });
     }
@@ -724,6 +1076,16 @@ function addMappingRow(tableBody, alchemyField = null, hubspotField = null) {
             option = document.createElement('option');
             option.value = field.identifier;
             option.textContent = field.name;
+            
+            // Set data attributes
+            if (field.type) {
+                option.setAttribute('data-type', field.type);
+            }
+            
+            if (field.required) {
+                option.setAttribute('data-required', 'true');
+            }
+            
             hubspotSelect.appendChild(option);
         });
     }
@@ -732,6 +1094,27 @@ function addMappingRow(tableBody, alchemyField = null, hubspotField = null) {
     if (hubspotField) {
         hubspotSelect.value = hubspotField.identifier;
     }
+    
+    // Add change event to update required checkbox
+    hubspotSelect.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        const isRequired = selectedOption.getAttribute('data-required') === 'true';
+        const requiredCheckbox = row.querySelector('.is-required');
+        
+        if (requiredCheckbox) {
+            requiredCheckbox.checked = isRequired;
+            
+            // Disable checkbox if field is required by HubSpot
+            requiredCheckbox.disabled = isRequired;
+        }
+        
+        // Update data type display
+        const dataTypeCell = row.querySelector('.data-type');
+        if (dataTypeCell) {
+            const dataType = selectedOption.getAttribute('data-type') || 'string';
+            dataTypeCell.textContent = dataType;
+        }
+    });
     
     hubspotCell.appendChild(hubspotSelect);
     row.appendChild(hubspotCell);
@@ -750,11 +1133,25 @@ function addMappingRow(tableBody, alchemyField = null, hubspotField = null) {
     // Set checked if field is required
     if (hubspotField && hubspotField.required) {
         checkbox.checked = true;
+        checkbox.disabled = true; // Required by HubSpot
     }
     
     checkboxDiv.appendChild(checkbox);
     requiredCell.appendChild(checkboxDiv);
     row.appendChild(requiredCell);
+    
+    // Create data type cell
+    const dataTypeCell = document.createElement('td');
+    dataTypeCell.className = 'text-center data-type';
+    
+    // Set data type if available
+    if (hubspotField && hubspotField.type) {
+        dataTypeCell.textContent = hubspotField.type;
+    } else {
+        dataTypeCell.textContent = 'string';
+    }
+    
+    row.appendChild(dataTypeCell);
     
     // Create action cell
     const actionCell = document.createElement('td');
@@ -895,17 +1292,114 @@ function getFieldMappings() {
         const alchemyField = row.querySelector('.alchemy-field');
         const hubspotField = row.querySelector('.hubspot-field');
         const isRequired = row.querySelector('.is-required');
+        const dataType = row.querySelector('.data-type');
         
         if (alchemyField && hubspotField && alchemyField.value && hubspotField.value) {
             mappings.push({
                 alchemy_field: alchemyField.value,
                 hubspot_field: hubspotField.value,
-                required: isRequired ? isRequired.checked : false
+                required: isRequired ? isRequired.checked : false,
+                type: dataType ? dataType.textContent : 'string'
             });
         }
     });
     
     return mappings;
+}
+
+// Validate the field mapping
+function validateFieldMapping() {
+    // Get field mappings
+    const fieldMappings = getFieldMappings();
+    
+    if (fieldMappings.length === 0) {
+        showValidationStatus('error', 'Please create at least one field mapping');
+        showToast('error', 'Please create at least one field mapping');
+        return;
+    }
+    
+    // Get HubSpot configuration
+    const accessToken = document.getElementById('hubspotApiKey').value.trim();
+    const objectTypeSelect = document.getElementById('hubspotObjectType');
+    const objectType = objectTypeSelect ? objectTypeSelect.value : '';
+    
+    if (!accessToken || !objectType) {
+        showValidationStatus('error', 'Missing HubSpot configuration');
+        showToast('error', 'Please ensure HubSpot configuration is complete');
+        return;
+    }
+    
+    // Show loading state
+    const validateBtn = document.getElementById('validateMappingBtn');
+    if (validateBtn) {
+        validateBtn.disabled = true;
+        validateBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Validating...';
+    }
+    
+    // Show status
+    showValidationStatus('info', 'Validating field mapping...');
+    
+    // Make API call
+    fetch('/hubspot/validate-mapping', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            field_mappings: fieldMappings,
+            object_type: objectType,
+            access_token: accessToken,
+            oauth_mode: true
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log("Validation response:", data);
+        
+        // Reset button
+        if (validateBtn) {
+            validateBtn.disabled = false;
+            validateBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Validate Mapping';
+        }
+        
+        if (data.status === 'success') {
+            // Check for validation issues
+            const validationIssues = data.validation_issues || [];
+            
+            if (validationIssues.length > 0) {
+                // Show warning with issues
+                let issuesList = '<ul class="my-2">';
+                validationIssues.forEach(function(issue) {
+                    issuesList += `<li>${issue.issue}</li>`;
+                });
+                issuesList += '</ul>';
+                
+                showValidationStatus('warning', `Found ${validationIssues.length} validation issues:${issuesList}`);
+                showToast('warning', `Found ${validationIssues.length} validation issues`);
+            } else {
+                // Show success
+                showValidationStatus('success', 'Field mapping validation successful!');
+                showToast('success', 'Field mapping validation successful!');
+            }
+        } else {
+            // Show error
+            showValidationStatus('error', data.message || 'Validation failed');
+            showToast('error', 'Field mapping validation failed');
+        }
+    })
+    .catch(error => {
+        console.error("Validation error:", error);
+        
+        // Reset button
+        if (validateBtn) {
+            validateBtn.disabled = false;
+            validateBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Validate Mapping';
+        }
+        
+        // Show error
+        showValidationStatus('error', 'Error: ' + error.message);
+        showToast('error', 'Error: ' + error.message);
+    });
 }
 
 // Save HubSpot integration configuration
