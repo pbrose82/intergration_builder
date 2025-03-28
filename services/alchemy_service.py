@@ -1,11 +1,64 @@
 import requests
 import logging
-import json
 
 # Set up logging
 logger = logging.getLogger(__name__)
 
-def authenticate_with_credentials(tenant_id, email, password):
+def get_alchemy_access_token(refresh_token, tenant_id):
+    """
+    Exchange refresh token for access token
+    """
+    token_url = f"https://core-production.alchemy.cloud/auth/realms/{tenant_id}/protocol/openid-connect/token"
+    
+    try:
+        # Log token details (partially masked for security)
+        masked_token = refresh_token[:5] + "..." if refresh_token and len(refresh_token) > 5 else "None"
+        logger.info(f"Attempting to get access token for tenant {tenant_id} with refresh token starting with: {masked_token}")
+        
+        response = requests.post(token_url, data={
+            "grant_type": "refresh_token",
+            "client_id": "alchemy-web-client",
+            "refresh_token": refresh_token
+        })
+
+        logger.info(f"Token response status: {response.status_code}")
+        
+        if response.status_code != 200:
+            logger.error(f"Token error response: {response.text}")
+            return None
+            
+        token_data = response.json()
+        access_token = token_data.get("access_token")
+        logger.info(f"Successfully obtained access token")
+        
+        return access_token
+    except Exception as e:
+        logger.error(f"Access token error: {str(e)}")
+        return None
+
+
+def get_alchemy_record_types(access_token, tenant_id):
+    """
+    Fetch all record templates available in the tenant
+    """
+    url = "https://core-production.alchemy.cloud/core/api/v2/record-templates"
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        data = response.json()
+
+        return [
+            {"identifier": item["identifier"], "name": item.get("displayName", item["identifier"])}
+            for item in data
+        ]
+    except Exception as e:
+        logger.error(f"Record type fetch error: {str(e)}")
+        return []
+
+
+def authenticate_direct(tenant_id, email, password):
     """
     Authenticate with Alchemy using email/password
     """
@@ -52,50 +105,38 @@ def authenticate_with_credentials(tenant_id, email, password):
         logger.error(f"Authentication error: {str(e)}")
         return None
 
-def get_alchemy_record_types(access_token, tenant_id):
-    """
-    Fetch all record templates available in the tenant
-    """
-    url = "https://core-production.alchemy.cloud/core/api/v2/record-templates"
-    headers = {"Authorization": f"Bearer {access_token}"}
 
-    try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        data = response.json()
-
-        return [
-            {"identifier": item["identifier"], "name": item.get("displayName", item["identifier"])}
-            for item in data
-        ]
-    except Exception as e:
-        logger.error(f"Record type fetch error: {str(e)}")
-        return []
-
-def fetch_alchemy_fields(tenant_id, auth_info, record_type):
+def fetch_alchemy_fields(tenant_id, refresh_token, record_type):
     """
     Pull fields for a given record type using the filter-records API
-    Using direct authentication instead of refresh tokens
+    This function tries both auth methods - first refresh token, then direct auth if credentials available
     """
     logger.info(f"Fetching fields for record type {record_type} in tenant {tenant_id}")
     
-    # Check if auth_info is a refresh token or credentials
+    # First try refresh token if it's a normal token (not "session")
     access_token = None
+    if refresh_token != "session":
+        access_token = get_alchemy_access_token(refresh_token, tenant_id)
     
-    if isinstance(auth_info, dict) and 'email' in auth_info and 'password' in auth_info:
-        # It's credentials
-        logger.info("Using email/password for authentication")
-        access_token = authenticate_with_credentials(tenant_id, auth_info['email'], auth_info['password'])
-    else:
-        # It's a refresh token (which we know doesn't work), so return error
-        logger.error("Refresh token authentication is not supported")
-        raise Exception("Authentication method not supported. Please use email/password authentication.")
+    # If no access token and we have credentials in session, try direct auth
+    if not access_token and refresh_token == "session":
+        try:
+            from flask import session
+            if session and 'alchemy_credentials' in session and tenant_id in session['alchemy_credentials']:
+                credentials = session['alchemy_credentials'][tenant_id]
+                email = credentials.get('email')
+                password = credentials.get('password')
+                logger.info(f"Using credentials from session for direct authentication")
+                access_token = authenticate_direct(tenant_id, email, password)
+        except Exception as e:
+            logger.error(f"Error using session credentials: {str(e)}")
     
+    # If we still don't have a token, raise an error
     if not access_token:
         logger.error("Failed to obtain access token")
         raise Exception("Authentication failed: Could not obtain access token")
     
-    # Then use the access token to fetch fields
+    # Use the access token to fetch fields
     url = "https://core-production.alchemy.cloud/core/api/v2/filter-records"
     headers = {
         "Authorization": f"Bearer {access_token}",
