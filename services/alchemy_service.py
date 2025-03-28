@@ -143,41 +143,37 @@ def fetch_alchemy_fields(tenant_id, refresh_token, record_type):
             
         records_data = response.json()
         
-        # Log the response structure for debugging
-        logger.info(f"Response keys: {list(records_data.keys())}")
-        logger.info(f"Records count: {len(records_data.get('records', []))}")
+        # Log a sample of the records_data for debugging
+        logger.debug(f"Records data sample: {json.dumps(records_data)[:1000]}")
         
-        if not records_data.get("records"):
+        # Process the response based on the provided sample structure
+        # Check if we have a list of records with at least one entry
+        if not records_data or not isinstance(records_data, list) or len(records_data) == 0:
             logger.warning(f"No records found for type {record_type}")
             return fallback_fields
             
-        # Get the first record to extract fields
-        first_record = records_data["records"][0]
+        # Get the first record
+        first_record = records_data[0]
         
-        # Log record structure
-        record_keys = list(first_record.keys())
-        logger.info(f"Record structure - keys: {record_keys}")
-        
-        # Check for fieldValues
-        if "fieldValues" not in first_record:
-            logger.warning("No fieldValues in record, looking for alternative structure")
+        # Based on sample, fields are in a top-level 'fields' array
+        if "fields" not in first_record or not isinstance(first_record["fields"], list):
+            logger.warning("No fields array in record or invalid format")
             return fallback_fields
-            
-        field_values = first_record.get("fieldValues", {})
         
-        # Check if there are field values
-        if not field_values:
-            logger.warning("Empty fieldValues object")
+        # Extract fields from the fields array
+        fields = []
+        for field_obj in first_record["fields"]:
+            if "identifier" in field_obj:
+                fields.append({
+                    "identifier": field_obj["identifier"],
+                    "name": field_obj["identifier"]  # Use identifier as name
+                })
+        
+        if not fields:
+            logger.warning("No fields extracted from response")
             return fallback_fields
-            
-        # Log field structure
-        field_keys = list(field_values.keys())
-        logger.info(f"Found {len(field_keys)} fields: {field_keys[:10]}")
         
-        # Create the list of fields to return
-        fields = [{"identifier": f, "name": f} for f in field_keys]
-        logger.info(f"Returning {len(fields)} fields")
-        
+        logger.info(f"Successfully extracted {len(fields)} fields from response")
         return fields
         
     except Exception as e:
