@@ -112,6 +112,25 @@ def get_fields():
             "fields": []
         }), 500
 
+@main_bp.route('/select-platform', methods=['POST'])
+def select_platform():
+    """
+    Handle platform selection form submission
+    """
+    platform = request.form.get('platform')
+    
+    if not platform:
+        current_app.logger.error("No platform specified in form submission")
+        return jsonify({"error": "No platform specified"}), 400
+    
+    current_app.logger.info(f"Platform selected: {platform}")
+    
+    # Store the selected platform in session
+    session['selected_platform'] = platform
+    
+    # Redirect to the configuration page
+    return render_template('config.html', platform=platform)
+
 @main_bp.route('/authenticate-alchemy', methods=['POST'])
 def authenticate_alchemy():
     """
