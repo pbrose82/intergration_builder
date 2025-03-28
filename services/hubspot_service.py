@@ -1,5 +1,5 @@
 """
-HubSpot API integration service
+HubSpot API integration service with OAuth support
 """
 import requests
 import logging
@@ -13,22 +13,24 @@ class HubSpotService:
     """
     Service for interacting with the HubSpot API
     """
-    def __init__(self, api_key=None):
-        self.api_key = api_key
+    def __init__(self, access_token=None, client_secret=None):
+        self.access_token = access_token
+        self.client_secret = client_secret
         self.base_url = "https://api.hubapi.com"
+        self.oauth_mode = access_token and not client_secret 
     
     def validate_credentials(self):
         """
-        Validate HubSpot API key by making a simple request
+        Validate HubSpot credentials by making a simple request
         
         Returns:
             bool: True if valid, False otherwise
         """
         try:
-            # Use the /integrations/v1/me API endpoint to validate credentials
-            url = f"{self.base_url}/integrations/v1/me"
+            # Use the /oauth/v1/access-tokens/info API endpoint to validate OAuth credentials
+            url = f"{self.base_url}/oauth/v1/access-tokens/info"
             headers = {
-                "Authorization": f"Bearer {self.api_key}"
+                "Authorization": f"Bearer {self.access_token}"
             }
             
             logger.info(f"Validating HubSpot credentials")
@@ -69,27 +71,23 @@ class HubSpotService:
                 {"id": "product", "name": "Product", "description": "Store product information"}
             ]
             
-            # Optionally fetch custom objects for Enterprise accounts
+            # Try to fetch schema metadata to verify our access
             try:
                 url = f"{self.base_url}/crm/v3/schemas"
                 headers = {
-                    "Authorization": f"Bearer {self.api_key}",
+                    "Authorization": f"Bearer {self.access_token}",
                     "Content-Type": "application/json"
                 }
                 
                 response = requests.get(url, headers=headers)
                 
                 if response.status_code == 200:
-                    custom_objects = response.json().get("results", [])
-                    for obj in custom_objects:
-                        if obj.get("objectTypeId") not in [o["id"] for o in standard_objects]:
-                            standard_objects.append({
-                                "id": obj.get("objectTypeId"),
-                                "name": obj.get("labels", {}).get("singular", obj.get("objectTypeId")),
-                                "description": "Custom object"
-                            })
+                    logger.info("Successfully verified API access with schema metadata")
+                    # We could add custom objects here if needed
+                else:
+                    logger.warning(f"Could not fetch schema metadata: {response.status_code} - {response.text}")
             except Exception as e:
-                logger.warning(f"Could not fetch custom objects: {str(e)}")
+                logger.warning(f"Error fetching schema metadata: {str(e)}")
             
             return standard_objects
         except Exception as e:
@@ -117,7 +115,7 @@ class HubSpotService:
                 url = f"{self.base_url}/crm/v3/properties/{object_type}"
             
             headers = {
-                "Authorization": f"Bearer {self.api_key}",
+                "Authorization": f"Bearer {self.access_token}",
                 "Content-Type": "application/json"
             }
             
@@ -168,18 +166,24 @@ class HubSpotService:
             else:
                 return fallback_fields
 
-def get_hubspot_service(api_key=None):
+def get_hubspot_service(access_token=None, client_secret=None, oauth_mode=False):
     """
     Factory function to create a HubSpot service instance
     
     Args:
-        api_key (str, optional): HubSpot API key. Defaults to None.
+        access_token (str, optional): HubSpot access token. Defaults to None.
+        client_secret (str, optional): Client secret for OAuth flow. Defaults to None.
+        oauth_mode (bool, optional): Whether to use OAuth authentication. Defaults to False.
         
     Returns:
         HubSpotService: Service instance
     """
-    # If API key is not provided, try to get from config
-    if not api_key and current_app:
-        api_key = current_app.config.get('HUBSPOT_API_KEY')
+    # If credentials are not provided, try to get from config
+    if not access_token and current_app:
+        if oauth_mode:
+            access_token = current_app.config.get('HUBSPOT_ACCESS_TOKEN')
+            client_secret = current_app.config.get('HUBSPOT_CLIENT_SECRET')
+        else:
+            access_token = current_app.config.get('HUBSPOT_API_KEY')
     
-    return HubSpotService(api_key=api_key)
+    return HubSpotService(access_token=access_token, client_secret=client_secret)
