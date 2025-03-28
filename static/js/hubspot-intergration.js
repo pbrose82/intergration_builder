@@ -7,13 +7,158 @@
 let hubspotObjectTypes = [];
 let hubspotFields = [];
 
+// Initialize HubSpot integration
+$(document).ready(function() {
+    console.log('HubSpot integration script loaded');
+    
+    // Check if on HubSpot configuration page
+    const isHubSpotConfig = window.location.href.includes('platform=hubspot');
+    if (!isHubSpotConfig) return;
+    
+    console.log('Initializing HubSpot integration UI');
+    
+    // Add HubSpot specific elements to the UI
+    setupHubSpotUI();
+    
+    // Set up event handlers
+    $(document).on('click', '#validateHubspotBtn', function() {
+        validateHubSpotCredentials();
+    });
+    
+    $(document).on('click', '#fetchHubspotObjectsBtn', function() {
+        fetchHubSpotObjectTypes();
+    });
+    
+    // Handle object type selection
+    $(document).on('change', '#hubspotObjectType', function() {
+        const selectedType = $(this).val();
+        if (selectedType) {
+            $('#fetchHubspotFieldsBtn').prop('disabled', false);
+            $('#hubspotObjectTypeLabel').text(selectedType);
+        } else {
+            $('#fetchHubspotFieldsBtn').prop('disabled', true);
+        }
+    });
+    
+    // Handle field fetch button
+    $(document).on('click', '#fetchHubspotFieldsBtn', function() {
+        const selectedType = $('#hubspotObjectType').val();
+        if (selectedType) {
+            fetchHubSpotFields(selectedType);
+        }
+    });
+    
+    // Override save button for HubSpot
+    $('#saveBtn').off('click').on('click', function() {
+        saveHubSpotIntegration();
+    });
+});
+
+// Setup HubSpot specific UI elements
+function setupHubSpotUI() {
+    // Add HubSpot object type selection
+    const hubspotConfig = $('#hubspotConfig');
+    
+    if (hubspotConfig.length) {
+        // Add validate button
+        hubspotConfig.append(`
+            <div class="text-end mb-3">
+                <button type="button" id="validateHubspotBtn" class="btn btn-outline-primary">
+                    <i class="fas fa-check-circle me-2"></i>Validate Credentials
+                </button>
+            </div>
+            <div id="hubspotStatus" class="alert mt-3" style="display: none;"></div>
+        `);
+        
+        // Add HubSpot object type selection
+        hubspotConfig.append(`
+            <div id="hubspotObjectContainer" class="mt-4" style="display: none;">
+                <h5 class="mb-3">HubSpot Object Type</h5>
+                <div class="mb-3">
+                    <label for="hubspotObjectType" class="form-label">Select Object Type</label>
+                    <div class="input-group">
+                        <select class="form-select" id="hubspotObjectType" disabled>
+                            <option value="">-- Select Object Type --</option>
+                        </select>
+                        <button class="btn btn-outline-secondary" type="button" id="fetchHubspotObjectsBtn" disabled>
+                            <i class="fas fa-sync-alt me-2"></i>Refresh Object Types
+                        </button>
+                    </div>
+                    <div class="form-text">
+                        Select the HubSpot object type to map with Alchemy records
+                    </div>
+                </div>
+                <div id="hubspotObjectStatus" class="alert mt-3" style="display: none;"></div>
+            </div>
+        `);
+        
+        // Add fields section
+        hubspotConfig.append(`
+            <div id="hubspotFieldContainer" class="mt-4" style="display: none;">
+                <h5 class="mb-3">HubSpot Fields</h5>
+                <div class="mb-3">
+                    <p>Fetch fields for object type: <strong id="hubspotObjectTypeLabel">None Selected</strong></p>
+                    <button class="btn btn-primary" type="button" id="fetchHubspotFieldsBtn" disabled>
+                        <i class="fas fa-list me-2"></i>Fetch Fields
+                    </button>
+                </div>
+                <div id="hubspotFieldStatus" class="alert mt-3" style="display: none;"></div>
+            </div>
+        `);
+        
+        // Add sync options
+        hubspotConfig.append(`
+            <div id="syncOptionsContainer" class="mt-4">
+                <h5 class="mb-3">Synchronization Options</h5>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="syncFrequency" class="form-label">Sync Frequency</label>
+                        <select class="form-select" id="syncFrequency">
+                            <option value="realtime">Real-time</option>
+                            <option value="hourly">Hourly</option>
+                            <option value="daily" selected>Daily</option>
+                            <option value="weekly">Weekly</option>
+                            <option value="manual">Manual Only</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="syncDirection" class="form-label">Sync Direction</label>
+                        <select class="form-select" id="syncDirection">
+                            <option value="alchemy_to_hubspot">Alchemy to HubSpot</option>
+                            <option value="hubspot_to_alchemy">HubSpot to Alchemy</option>
+                            <option value="bidirectional" selected>Bidirectional</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        `);
+    }
+    
+    // Add script to load HubSpot fields in Step 2
+    const step2 = $('#step2');
+    if (step2.length) {
+        step2.append(`
+            <div class="mt-4" id="hubspotStep2Info" style="display: none;">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    After fetching Alchemy fields, you'll be asked to select a HubSpot object type and fetch its fields for mapping.
+                </div>
+            </div>
+        `);
+        
+        // Show this info for HubSpot
+        $('#hubspotStep2Info').show();
+    }
+}
+
 // Validate HubSpot credentials
 function validateHubSpotCredentials() {
-    const apiKey = $('#hubspotApiKey').val().trim();
-    const portalId = $('#hubspotPortalId').val().trim();
+    // Get credentials from input fields - support both API key and OAuth tokens
+    const accessToken = $('#hubspotApiKey').val().trim();
+    const clientSecret = $('#hubspotPortalId').val().trim();
     
-    if (!apiKey) {
-        showToast('Please enter HubSpot API Key', 'error');
+    if (!accessToken) {
+        showToast('error', 'Please enter HubSpot Access Token');
         return false;
     }
     
@@ -21,14 +166,15 @@ function validateHubSpotCredentials() {
     $('#validateHubspotBtn').prop('disabled', true)
         .html('<i class="fas fa-spinner fa-spin me-2"></i>Validating...');
     
-    // Call API to validate credentials
+    // Call API to validate credentials - update to support OAuth tokens
     $.ajax({
         url: '/hubspot/validate',
         type: 'POST',
         contentType: 'application/json',
         data: JSON.stringify({
-            api_key: apiKey,
-            portal_id: portalId
+            access_token: accessToken,
+            client_secret: clientSecret,
+            oauth_mode: true
         }),
         success: function(response) {
             // Reset button
@@ -49,7 +195,7 @@ function validateHubSpotCredentials() {
                 // (this would require backend support)
                 
                 // Show toast
-                showToast('HubSpot credentials validated successfully', 'success');
+                showToast('success', 'HubSpot credentials validated successfully');
                 
                 // Fetch object types automatically
                 fetchHubSpotObjectTypes();
@@ -66,7 +212,7 @@ function validateHubSpotCredentials() {
                 $('#fetchHubspotObjectsBtn').prop('disabled', true);
                 
                 // Show toast
-                showToast('HubSpot credential validation failed', 'error');
+                showToast('error', 'HubSpot credential validation failed');
                 
                 return false;
             }
@@ -92,7 +238,7 @@ function validateHubSpotCredentials() {
                 .show();
             
             // Show toast
-            showToast(errorMessage, 'error');
+            showToast('error', errorMessage);
             
             return false;
         }
@@ -101,10 +247,10 @@ function validateHubSpotCredentials() {
 
 // Fetch HubSpot object types
 function fetchHubSpotObjectTypes() {
-    const apiKey = $('#hubspotApiKey').val().trim();
+    const accessToken = $('#hubspotApiKey').val().trim();
     
-    if (!apiKey) {
-        showToast('Please enter and validate your HubSpot API Key first', 'error');
+    if (!accessToken) {
+        showToast('error', 'Please enter and validate your HubSpot Access Token first');
         return;
     }
     
@@ -118,13 +264,14 @@ function fetchHubSpotObjectTypes() {
         .addClass('alert-info')
         .show();
     
-    // Make API call
+    // Make API call with OAuth credentials
     $.ajax({
         url: '/hubspot/object-types',
         type: 'POST',
         contentType: 'application/json',
         data: JSON.stringify({
-            api_key: apiKey
+            access_token: accessToken,
+            oauth_mode: true
         }),
         success: function(response) {
             // Reset button
@@ -156,7 +303,7 @@ function fetchHubSpotObjectTypes() {
                 select.prop('disabled', false);
                 
                 // Show toast
-                showToast(`Found ${hubspotObjectTypes.length} HubSpot object types`, 'success');
+                showToast('success', `Found ${hubspotObjectTypes.length} HubSpot object types`);
             } else {
                 // Show error message
                 $('#hubspotObjectStatus').removeClass('alert-info alert-success')
@@ -165,7 +312,7 @@ function fetchHubSpotObjectTypes() {
                     .show();
                 
                 // Show toast
-                showToast('Failed to fetch HubSpot object types', 'error');
+                showToast('error', 'Failed to fetch HubSpot object types');
             }
         },
         error: function(xhr, status, error) {
@@ -189,22 +336,22 @@ function fetchHubSpotObjectTypes() {
                 .show();
             
             // Show toast
-            showToast(errorMessage, 'error');
+            showToast('error', errorMessage);
         }
     });
 }
 
 // Fetch HubSpot fields for a selected object type
 function fetchHubSpotFields(objectType) {
-    const apiKey = $('#hubspotApiKey').val().trim();
+    const accessToken = $('#hubspotApiKey').val().trim();
     
-    if (!apiKey) {
-        showToast('Please enter and validate your HubSpot API Key first', 'error');
+    if (!accessToken) {
+        showToast('error', 'Please enter and validate your HubSpot Access Token first');
         return;
     }
     
     if (!objectType) {
-        showToast('Please select a HubSpot object type', 'error');
+        showToast('error', 'Please select a HubSpot object type');
         return;
     }
     
@@ -218,14 +365,15 @@ function fetchHubSpotFields(objectType) {
         .addClass('alert-info')
         .show();
     
-    // Make API call
+    // Make API call using OAuth credentials
     $.ajax({
         url: '/hubspot/fields',
         type: 'POST',
         contentType: 'application/json',
         data: JSON.stringify({
-            api_key: apiKey,
-            object_type: objectType
+            access_token: accessToken,
+            object_type: objectType,
+            oauth_mode: true
         }),
         success: function(response) {
             // Reset button
@@ -246,7 +394,7 @@ function fetchHubSpotFields(objectType) {
                 prepareFieldMapping(hubspotFields);
                 
                 // Show toast
-                showToast(`Retrieved ${hubspotFields.length} fields for mapping`, 'success');
+                showToast('success', `Retrieved ${hubspotFields.length} fields for mapping`);
                 
                 // Enable next step
                 $('#nextBtn').prop('disabled', false);
@@ -258,7 +406,7 @@ function fetchHubSpotFields(objectType) {
                     .show();
                 
                 // Show toast
-                showToast('Failed to fetch HubSpot fields', 'error');
+                showToast('error', 'Failed to fetch HubSpot fields');
             }
         },
         error: function(xhr, status, error) {
@@ -282,7 +430,7 @@ function fetchHubSpotFields(objectType) {
                 .show();
             
             // Show toast
-            showToast(errorMessage, 'error');
+            showToast('error', errorMessage);
         }
     });
 }
@@ -291,12 +439,12 @@ function fetchHubSpotFields(objectType) {
 function prepareFieldMapping(hubspotFields) {
     // Check if we have both Alchemy fields and HubSpot fields
     if (!window.alchemyFields || window.alchemyFields.length === 0) {
-        showToast('Please fetch Alchemy fields first', 'warning');
+        showToast('warning', 'Please fetch Alchemy fields first');
         return;
     }
     
     if (!hubspotFields || hubspotFields.length === 0) {
-        showToast('No HubSpot fields available for mapping', 'warning');
+        showToast('warning', 'No HubSpot fields available for mapping');
         return;
     }
     
@@ -356,7 +504,7 @@ function prepareFieldMapping(hubspotFields) {
     `);
     
     // Add event handler for the button
-    $('#addMappingBtn').click(function() {
+    $('#addMappingBtn').off('click').on('click', function() {
         addMappingRow(tableBody);
     });
     
@@ -561,17 +709,17 @@ function saveHubSpotIntegration() {
     const fieldMappings = getFieldMappings();
     
     if (fieldMappings.length === 0) {
-        showToast('Please create at least one field mapping', 'error');
+        showToast('error', 'Please create at least one field mapping');
         return;
     }
     
-    // Get HubSpot configuration
-    const apiKey = $('#hubspotApiKey').val().trim();
-    const portalId = $('#hubspotPortalId').val().trim();
+    // Get HubSpot configuration - adjusted for OAuth credentials
+    const accessToken = $('#hubspotApiKey').val().trim();
+    const clientSecret = $('#hubspotPortalId').val().trim();
     const objectType = $('#hubspotObjectType').val();
     
-    if (!apiKey || !portalId || !objectType) {
-        showToast('Please fill in all HubSpot configuration fields', 'error');
+    if (!accessToken || !objectType) {
+        showToast('error', 'Please fill in all HubSpot configuration fields');
         return;
     }
     
@@ -587,7 +735,7 @@ function saveHubSpotIntegration() {
     }
     
     if (!tenantId) {
-        showToast('Please provide Alchemy Tenant ID', 'error');
+        showToast('error', 'Please provide Alchemy Tenant ID');
         return;
     }
     
@@ -595,7 +743,7 @@ function saveHubSpotIntegration() {
     const recordType = $('#recordTypeInput').val().trim();
     
     if (!recordType) {
-        showToast('Please provide Alchemy Record Type', 'error');
+        showToast('error', 'Please provide Alchemy Record Type');
         return;
     }
     
@@ -603,7 +751,7 @@ function saveHubSpotIntegration() {
     const syncFrequency = $('#syncFrequency').val() || 'daily';
     const syncDirection = $('#syncDirection').val() || 'bidirectional';
     
-    // Prepare data for saving
+    // Prepare data for saving - adjusted for OAuth
     const integrationData = {
         platform: 'hubspot',
         alchemy: {
@@ -612,9 +760,10 @@ function saveHubSpotIntegration() {
             record_type: recordType
         },
         hubspot: {
-            api_key: apiKey,
-            portal_id: portalId,
-            object_type: objectType
+            access_token: accessToken,
+            client_secret: clientSecret,
+            object_type: objectType,
+            oauth_mode: true
         },
         sync_config: {
             frequency: syncFrequency,
@@ -641,7 +790,7 @@ function saveHubSpotIntegration() {
             
             if (response.status === 'success') {
                 // Show success toast
-                showToast('Integration saved successfully!', 'success');
+                showToast('success', 'Integration saved successfully!');
                 
                 // Show success message
                 $('#step3').html(`
@@ -656,7 +805,7 @@ function saveHubSpotIntegration() {
                 `);
             } else {
                 // Show error toast
-                showToast(response.message || 'Failed to save integration', 'error');
+                showToast('error', response.message || 'Failed to save integration');
             }
         },
         error: function(xhr, status, error) {
@@ -674,151 +823,34 @@ function saveHubSpotIntegration() {
             }
             
             // Show error toast
-            showToast(errorMessage, 'error');
+            showToast('error', errorMessage);
         }
     });
 }
 
-// Initialize HubSpot integration
-$(document).ready(function() {
-    console.log('HubSpot integration script loaded');
+// Show toast notification
+function showToast(type, message) {
+    const toast = $('<div>').addClass('toast');
     
-    // Check if on HubSpot configuration page
-    const isHubSpotConfig = window.location.href.includes('platform=hubspot');
-    if (!isHubSpotConfig) return;
-    
-    console.log('Initializing HubSpot integration UI');
-    
-    // Add HubSpot specific elements to the UI
-    setupHubSpotUI();
-    
-    // Set up event handlers
-    $('#validateHubspotBtn').click(function() {
-        validateHubSpotCredentials();
-    });
-    
-    $('#fetchHubspotObjectsBtn').click(function() {
-        fetchHubSpotObjectTypes();
-    });
-    
-    // Handle object type selection
-    $(document).on('change', '#hubspotObjectType', function() {
-        const selectedType = $(this).val();
-        if (selectedType) {
-            $('#fetchHubspotFieldsBtn').prop('disabled', false);
-            $('#hubspotObjectTypeLabel').text(selectedType);
-        } else {
-            $('#fetchHubspotFieldsBtn').prop('disabled', true);
-        }
-    });
-    
-    // Handle field fetch button
-    $(document).on('click', '#fetchHubspotFieldsBtn', function() {
-        const selectedType = $('#hubspotObjectType').val();
-        if (selectedType) {
-            fetchHubSpotFields(selectedType);
-        }
-    });
-    
-    // Override save button for HubSpot
-    $('#saveBtn').off('click').on('click', function() {
-        saveHubSpotIntegration();
-    });
-});
-
-// Setup HubSpot specific UI elements
-function setupHubSpotUI() {
-    // Add HubSpot object type selection
-    const hubspotConfig = $('#hubspotConfig');
-    
-    if (hubspotConfig.length) {
-        // Add validate button
-        hubspotConfig.append(`
-            <div class="text-end mb-3">
-                <button type="button" id="validateHubspotBtn" class="btn btn-outline-primary">
-                    <i class="fas fa-check-circle me-2"></i>Validate Credentials
-                </button>
-            </div>
-            <div id="hubspotStatus" class="alert mt-3" style="display: none;"></div>
-        `);
-        
-        // Add HubSpot object type selection
-        hubspotConfig.append(`
-            <div id="hubspotObjectContainer" class="mt-4" style="display: none;">
-                <h5 class="mb-3">HubSpot Object Type</h5>
-                <div class="mb-3">
-                    <label for="hubspotObjectType" class="form-label">Select Object Type</label>
-                    <div class="input-group">
-                        <select class="form-select" id="hubspotObjectType" disabled>
-                            <option value="">-- Select Object Type --</option>
-                        </select>
-                        <button class="btn btn-outline-secondary" type="button" id="fetchHubspotObjectsBtn" disabled>
-                            <i class="fas fa-sync-alt me-2"></i>Refresh Object Types
-                        </button>
-                    </div>
-                    <div class="form-text">
-                        Select the HubSpot object type to map with Alchemy records
-                    </div>
-                </div>
-                <div id="hubspotObjectStatus" class="alert mt-3" style="display: none;"></div>
-            </div>
-        `);
-        
-        // Add fields section
-        hubspotConfig.append(`
-            <div id="hubspotFieldContainer" class="mt-4" style="display: none;">
-                <h5 class="mb-3">HubSpot Fields</h5>
-                <div class="mb-3">
-                    <p>Fetch fields for object type: <strong id="hubspotObjectTypeLabel">None Selected</strong></p>
-                    <button class="btn btn-primary" type="button" id="fetchHubspotFieldsBtn" disabled>
-                        <i class="fas fa-list me-2"></i>Fetch Fields
-                    </button>
-                </div>
-                <div id="hubspotFieldStatus" class="alert mt-3" style="display: none;"></div>
-            </div>
-        `);
-        
-        // Add sync options
-        hubspotConfig.append(`
-            <div id="syncOptionsContainer" class="mt-4">
-                <h5 class="mb-3">Synchronization Options</h5>
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label for="syncFrequency" class="form-label">Sync Frequency</label>
-                        <select class="form-select" id="syncFrequency">
-                            <option value="realtime">Real-time</option>
-                            <option value="hourly">Hourly</option>
-                            <option value="daily" selected>Daily</option>
-                            <option value="weekly">Weekly</option>
-                            <option value="manual">Manual Only</option>
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label for="syncDirection" class="form-label">Sync Direction</label>
-                        <select class="form-select" id="syncDirection">
-                            <option value="alchemy_to_hubspot">Alchemy to HubSpot</option>
-                            <option value="hubspot_to_alchemy">HubSpot to Alchemy</option>
-                            <option value="bidirectional" selected>Bidirectional</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-        `);
+    if (type === 'success') {
+        toast.addClass('success');
+        toast.html('<i class="fas fa-check-circle me-2"></i>' + message);
+    } else if (type === 'error') {
+        toast.addClass('error');
+        toast.html('<i class="fas fa-exclamation-circle me-2"></i>' + message);
+    } else if (type === 'warning') {
+        toast.addClass('warning');
+        toast.html('<i class="fas fa-exclamation-triangle me-2"></i>' + message);
+    } else {
+        toast.html('<i class="fas fa-info-circle me-2"></i>' + message);
     }
     
-    // Add script to load HubSpot fields in Step 2
-    const step2 = $('#step2');
-    if (step2.length) {
-        step2.append(`
-            <div class="mt-4" id="hubspotStep2Info" style="display: none;">
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle me-2"></i>
-                    After fetching Alchemy fields, you'll be asked to select a HubSpot object type and fetch its fields for mapping.
-                </div>
-            </div>
-        `);
-        
-        // Show this info for HubSpot
-        $('#hubspotStep2Info').show();
-    }
+    $('#toastContainer').append(toast);
+    
+    // Auto-remove after 3 seconds
+    setTimeout(function() {
+        toast.fadeOut(300, function() {
+            $(this).remove();
+        });
+    }, 3000);
 }
