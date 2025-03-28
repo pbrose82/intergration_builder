@@ -312,12 +312,24 @@
                         <div id="hubspotConfig" class="platform-config" {% if platform != 'hubspot' %}style="display: none;"{% endif %}>
                             <div class="mb-3">
                                 <label for="hubspotApiKey" class="form-label">API Key</label>
-                                <input type="text" class="form-control" id="hubspotApiKey" placeholder="HubSpot API Key">
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="hubspotApiKey" placeholder="HubSpot API Key">
+                                    <span class="input-group-text" id="toggleHubspotApiKey" style="cursor: pointer;">
+                                        <i class="fas fa-eye"></i>
+                                    </span>
+                                </div>
+                                <div class="form-text">
+                                    Enter your HubSpot Private App API Key
+                                </div>
                             </div>
                             <div class="mb-3">
                                 <label for="hubspotPortalId" class="form-label">Portal ID</label>
                                 <input type="text" class="form-control" id="hubspotPortalId" placeholder="HubSpot Portal ID">
+                                <div class="form-text">
+                                    Your HubSpot Portal/Hub ID number
+                                </div>
                             </div>
+                            <!-- Additional HubSpot UI elements will be added dynamically -->
                         </div>
                     </div>
                 </div>
@@ -380,6 +392,9 @@
 
     <!-- jQuery for easier DOM manipulation -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- HubSpot Integration JavaScript -->
+    <script src="{{ url_for('static', filename='js/hubspot-integration.js') }}"></script>
     
     <!-- Main JavaScript -->
     <script>
