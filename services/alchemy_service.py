@@ -1,6 +1,5 @@
 import requests
 import logging
-import json
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -13,7 +12,7 @@ def get_alchemy_access_token(refresh_token, tenant_id):
     
     try:
         # Log token details (partially masked for security)
-        masked_token = refresh_token[:10] + "..." if refresh_token and len(refresh_token) > 10 else "None"
+        masked_token = refresh_token[:5] + "..." if refresh_token and len(refresh_token) > 5 else "None"
         logger.info(f"Attempting to get access token for tenant {tenant_id} with refresh token starting with: {masked_token}")
         
         response = requests.post(token_url, data={
@@ -28,7 +27,11 @@ def get_alchemy_access_token(refresh_token, tenant_id):
             logger.error(f"Token error response: {response.text}")
             return None
             
-        return response.json().get("access_token")
+        token_data = response.json()
+        access_token = token_data.get("access_token")
+        logger.info(f"Successfully obtained access token")
+        
+        return access_token
     except Exception as e:
         logger.error(f"Access token error: {str(e)}")
         return None
@@ -58,53 +61,17 @@ def get_alchemy_record_types(access_token, tenant_id):
 def fetch_alchemy_fields(tenant_id, refresh_token, record_type):
     """
     Pull fields for a given record type using the filter-records API
-    Using direct PUT request instead of trying to get a token first
+    Strict authorization - no fallback to sample data
     """
     logger.info(f"Fetching fields for record type {record_type} in tenant {tenant_id}")
     
-    # Create a list of sample fields that should be present in most Alchemy record types
-    sample_fields = [
-        {"identifier": "Name", "name": "Name"},
-        {"identifier": "Description", "name": "Description"},
-        {"identifier": "Status", "name": "Status"},
-        {"identifier": "ExternalId", "name": "External ID"},
-        {"identifier": "LocationName", "name": "Location Name"},
-        {"identifier": "Company", "name": "Company"},
-        {"identifier": "LocationType", "name": "Location Type"},
-        {"identifier": "Street", "name": "Street"},
-        {"identifier": "City", "name": "City"},
-        {"identifier": "Country", "name": "Country"},
-        {"identifier": "State", "name": "State"},
-        {"identifier": "PostalCode", "name": "Postal Code"},
-        {"identifier": "StorageType", "name": "Storage Type"},
-        {"identifier": "Phone", "name": "Phone"},
-        {"identifier": "Email", "name": "Email"},
-        {"identifier": "RecordName", "name": "Record Name"}
-    ]
+    # First get an access token
+    access_token = get_alchemy_access_token(refresh_token, tenant_id)
+    if not access_token:
+        logger.error("Failed to obtain access token")
+        raise Exception("Authentication failed: Could not obtain access token")
     
-    # First, try direct access token approach
-    try:
-        access_token = get_alchemy_access_token(refresh_token, tenant_id)
-        if access_token:
-            logger.info("Successfully obtained access token, attempting to fetch fields")
-            fields = fetch_fields_with_token(access_token, record_type)
-            if fields:
-                logger.info(f"Successfully fetched {len(fields)} fields with access token")
-                return fields
-        else:
-            logger.warning("Failed to get access token, using sample fields")
-    except Exception as e:
-        logger.error(f"Error in token approach: {str(e)}")
-    
-    # Return sample fields if we couldn't get actual fields
-    logger.info(f"Using sample fields for record type {record_type}")
-    return sample_fields
-
-
-def fetch_fields_with_token(access_token, record_type):
-    """
-    Fetch fields using an access token
-    """
+    # Then use the access token to fetch fields
     url = "https://core-production.alchemy.cloud/core/api/v2/filter-records"
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -128,8 +95,9 @@ def fetch_fields_with_token(access_token, record_type):
         logger.info(f"Filter-records API response status: {response.status_code}")
         
         if response.status_code != 200:
-            logger.error(f"API error: {response.text}")
-            return []
+            error_msg = f"API error: {response.text}"
+            logger.error(error_msg)
+            raise Exception(error_msg)
         
         data = response.json()
         
@@ -140,8 +108,15 @@ def fetch_fields_with_token(access_token, record_type):
             if "fieldValues" in record:
                 for field_id in record["fieldValues"].keys():
                     fields.append({"identifier": field_id, "name": field_id})
+            
+            if not fields:
+                logger.warning(f"No field values found in the record for {record_type}")
+                raise Exception(f"No fields found for record type: {record_type}")
+        else:
+            logger.warning(f"No records found for record type {record_type}")
+            raise Exception(f"No records found for record type: {record_type}")
         
         return fields
     except Exception as e:
-        logger.error(f"Error fetching fields with token: {str(e)}")
-        return []
+        logger.error(f"Error fetching fields: {str(e)}")
+        raise
