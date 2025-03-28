@@ -897,16 +897,9 @@
             function fetchFieldsForRecordType(recordTypeId) {
     console.log('Fetching fields for record type:', recordTypeId);
     
-    // Get tenant info
-    let tenantId, refreshToken;
-    
-    if (authMethodAuto.checked) {
-        tenantId = document.getElementById('alchemyTenantId').value.trim();
-        refreshToken = "session"; // Server uses session token
-    } else {
-        tenantId = document.getElementById('alchemyTenantIdDirect').value.trim();
-        refreshToken = document.getElementById('alchemyRefreshToken').value.trim();
-    }
+    // Get tenant info - in new approach we only support session auth
+    let tenantId = document.getElementById('alchemyTenantId').value.trim();
+    let refreshToken = "session"; // Server will use credentials from session
     
     if (!tenantId) {
         showToast('Please provide tenant ID', 'error');
@@ -987,28 +980,26 @@
         
         // If it's an authentication error, show a more helpful message
         if (error.message.includes('Authentication failed')) {
-            // If using auto auth, suggest re-authenticating
-            if (authMethodAuto.checked) {
-                const authStatus = document.getElementById('authStatus');
-                if (authStatus) {
-                    authStatus.className = 'alert alert-danger mt-2';
-                    authStatus.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Your authentication has expired. Please go back and authenticate again.';
-                    authStatus.style.display = 'block';
-                }
-                
-                // Add a back button to return to step 1
-                const backToAuthBtn = document.createElement('button');
-                backToAuthBtn.className = 'btn btn-outline-primary mt-3';
-                backToAuthBtn.innerHTML = '<i class="fas fa-arrow-left me-2"></i>Return to Authentication';
-                backToAuthBtn.onclick = function() {
-                    showStep(1);
-                };
-                
-                const statusContainer = document.getElementById('recordTypeStatus');
-                if (statusContainer) {
-                    statusContainer.appendChild(document.createElement('br'));
-                    statusContainer.appendChild(backToAuthBtn);
-                }
+            // Suggest re-authenticating
+            const authStatus = document.getElementById('authStatus');
+            if (authStatus) {
+                authStatus.className = 'alert alert-danger mt-2';
+                authStatus.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Your authentication has expired. Please go back and authenticate again.';
+                authStatus.style.display = 'block';
+            }
+            
+            // Add a back button to return to step 1
+            const backToAuthBtn = document.createElement('button');
+            backToAuthBtn.className = 'btn btn-outline-primary mt-3';
+            backToAuthBtn.innerHTML = '<i class="fas fa-arrow-left me-2"></i>Return to Authentication';
+            backToAuthBtn.onclick = function() {
+                showStep(1);
+            };
+            
+            const statusContainer = document.getElementById('recordTypeStatus');
+            if (statusContainer) {
+                statusContainer.appendChild(document.createElement('br'));
+                statusContainer.appendChild(backToAuthBtn);
             }
         }
     });
