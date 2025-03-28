@@ -334,12 +334,7 @@
                                     Your HubSpot Client Secret for OAuth
                                 </div>
                             </div>
-                            <div class="text-end mb-3">
-                                <button type="button" id="validateHubspotBtn" class="btn btn-outline-primary">
-                                    <i class="fas fa-check-circle me-2"></i>Validate Credentials
-                                </button>
-                            </div>
-                            <div id="hubspotStatus" class="alert mt-3" style="display: none;"></div>
+                            <!-- Validate button for HubSpot is dynamically added by hubspot-integration.js -->
                         </div>
                     </div>
                 </div>
@@ -403,7 +398,7 @@
     <!-- jQuery for easier DOM manipulation -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     
-    <!-- HubSpot Integration JavaScript -->
+    <!-- HubSpot Integration JavaScript - Fixed Filename -->
     <script src="{{ url_for('static', filename='js/hubspot-integration.js') }}"></script>
     
     <!-- Main JavaScript -->
@@ -759,103 +754,124 @@
             const mappingContainer = $('#fieldMappings');
             mappingContainer.empty();
             
-            // Get the platform name from URL
-            const urlParams = new URLSearchParams(window.location.search);
-            const platform = urlParams.get('platform') || 'salesforce';
-            
-            // Create field mapping header
-            mappingContainer.append(`
-                <div class="alert alert-info mb-3">
-                    <i class="fas fa-info-circle me-2"></i>
-                    Map fields between Alchemy and ${platform.charAt(0).toUpperCase() + platform.slice(1)}
-                </div>
-            `);
-            
-            // Create mapping rows
-            for (let i = 0; i < Math.min(5, fields.length); i++) {
-                const field = fields[i];
-                
-                // Create a mapping row
-                const row = $(`
-                    <div class="row mb-3 mapping-row">
-                        <div class="col-5">
-                            <select class="form-select alchemy-field">
-                                <option value="">-- Select Alchemy Field --</option>
-                            </select>
-                        </div>
-                        <div class="col-1 text-center pt-2">
-                            <i class="fas fa-arrows-alt-h"></i>
-                        </div>
-                        <div class="col-5">
-                            <select class="form-select platform-field">
-                                <option value="">-- Select ${platform.charAt(0).toUpperCase() + platform.slice(1)} Field --</option>
-                            </select>
-                        </div>
-                        <div class="col-1">
-                            <button class="btn btn-sm btn-outline-danger remove-mapping">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                    </div>
-                `);
-                
-                // Add Alchemy field options
-                const alchemySelect = row.find('.alchemy-field');
-                fields.forEach(f => {
-                    alchemySelect.append(`<option value="${f.identifier}">${f.name || f.identifier}</option>`);
-                });
-                
-                // Pre-select the current field
-                alchemySelect.val(field.identifier);
-                
-                // Add Salesforce field options (example fields)
-                const platformSelect = row.find('.platform-field');
-                const salesforceFields = [
-                    {id: 'name', name: 'Name'},
-                    {id: 'description', name: 'Description'},
-                    {id: 'status', name: 'Status'},
-                    {id: 'owner', name: 'Owner'},
-                    {id: 'created_date', name: 'Created Date'},
-                    {id: 'modified_date', name: 'Modified Date'}
-                ];
-                
-                salesforceFields.forEach(f => {
-                    platformSelect.append(`<option value="${f.id}">${f.name}</option>`);
-                });
-                
-                // Add remove button handler
-                row.find('.remove-mapping').click(function() {
-                    row.remove();
-                });
-                
-                // Add to container
-                mappingContainer.append(row);
-            }
-            
-            // Add button to add more mappings
-            mappingContainer.append(`
-                <button type="button" class="btn btn-outline-primary" id="addMappingBtn">
-                    <i class="fas fa-plus me-2"></i>Add Field Mapping
+            // Get the platform name from URL 
+const urlParams = new URLSearchParams(window.location.search);
+const platform = urlParams.get('platform') || 'salesforce';
+const platformCapitalized = platform.charAt(0).toUpperCase() + platform.slice(1);
+
+// Create field mapping header
+mappingContainer.append(`
+    <div class="alert alert-info mb-3">
+        <i class="fas fa-info-circle me-2"></i>
+        Map fields between Alchemy and ${platformCapitalized}
+    </div>
+`);
+
+// Create mapping rows
+for (let i = 0; i < Math.min(5, fields.length); i++) {
+    const field = fields[i];
+    
+    // Create a mapping row
+    const row = $(`
+        <div class="row mb-3 mapping-row">
+            <div class="col-5">
+                <select class="form-select alchemy-field">
+                    <option value="">-- Select Alchemy Field --</option>
+                </select>
+            </div>
+            <div class="col-1 text-center pt-2">
+                <i class="fas fa-arrows-alt-h"></i>
+            </div>
+            <div class="col-5">
+                <select class="form-select platform-field">
+                    <option value="">-- Select ${platformCapitalized} Field --</option>
+                </select>
+            </div>
+            <div class="col-1">
+                <button class="btn btn-sm btn-outline-danger remove-mapping">
+                    <i class="fas fa-times"></i>
                 </button>
-            `);
-            
-            // Add event handler for the add mapping button
-            $('#addMappingBtn').click(function() {
-                // Clone the first mapping row
-                const newRow = $('.mapping-row').first().clone();
-                
-                // Reset selections
-                newRow.find('select').val('');
-                
-                // Insert before the add button
-                $(this).before(newRow);
-                
-                // Re-attach remove button handler
-                newRow.find('.remove-mapping').click(function() {
-                    newRow.remove();
-                });
-            });
-        }
-    </script>
-</body>
-</html>
+            </div>
+        </div>
+    `);
+    
+    // Add Alchemy field options
+    const alchemySelect = row.find('.alchemy-field');
+    fields.forEach(f => {
+        alchemySelect.append(`<option value="${f.identifier}">${f.name || f.identifier}</option>`);
+    });
+    
+    // Pre-select the current field
+    alchemySelect.val(field.identifier);
+    
+    // Add platform-specific field options
+    const platformSelect = row.find('.platform-field');
+    
+    // Define platform-specific fields
+    let platformFields = [];
+    
+    if (platform === 'salesforce') {
+        platformFields = [
+            {id: 'name', name: 'Name'},
+            {id: 'description', name: 'Description'},
+            {id: 'status', name: 'Status'},
+            {id: 'owner', name: 'Owner'},
+            {id: 'created_date', name: 'Created Date'},
+            {id: 'modified_date', name: 'Modified Date'}
+        ];
+    } else if (platform === 'hubspot') {
+        platformFields = [
+            {id: 'firstname', name: 'First Name'},
+            {id: 'lastname', name: 'Last Name'},
+            {id: 'email', name: 'Email'},
+            {id: 'phone', name: 'Phone Number'},
+            {id: 'company', name: 'Company Name'},
+            {id: 'website', name: 'Website'}
+        ];
+    } else if (platform === 'sap') {
+        platformFields = [
+            {id: 'material_number', name: 'Material Number'},
+            {id: 'description', name: 'Description'},
+            {id: 'material_type', name: 'Material Type'},
+            {id: 'plant', name: 'Plant'},
+            {id: 'storage_location', name: 'Storage Location'},
+            {id: 'batch', name: 'Batch'}
+        ];
+    }
+    
+    platformFields.forEach(f => {
+        platformSelect.append(`<option value="${f.id}">${f.name}</option>`);
+    });
+    
+    // Add remove button handler
+    row.find('.remove-mapping').click(function() {
+        row.remove();
+    });
+    
+    // Add to container
+    mappingContainer.append(row);
+}
+
+// Add button to add more mappings
+mappingContainer.append(`
+    <button type="button" class="btn btn-outline-primary" id="addMappingBtn">
+        <i class="fas fa-plus me-2"></i>Add Field Mapping
+    </button>
+`);
+
+// Add event handler for the add mapping button
+$('#addMappingBtn').click(function() {
+    // Clone the first mapping row
+    const newRow = $('.mapping-row').first().clone();
+    
+    // Reset selections
+    newRow.find('select').val('');
+    
+    // Insert before the add button
+    $(this).before(newRow);
+    
+    // Re-attach remove button handler
+    newRow.find('.remove-mapping').click(function() {
+        newRow.remove();
+    });
+});
