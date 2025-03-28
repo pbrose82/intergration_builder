@@ -166,6 +166,10 @@
         .toast.error {
             border-left-color: var(--alchemy-red);
         }
+        
+        .toast.warning {
+            border-left-color: #FFC107;
+        }
     </style>
 </head>
 <body>
@@ -318,19 +322,25 @@
                     </div>
                 </div>
                 
-                <!-- Step 2: Record Selection (For now hidden) -->
+                <!-- Step 2: Record Selection -->
                 <div id="step2" class="step-content" style="display: none;">
-                    <h5 class="mb-4">Select Record Type</h5>
-                    <div class="mb-3">
-                        <label for="recordTypeInput" class="form-label">Alchemy Record Type</label>
-                        <input type="text" class="form-control" id="recordTypeInput" placeholder="e.g. Material, Location, Sample">
+                    <h5 class="mb-4">Enter Alchemy Record Type</h5>
+                    <div class="card p-3 mb-4 bg-light">
+                        <div class="mb-3">
+                            <label for="recordTypeInput" class="form-label">Record Type Identifier</label>
+                            <input type="text" class="form-control" id="recordTypeInput" placeholder="Enter record type identifier (e.g. Material, Location, Sample, etc.)">
+                            <div class="form-text">
+                                Enter the record type identifier you want to synchronize with {{ platform|capitalize }}
+                            </div>
+                        </div>
+                        
+                        <button type="button" id="fetchFieldsBtn" class="btn btn-primary">
+                            <i class="fas fa-search me-2"></i>Fetch Fields
+                        </button>
                     </div>
-                    <button type="button" id="fetchFieldsBtn" class="btn btn-primary">
-                        <i class="fas fa-search me-2"></i>Fetch Fields
-                    </button>
                 </div>
                 
-                <!-- Step 3: Field Mapping (For now hidden) -->
+                <!-- Step 3: Field Mapping -->
                 <div id="step3" class="step-content" style="display: none;">
                     <h5 class="mb-4">Map Fields</h5>
                     <div id="fieldMappings" class="mb-4">
@@ -376,6 +386,7 @@
         // Global variables
         let currentStep = 1;
         let isAuthenticated = false;
+        window.alchemyFields = [];
         
         // Document ready
         $(document).ready(function() {
@@ -493,14 +504,124 @@
                 updateProgressUI();
             });
             
-            // Back button (we're using link back to home, but could be extended)
-            
             // Save button (for demo, just show success)
             $('#saveBtn').click(function() {
                 showToast('success', 'Configuration saved successfully!');
                 setTimeout(function() {
                     window.location.href = '/';
                 }, 2000);
+            });
+            
+            // Fetch fields button handler
+            $('#fetchFieldsBtn').click(function() {
+                const recordType = $('#recordTypeInput').val().trim();
+                
+                if (!recordType) {
+                    showToast('error', 'Please enter a record type');
+                    return;
+                }
+                
+                // Determine which credentials to use based on the authentication method
+                let tenantId, refreshToken;
+                if ($('#authMethodAuto').is(':checked')) {
+                    tenantId = $('#alchemyTenantId').val().trim();
+                    refreshToken = "session"; // Use token from session
+                } else {
+                    tenantId = $('#alchemyTenantIdDirect').val().trim();
+                    refreshToken = $('#alchemyRefreshToken').val().trim();
+                }
+                
+                if (!tenantId) {
+                    showToast('error', 'Missing tenant ID');
+                    return;
+                }
+                
+                // Disable button during fetch
+                $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Fetching Fields...');
+                
+                // Show status message
+                $('#step2').append('<div id="fetchStatus" class="alert alert-info mt-3"><i class="fas fa-info-circle me-2"></i>Fetching fields for record type: ' + recordType + '...</div>');
+                
+                // Make API call to the backend
+                $.ajax({
+                    url: '/get-alchemy-fields',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        tenant_id: tenantId,
+                        refresh_token: refreshToken,
+                        record_type: recordType
+                    }),
+                    success: function(response) {
+                        // Re-enable button
+                        $('#fetchFieldsBtn').prop('disabled', false).html('<i class="fas fa-search me-2"></i>Fetch Fields');
+                        
+                        // Remove status message
+                        $('#fetchStatus').remove();
+                        
+                        // Handle success
+                        if (response.status === 'success' || response.status === 'warning') {
+                            // Store fields in global variable
+                            window.alchemyFields = response.fields;
+                            
+                            // Show toast with appropriate message
+                            if (response.status === 'warning') {
+                                showToast('warning', response.message || 'Using fallback fields');
+                            } else {
+                                showToast('success', 'Successfully fetched ' + response.fields.length + ' fields');
+                            }
+                            
+                            // Proceed to next step
+                            currentStep++;
+                            updateProgressUI();
+                            
+                            // Populate field mapping UI
+                            populateFieldMappings(response.fields);
+                        } else {
+                            // Handle non-success but valid response
+                            showToast('error', response.message || 'Failed to fetch fields');
+                            
+                            // Show error status
+                            $('#step2').append('<div id="fetchError" class="alert alert-danger mt-3"><i class="fas fa-exclamation-circle me-2"></i>' + (response.message || 'Failed to fetch fields') + '</div>');
+                            
+                            // Remove error after 5 seconds
+                            setTimeout(function() {
+                                $('#fetchError').fadeOut(300, function() {
+                                    $(this).remove();
+                                });
+                            }, 5000);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        // Re-enable button
+                        $('#fetchFieldsBtn').prop('disabled', false).html('<i class="fas fa-search me-2"></i>Fetch Fields');
+                        
+                        // Remove status message
+                        $('#fetchStatus').remove();
+                        
+                        // Parse error message
+                        let errorMessage = 'Failed to fetch fields';
+                        try {
+                            const response = JSON.parse(xhr.responseText);
+                            errorMessage = response.message || response.error || errorMessage;
+                        } catch (e) {
+                            errorMessage = `Error: ${error}`;
+                        }
+                        
+                        // Show error toast
+                        showToast('error', errorMessage);
+                        
+                        // Show error status
+                        $('#step2').append('<div id="fetchError" class="alert alert-danger mt-3"><i class="fas fa-exclamation-circle me-2"></i>' + errorMessage + '</div>');
+                        
+                        // Remove error after 5 seconds
+                        setTimeout(function() {
+                            $('#fetchError').fadeOut(300, function() {
+                                $(this).remove();
+                            });
+                        }, 5000);
+                    }
+                });
             });
         });
         
@@ -572,6 +693,9 @@
             } else if (type === 'error') {
                 toast.addClass('error');
                 toast.html('<i class="fas fa-exclamation-circle me-2"></i>' + message);
+            } else if (type === 'warning') {
+                toast.addClass('warning');
+                toast.html('<i class="fas fa-exclamation-triangle me-2"></i>' + message);
             } else {
                 toast.html('<i class="fas fa-info-circle me-2"></i>' + message);
             }
@@ -584,6 +708,105 @@
                     $(this).remove();
                 });
             }, 3000);
+        }
+        
+        // Add function to populate field mappings
+        function populateFieldMappings(fields) {
+            const mappingContainer = $('#fieldMappings');
+            mappingContainer.empty();
+            
+            // Create field mapping header
+            mappingContainer.append(`
+                <div class="alert alert-info mb-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Map fields between Alchemy and Salesforce
+                </div>
+            `);
+            
+            // Create mapping rows
+            for (let i = 0; i < Math.min(5, fields.length); i++) {
+                const field = fields[i];
+                
+                // Create a mapping row
+                const row = $(`
+                    <div class="row mb-3 mapping-row">
+                        <div class="col-5">
+                            <select class="form-select alchemy-field">
+                                <option value="">-- Select Alchemy Field --</option>
+                            </select>
+                        </div>
+                        <div class="col-1 text-center pt-2">
+                            <i class="fas fa-arrows-alt-h"></i>
+                        </div>
+                        <div class="col-5">
+                            <select class="form-select platform-field">
+                                <option value="">-- Select Salesforce Field --</option>
+                            </select>
+                        </div>
+                        <div class="col-1">
+                            <button class="btn btn-sm btn-outline-danger remove-mapping">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                `);
+                
+                // Add Alchemy field options
+                const alchemySelect = row.find('.alchemy-field');
+                fields.forEach(f => {
+                    alchemySelect.append(`<option value="${f.identifier}">${f.name || f.identifier}</option>`);
+                });
+                
+                // Pre-select the current field
+                alchemySelect.val(field.identifier);
+                
+                // Add Salesforce field options (example fields)
+                const platformSelect = row.find('.platform-field');
+                const salesforceFields = [
+                    {id: 'name', name: 'Name'},
+                    {id: 'description', name: 'Description'},
+                    {id: 'status', name: 'Status'},
+                    {id: 'owner', name: 'Owner'},
+                    {id: 'created_date', name: 'Created Date'},
+                    {id: 'modified_date', name: 'Modified Date'}
+                ];
+                
+                salesforceFields.forEach(f => {
+                    platformSelect.append(`<option value="${f.id}">${f.name}</option>`);
+                });
+                
+                // Add remove button handler
+                row.find('.remove-mapping').click(function() {
+                    row.remove();
+                });
+                
+                // Add to container
+                mappingContainer.append(row);
+            }
+            
+            // Add button to add more mappings
+            mappingContainer.append(`
+                <button type="button" class="btn btn-outline-primary" id="addMappingBtn">
+                    <i class="fas fa-plus me-2"></i>Add Field Mapping
+                </button>
+            `);
+            
+            // Add event handler for the add mapping button
+            $('#addMappingBtn').click(function() {
+                // Clone the first mapping row
+                const newRow = $('.mapping-row').first().clone();
+                
+                // Reset selections
+                newRow.find('select').val('');
+                
+                // Insert before the add button
+                $(this).before(newRow);
+                
+                // Re-attach remove button handler
+                newRow.find('.remove-mapping').click(function() {
+                    newRow.remove();
+                });
+            });
         }
     </script>
 </body>
