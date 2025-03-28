@@ -10,7 +10,9 @@ import logging
 import requests
 import json
 from datetime import datetime
+import traceback
 
+# Create blueprint
 main_bp = Blueprint('main', __name__)
 
 @main_bp.route('/')
@@ -19,6 +21,7 @@ def index():
 
 @main_bp.route('/get-alchemy-record-types', methods=['POST'])
 def get_record_types():
+    """Get Alchemy record types endpoint with improved error handling"""
     try:
         data = request.get_json()
         tenant_id = data.get("tenant_id")
@@ -36,21 +39,41 @@ def get_record_types():
         # Get access token using improved method
         access_token = get_alchemy_access_token(refresh_token, tenant_id)
         if not access_token:
-            return jsonify({"error": "Unable to get access token"}), 401
+            current_app.logger.error(f"Failed to get access token for tenant {tenant_id}")
+            return jsonify({
+                "status": "error",
+                "message": "Unable to get access token - authentication may have expired",
+                "recordTypes": []
+            }), 401
 
         # Fetch record types
         record_types = get_alchemy_record_types(access_token, tenant_id)
         if not record_types:
-            return jsonify({"error": "Failed to fetch record types"}), 500
+            current_app.logger.warning(f"No record types found for tenant {tenant_id}")
+            return jsonify({
+                "status": "warning",
+                "message": "No record types found",
+                "recordTypes": []
+            })
 
-        return jsonify({"recordTypes": record_types})
+        return jsonify({
+            "status": "success",
+            "message": f"Successfully retrieved {len(record_types)} record types",
+            "recordTypes": record_types
+        })
 
     except Exception as e:
-        logging.error(f"Failed to get record types: {str(e)}")
-        return jsonify({"error": f"Unexpected error: {str(e)}"}), 500
+        current_app.logger.error(f"Error in get_record_types: {str(e)}")
+        current_app.logger.error(traceback.format_exc())
+        return jsonify({
+            "status": "error",
+            "message": f"Unexpected error: {str(e)}",
+            "recordTypes": []
+        }), 500
 
 @main_bp.route('/get-alchemy-fields', methods=['POST'])
 def get_fields():
+    """Get fields for a specific record type with improved error handling"""
     try:
         data = request.get_json()
         tenant_id = data.get("tenant_id")
@@ -68,7 +91,7 @@ def get_fields():
                 current_app.logger.error(f"No session token found for tenant {tenant_id}")
                 return jsonify({
                     "status": "error", 
-                    "message": "No token in session for this tenant",
+                    "message": "No token in session for this tenant or session expired",
                     "fields": []
                 }), 401
 
@@ -105,6 +128,7 @@ def get_fields():
         
     except Exception as e:
         current_app.logger.error(f"Failed to fetch fields: {str(e)}")
+        current_app.logger.error(traceback.format_exc())
         # Always include fields array for frontend compatibility
         return jsonify({
             "status": "error", 
@@ -155,31 +179,54 @@ def authenticate_alchemy():
         current_app.logger.info(f"Authenticating with Alchemy for tenant: {tenant_id}")
         
         # Make the authentication request
-        response = requests.post(
-            auth_url,
-            json={
-                "email": email,
-                "password": password
-            },
-            headers={
-                "Content-Type": "application/json"
-            }
-        )
+        try:
+            response = requests.post(
+                auth_url,
+                json={
+                    "email": email,
+                    "password": password
+                },
+                headers={
+                    "Content-Type": "application/json"
+                }
+            )
+        except requests.exceptions.RequestException as e:
+            current_app.logger.error(f"Network error during authentication: {str(e)}")
+            return jsonify({
+                "status": "error",
+                "message": f"Network error: {str(e)}"
+            }), 500
         
         current_app.logger.info(f"Authentication response status: {response.status_code}")
         
         if response.status_code != 200:
-            current_app.logger.error(f"Authentication error: {response.text}")
+            error_message = "Authentication failed"
+            try:
+                error_data = response.json()
+                if 'message' in error_data:
+                    error_message = error_data['message']
+            except:
+                error_message = f"Authentication failed: {response.text}"
+                
+            current_app.logger.error(f"Authentication error: {error_message}")
             return jsonify({
                 "status": "error",
-                "message": f"Authentication failed: {response.text}"
+                "message": error_message
             })
         
         # Parse the authentication response
-        auth_data = response.json()
+        try:
+            auth_data = response.json()
+        except json.JSONDecodeError:
+            current_app.logger.error(f"Invalid JSON response: {response.text[:200]}")
+            return jsonify({
+                "status": "error",
+                "message": "Invalid response from authentication server"
+            })
         
         # Extract refresh tokens
         if not auth_data.get('tokens'):
+            current_app.logger.error("No tokens returned from authentication")
             return jsonify({
                 "status": "error",
                 "message": "No tokens returned from authentication"
@@ -207,6 +254,7 @@ def authenticate_alchemy():
         refresh_token = tenant_token.get('refreshToken')
         
         if not refresh_token:
+            current_app.logger.error("No refresh token found in authentication response")
             return jsonify({
                 "status": "error",
                 "message": "No refresh token found in authentication response"
@@ -235,6 +283,7 @@ def authenticate_alchemy():
         
     except Exception as e:
         current_app.logger.error(f"Error in Alchemy authentication: {str(e)}")
+        current_app.logger.error(traceback.format_exc())
         return jsonify({
             "status": "error",
             "message": f"Error: {str(e)}"
