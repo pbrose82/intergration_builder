@@ -8,7 +8,7 @@
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     
-    <!-- Font Awesome for icons -->
+    <!-- Font Awesome for icons (used minimally) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
@@ -74,30 +74,11 @@
             border-color: var(--alchemy-light-blue);
         }
         
-        .platform-icon {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+        .platform-logo {
+            width: 120px;
+            height: 120px;
             margin-bottom: 20px;
-            font-size: 36px;
-        }
-        
-        .salesforce-icon {
-            background-color: #1798c1;
-            color: white;
-        }
-        
-        .hubspot-icon {
-            background-color: #ff7a59;
-            color: white;
-        }
-        
-        .sap-icon {
-            background-color: #0faaff;
-            color: white;
+            object-fit: contain;
         }
         
         .platform-card h3 {
@@ -115,11 +96,6 @@
         
         .platform-card .btn {
             margin-top: auto;
-        }
-        
-        .platform-card a {
-            text-decoration: none;
-            color: inherit;
         }
         
         .toast-container {
@@ -156,24 +132,6 @@
             background-color: #f8f9fa;
             border-bottom: 1px solid #e9ecef;
             padding: 8px 0;
-        }
-        
-        /* Ensure icons are loaded even if Font Awesome fails */
-        .fallback-icon {
-            display: none;
-        }
-        
-        /* Fix for Font Awesome loading issues */
-        .fas.fa-cloud:before {
-            content: "☁️";
-        }
-        
-        .fas.fa-h-square:before {
-            content: "H";
-        }
-        
-        .fas.fa-database:before {
-            content: "🗃️";
         }
     </style>
 </head>
@@ -217,10 +175,7 @@
                 <!-- Salesforce -->
                 <div class="col-md-4">
                     <div class="platform-card salesforce" onclick="navigateToPlatform('salesforce')">
-                        <div class="platform-icon salesforce-icon">
-                            <i class="fas fa-cloud"></i>
-                            <span class="fallback-icon">☁️</span>
-                        </div>
+                        <img src="/static/salesforce.png" alt="Salesforce Logo" class="platform-logo">
                         <h3>Salesforce</h3>
                         <p>Integrate Alchemy with Salesforce CRM. Sync contacts, leads, opportunities and more.</p>
                         <button class="btn btn-outline-primary" onclick="navigateToPlatform('salesforce', event)">
@@ -232,10 +187,7 @@
                 <!-- HubSpot -->
                 <div class="col-md-4">
                     <div class="platform-card hubspot" onclick="navigateToPlatform('hubspot')">
-                        <div class="platform-icon hubspot-icon">
-                            <i class="fas fa-h-square"></i>
-                            <span class="fallback-icon">H</span>
-                        </div>
+                        <img src="/static/hubspot.png" alt="HubSpot Logo" class="platform-logo">
                         <h3>HubSpot</h3>
                         <p>Connect Alchemy with HubSpot for seamless customer data synchronization.</p>
                         <button class="btn btn-outline-primary" onclick="navigateToPlatform('hubspot', event)">
@@ -247,10 +199,7 @@
                 <!-- SAP -->
                 <div class="col-md-4">
                     <div class="platform-card sap" onclick="navigateToPlatform('sap')">
-                        <div class="platform-icon sap-icon">
-                            <i class="fas fa-database"></i>
-                            <span class="fallback-icon">🗃️</span>
-                        </div>
+                        <img src="/static/sap.png" alt="SAP Logo" class="platform-logo">
                         <h3>SAP</h3>
                         <p>Link Alchemy with SAP ERP systems to maintain consistent data across platforms.</p>
                         <button class="btn btn-outline-primary" onclick="navigateToPlatform('sap', event)">
@@ -310,6 +259,40 @@
                 default:
                     console.log(`%c${prefix} ${message}`, 'color: #3498db');
             }
+        }
+        
+        // Image loading error handler
+        function handleImageError(img) {
+            debugLog(`Image failed to load: ${img.src}`, 'error');
+            
+            // Set fallback text based on platform
+            let fallbackText = '🔌';
+            if (img.src.includes('salesforce')) {
+                fallbackText = 'Salesforce';
+            } else if (img.src.includes('hubspot')) {
+                fallbackText = 'HubSpot';
+            } else if (img.src.includes('sap')) {
+                fallbackText = 'SAP';
+            }
+            
+            // Create a fallback div
+            const fallback = document.createElement('div');
+            fallback.style.width = '120px';
+            fallback.style.height = '120px';
+            fallback.style.display = 'flex';
+            fallback.style.alignItems = 'center';
+            fallback.style.justifyContent = 'center';
+            fallback.style.border = '1px solid #dee2e6';
+            fallback.style.borderRadius = '8px';
+            fallback.style.fontSize = '18px';
+            fallback.style.fontWeight = 'bold';
+            fallback.textContent = fallbackText;
+            
+            // Replace the img with the fallback
+            img.parentNode.replaceChild(fallback, img);
+            
+            // Show toast about image loading issue
+            showToast('warning', `Could not load image for ${fallbackText}. Using text instead.`);
         }
         
         // Navigation function
@@ -375,46 +358,17 @@
             }
         }
         
-        // Check for Font Awesome loading
-        function checkFontAwesome() {
-            try {
-                const testIcon = document.createElement('i');
-                testIcon.className = 'fas fa-check';
-                testIcon.style.display = 'none';
-                document.body.appendChild(testIcon);
-                
-                const computedStyle = window.getComputedStyle(testIcon);
-                const fontFamily = computedStyle.getPropertyValue('font-family');
-                
-                document.body.removeChild(testIcon);
-                
-                if (fontFamily.toLowerCase().includes('awesome')) {
-                    debugLog('Font Awesome loaded successfully', 'success');
-                    return true;
-                } else {
-                    debugLog('Font Awesome not detected in computed style', 'warning');
-                    
-                    // Show fallback icons
-                    document.querySelectorAll('.fallback-icon').forEach(icon => {
-                        icon.style.display = 'inline';
-                    });
-                    
-                    document.querySelectorAll('.fas').forEach(icon => {
-                        icon.style.display = 'none';
-                    });
-                    
-                    return false;
-                }
-            } catch (error) {
-                debugLog(`Error checking Font Awesome: ${error.message}`, 'error');
-                return false;
-            }
-        }
-        
         // Document ready function
         document.addEventListener('DOMContentLoaded', function() {
             try {
                 debugLog('Page loaded, initializing...');
+                
+                // Set up image error handlers
+                document.querySelectorAll('.platform-logo').forEach(img => {
+                    img.onerror = function() {
+                        handleImageError(this);
+                    };
+                });
                 
                 // Check for URL parameters
                 const urlParams = new URLSearchParams(window.location.search);
@@ -425,9 +379,6 @@
                     debugLog(`Showing message from URL: ${message} (${type})`);
                     showToast(type, decodeURIComponent(message));
                 }
-                
-                // Check Font Awesome loading
-                setTimeout(checkFontAwesome, 500);
                 
                 debugLog('Initialization complete', 'success');
             } catch (error) {
