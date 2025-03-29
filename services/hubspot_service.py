@@ -103,27 +103,10 @@ class HubSpotService:
                 {"id": "product", "name": "Product", "description": "Store product information"}
             ]
             
-            # Normalize token - remove any whitespace
-            token = self.access_token.strip() if self.access_token else ""
+            # Log that we're using the hardcoded standard objects
+            logger.info(f"Returning {len(standard_objects)} standard object types")
             
-            # Try to fetch schema metadata to verify our access
-            try:
-                url = f"{self.base_url}/crm/v3/schemas"
-                headers = {
-                    "Authorization": f"Bearer {token}",
-                    "Content-Type": "application/json"
-                }
-                
-                response = requests.get(url, headers=headers)
-                
-                if response.status_code == 200:
-                    logger.info("Successfully verified API access with schema metadata")
-                    # We could add custom objects here if needed
-                else:
-                    logger.warning(f"Could not fetch schema metadata: {response.status_code} - {response.text[:100]}")
-            except Exception as e:
-                logger.warning(f"Error fetching schema metadata: {str(e)}")
-            
+            # Return the standard objects - this ensures we always have some objects even if API call fails
             return standard_objects
         except Exception as e:
             logger.error(f"Error getting HubSpot object types: {str(e)}")
@@ -184,325 +167,74 @@ class HubSpotService:
         except Exception as e:
             logger.error(f"Error getting fields for object type {object_type}: {str(e)}")
             
-            # Return fallback fields for error cases
-            fallback_fields = [
-                {"identifier": "firstname", "name": "First Name", "type": "string"},
-                {"identifier": "lastname", "name": "Last Name", "type": "string"},
-                {"identifier": "email", "name": "Email", "type": "string"},
-                {"identifier": "phone", "name": "Phone Number", "type": "string"},
-                {"identifier": "address", "name": "Address", "type": "string"},
-                {"identifier": "company", "name": "Company Name", "type": "string"},
-                {"identifier": "website", "name": "Website URL", "type": "string"},
-                {"identifier": "description", "name": "Description", "type": "string"}
+            # Return fallback fields for error cases based on object type
+            fallback_fields = self.get_fallback_fields(object_type)
+            logger.info(f"Using {len(fallback_fields)} fallback fields for {object_type}")
+            return fallback_fields
+    
+    def get_fallback_fields(self, object_type):
+        """Get fallback fields for different object types"""
+        # Common fields for all object types
+        common_fields = [
+            {"identifier": "id", "name": "ID", "type": "string", "required": True},
+            {"identifier": "name", "name": "Name", "type": "string", "required": False},
+            {"identifier": "description", "name": "Description", "type": "string", "required": False},
+            {"identifier": "createdate", "name": "Create Date", "type": "date", "required": False},
+            {"identifier": "lastmodifieddate", "name": "Last Modified Date", "type": "date", "required": False}
+        ]
+        
+        # Object-specific fields
+        if object_type == "contact":
+            return common_fields + [
+                {"identifier": "firstname", "name": "First Name", "type": "string", "required": False},
+                {"identifier": "lastname", "name": "Last Name", "type": "string", "required": False},
+                {"identifier": "email", "name": "Email", "type": "string", "required": False},
+                {"identifier": "phone", "name": "Phone Number", "type": "string", "required": False},
+                {"identifier": "company", "name": "Company", "type": "string", "required": False},
+                {"identifier": "jobtitle", "name": "Job Title", "type": "string", "required": False},
+                {"identifier": "address", "name": "Address", "type": "string", "required": False}
             ]
-            
-            # Filter based on object type
-            if object_type == "contact":
-                return [f for f in fallback_fields if f["identifier"] not in ["company", "website"]]
-            elif object_type == "company":
-                return [f for f in fallback_fields if f["identifier"] not in ["firstname", "lastname"]]
-            else:
-                return fallback_fields
-    
-    def get_records(self, object_type, limit=100, properties=None, after=None):
-        """
-        Get records from HubSpot for a given object type
-        
-        Args:
-            object_type (str): The object type to get records for (e.g., contact, company)
-            limit (int, optional): Maximum number of records to return. Defaults to 100.
-            properties (list, optional): List of property names to include. Defaults to None (all properties).
-            after (str, optional): Pagination cursor. Defaults to None.
-            
-        Returns:
-            dict: Result containing records and pagination info
-        """
-        try:
-            logger.info(f"Fetching {limit} records for HubSpot object type: {object_type}")
-            
-            # Normalize token - remove any whitespace
-            token = self.access_token.strip() if self.access_token else ""
-            
-            if not token:
-                logger.error("No access token provided for fetching records")
-                return {
-                    "results": [],
-                    "paging": None,
-                    "error": "No access token provided"
-                }
-            
-            # Use the CRM API endpoint
-            url = f"{self.base_url}/crm/v3/objects/{object_type}"
-            
-            headers = {
-                "Authorization": f"Bearer {token}",
-                "Content-Type": "application/json"
-            }
-            
-            params = {
-                "limit": min(limit, 100)  # HubSpot API limit is 100 per page
-            }
-            
-            # Add properties if specified
-            if properties:
-                params["properties"] = properties
-                
-            # Add pagination cursor if specified
-            if after:
-                params["after"] = after
-            
-            response = requests.get(url, headers=headers, params=params)
-            
-            if response.status_code != 200:
-                logger.error(f"Error fetching records: {response.status_code} - {response.text[:100]}")
-                return {
-                    "results": [],
-                    "paging": None,
-                    "error": f"Error {response.status_code}: {response.text[:100]}"
-                }
-            
-            # Parse the response
-            data = response.json()
-            
-            # Extract records and pagination info
-            results = data.get("results", [])
-            paging = data.get("paging", None)
-            
-            logger.info(f"Successfully fetched {len(results)} records for object type {object_type}")
-            
-            return {
-                "results": results,
-                "paging": paging,
-                "error": None
-            }
-        
-        except Exception as e:
-            logger.error(f"Error getting records for object type {object_type}: {str(e)}")
-            return {
-                "results": [],
-                "paging": None,
-                "error": f"Error: {str(e)}"
-            }
-    
-    def create_record(self, object_type, properties):
-        """
-        Create a new record in HubSpot
-        
-        Args:
-            object_type (str): The object type to create (e.g., contact, company)
-            properties (dict): Properties for the new record
-            
-        Returns:
-            dict: Created record or error
-        """
-        try:
-            logger.info(f"Creating new {object_type} in HubSpot")
-            
-            # Normalize token - remove any whitespace
-            token = self.access_token.strip() if self.access_token else ""
-            
-            if not token:
-                logger.error("No access token provided for creating record")
-                return {
-                    "success": False,
-                    "error": "No access token provided"
-                }
-            
-            # Use the CRM API endpoint
-            url = f"{self.base_url}/crm/v3/objects/{object_type}"
-            
-            headers = {
-                "Authorization": f"Bearer {token}",
-                "Content-Type": "application/json"
-            }
-            
-            # Prepare data
-            data = {
-                "properties": properties
-            }
-            
-            response = requests.post(url, headers=headers, json=data)
-            
-            if response.status_code not in [200, 201]:
-                logger.error(f"Error creating record: {response.status_code} - {response.text[:100]}")
-                return {
-                    "success": False,
-                    "error": f"Error {response.status_code}: {response.text[:100]}"
-                }
-            
-            # Parse the response
-            record = response.json()
-            
-            logger.info(f"Successfully created {object_type} with ID: {record.get('id')}")
-            
-            return {
-                "success": True,
-                "record": record,
-                "error": None
-            }
-        
-        except Exception as e:
-            logger.error(f"Error creating {object_type}: {str(e)}")
-            return {
-                "success": False,
-                "error": f"Error: {str(e)}"
-            }
-    
-    def update_record(self, object_type, record_id, properties):
-        """
-        Update an existing record in HubSpot
-        
-        Args:
-            object_type (str): The object type to update (e.g., contact, company)
-            record_id (str): The ID of the record to update
-            properties (dict): Properties to update
-            
-        Returns:
-            dict: Updated record or error
-        """
-        try:
-            logger.info(f"Updating {object_type} with ID {record_id} in HubSpot")
-            
-            # Normalize token - remove any whitespace
-            token = self.access_token.strip() if self.access_token else ""
-            
-            if not token:
-                logger.error("No access token provided for updating record")
-                return {
-                    "success": False,
-                    "error": "No access token provided"
-                }
-            
-            # Use the CRM API endpoint
-            url = f"{self.base_url}/crm/v3/objects/{object_type}/{record_id}"
-            
-            headers = {
-                "Authorization": f"Bearer {token}",
-                "Content-Type": "application/json"
-            }
-            
-            # Prepare data
-            data = {
-                "properties": properties
-            }
-            
-            response = requests.patch(url, headers=headers, json=data)
-            
-            if response.status_code != 200:
-                logger.error(f"Error updating record: {response.status_code} - {response.text[:100]}")
-                return {
-                    "success": False,
-                    "error": f"Error {response.status_code}: {response.text[:100]}"
-                }
-            
-            # Parse the response
-            record = response.json()
-            
-            logger.info(f"Successfully updated {object_type} with ID: {record_id}")
-            
-            return {
-                "success": True,
-                "record": record,
-                "error": None
-            }
-        
-        except Exception as e:
-            logger.error(f"Error updating {object_type} {record_id}: {str(e)}")
-            return {
-                "success": False,
-                "error": f"Error: {str(e)}"
-            }
-    
-    def search_records(self, object_type, filter_groups=None, sorts=None, properties=None, limit=100, after=None):
-        """
-        Search for records in HubSpot with filtering
-        
-        Args:
-            object_type (str): The object type to search (e.g., contact, company)
-            filter_groups (list, optional): Filter groups for the search. Defaults to None.
-            sorts (list, optional): Sort criteria for the search. Defaults to None.
-            properties (list, optional): List of property names to include. Defaults to None (all properties).
-            limit (int, optional): Maximum number of records to return. Defaults to 100.
-            after (str, optional): Pagination cursor. Defaults to None.
-            
-        Returns:
-            dict: Result containing records and pagination info
-        """
-        try:
-            logger.info(f"Searching {object_type} in HubSpot")
-            
-            # Normalize token - remove any whitespace
-            token = self.access_token.strip() if self.access_token else ""
-            
-            if not token:
-                logger.error("No access token provided for searching records")
-                return {
-                    "results": [],
-                    "paging": None,
-                    "error": "No access token provided"
-                }
-            
-            # Use the CRM API search endpoint
-            url = f"{self.base_url}/crm/v3/objects/{object_type}/search"
-            
-            headers = {
-                "Authorization": f"Bearer {token}",
-                "Content-Type": "application/json"
-            }
-            
-            # Prepare search request
-            search_request = {
-                "limit": min(limit, 100)  # HubSpot API limit is 100 per page
-            }
-            
-            # Add filter groups if specified
-            if filter_groups:
-                search_request["filterGroups"] = filter_groups
-                
-            # Add sorts if specified
-            if sorts:
-                search_request["sorts"] = sorts
-                
-            # Add properties if specified
-            if properties:
-                search_request["properties"] = properties
-                
-            # Add pagination cursor if specified
-            if after:
-                search_request["after"] = after
-            
-            response = requests.post(url, headers=headers, json=search_request)
-            
-            if response.status_code != 200:
-                logger.error(f"Error searching records: {response.status_code} - {response.text[:100]}")
-                return {
-                    "results": [],
-                    "paging": None,
-                    "error": f"Error {response.status_code}: {response.text[:100]}"
-                }
-            
-            # Parse the response
-            data = response.json()
-            
-            # Extract records and pagination info
-            results = data.get("results", [])
-            paging = data.get("paging", None)
-            
-            logger.info(f"Search returned {len(results)} {object_type} records")
-            
-            return {
-                "results": results,
-                "paging": paging,
-                "error": None
-            }
-        
-        except Exception as e:
-            logger.error(f"Error searching {object_type}: {str(e)}")
-            return {
-                "results": [],
-                "paging": None,
-                "error": f"Error: {str(e)}"
-            }
+        elif object_type == "company":
+            return common_fields + [
+                {"identifier": "domain", "name": "Website Domain", "type": "string", "required": False},
+                {"identifier": "phone", "name": "Phone Number", "type": "string", "required": False},
+                {"identifier": "address", "name": "Address", "type": "string", "required": False},
+                {"identifier": "city", "name": "City", "type": "string", "required": False},
+                {"identifier": "state", "name": "State/Region", "type": "string", "required": False},
+                {"identifier": "country", "name": "Country", "type": "string", "required": False},
+                {"identifier": "industry", "name": "Industry", "type": "string", "required": False}
+            ]
+        elif object_type == "deal":
+            return common_fields + [
+                {"identifier": "amount", "name": "Amount", "type": "number", "required": False},
+                {"identifier": "dealstage", "name": "Deal Stage", "type": "string", "required": False},
+                {"identifier": "pipeline", "name": "Pipeline", "type": "string", "required": False},
+                {"identifier": "closedate", "name": "Close Date", "type": "date", "required": False},
+                {"identifier": "dealtype", "name": "Deal Type", "type": "string", "required": False}
+            ]
+        elif object_type == "ticket":
+            return common_fields + [
+                {"identifier": "subject", "name": "Subject", "type": "string", "required": False},
+                {"identifier": "content", "name": "Content", "type": "string", "required": False},
+                {"identifier": "priority", "name": "Priority", "type": "string", "required": False},
+                {"identifier": "status", "name": "Status", "type": "string", "required": False},
+                {"identifier": "source", "name": "Source", "type": "string", "required": False}
+            ]
+        elif object_type == "product":
+            return common_fields + [
+                {"identifier": "price", "name": "Price", "type": "number", "required": False},
+                {"identifier": "sku", "name": "SKU", "type": "string", "required": False},
+                {"identifier": "producttype", "name": "Product Type", "type": "string", "required": False},
+                {"identifier": "brand", "name": "Brand", "type": "string", "required": False},
+                {"identifier": "categories", "name": "Categories", "type": "string", "required": False}
+            ]
+        else:
+            # Generic fallback for custom objects
+            return common_fields + [
+                {"identifier": "custom_field1", "name": "Custom Field 1", "type": "string", "required": False},
+                {"identifier": "custom_field2", "name": "Custom Field 2", "type": "string", "required": False},
+                {"identifier": "custom_field3", "name": "Custom Field 3", "type": "string", "required": False}
+            ]
 
 def get_hubspot_service(access_token=None, client_secret=None, oauth_mode=False):
     """
