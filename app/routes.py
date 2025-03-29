@@ -136,20 +136,7 @@ def get_fields():
             "fields": []
         }), 500
 
-@main_bp.route('/select-platform', methods=['GET'])
-def select_platform_page():
-    """
-    Render the platform selection page
-    """
-    current_app.logger.info("Rendering platform selection page")
-    return render_template('platform_select.html')
 
-@main_bp.route('/select-platform.html', methods=['GET'])
-def select_platform_html():
-    """
-    Alias for the platform selection page with .html extension
-    """
-    return select_platform_page()
 
 @main_bp.route('/select-platform', methods=['POST'])
 def select_platform():
@@ -168,6 +155,19 @@ def select_platform():
     session['selected_platform'] = platform
     
     # Redirect to the configuration page
+    return render_template('config.html', platform=platform)
+
+@main_bp.route('/config.html', methods=['GET'])
+def config_html():
+    """
+    Render the configuration page with HTML extension
+    """
+    platform = request.args.get('platform')
+    if not platform:
+        current_app.logger.error("No platform specified for config page")
+        return redirect('/select-platform.html')
+    
+    current_app.logger.info(f"Rendering config page for platform: {platform}")
     return render_template('config.html', platform=platform)
 
 @main_bp.route('/authenticate-alchemy', methods=['POST'])
