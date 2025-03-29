@@ -409,37 +409,43 @@
                 </div>
                 
                 <!-- Step 3: Field Mapping -->
-                <div id="step3" class="step-content" style="display: none;">
-                    <h5 class="mb-4">Map Fields</h5>
-                    <div id="fieldMappings" class="mb-4">
-                        <!-- Field mappings will be generated here -->
-                    </div>
-                    
-                    <!-- Sync options -->
-                    <div id="syncOptionsContainer" class="mt-4 p-3 bg-light rounded">
-                        <h5 class="mb-3">Synchronization Options</h5>
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label for="syncFrequency" class="form-label">Sync Frequency</label>
-                                <select class="form-select" id="syncFrequency">
-                                    <option value="realtime">Real-time</option>
-                                    <option value="hourly">Hourly</option>
-                                    <option value="daily" selected>Daily</option>
-                                    <option value="weekly">Weekly</option>
-                                    <option value="manual">Manual Only</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="syncDirection" class="form-label">Sync Direction</label>
-                                <select class="form-select" id="syncDirection">
-                                    <option value="alchemy_to_platform">Alchemy to {{ platform|capitalize }}</option>
-                                    <option value="platform_to_alchemy">{{ platform|capitalize }} to Alchemy</option>
-                                    <option value="bidirectional" selected>Bidirectional</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+<div id="step3" class="step-content" style="display: none;">
+    <h5 class="mb-4">Map Fields</h5>
+    
+    <!-- Field mappings container - This should appear before sync options -->
+    <div id="fieldMappings" class="mb-4">
+        <!-- Field mappings will be generated here by JavaScript -->
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            Loading field mapping interface...
+        </div>
+    </div>
+    
+    <!-- Sync options - Moved below field mappings -->
+    <div id="syncOptionsContainer" class="mt-4 p-3 bg-light rounded">
+        <h5 class="mb-3">Synchronization Options</h5>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label for="syncFrequency" class="form-label">Sync Frequency</label>
+                <select class="form-select" id="syncFrequency">
+                    <option value="realtime">Real-time</option>
+                    <option value="hourly">Hourly</option>
+                    <option value="daily" selected>Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="manual">Manual Only</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label for="syncDirection" class="form-label">Sync Direction</label>
+                <select class="form-select" id="syncDirection">
+                    <option value="alchemy_to_platform">Alchemy to {{ platform|capitalize }}</option>
+                    <option value="platform_to_alchemy">{{ platform|capitalize }} to Alchemy</option>
+                    <option value="bidirectional" selected>Bidirectional</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
                 
                 <!-- Navigation Buttons -->
                 <div class="mt-4 d-flex justify-content-between">
