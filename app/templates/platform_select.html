@@ -175,7 +175,7 @@
                 <!-- Salesforce -->
                 <div class="col-md-4">
                     <div class="platform-card salesforce" onclick="navigateToPlatform('salesforce')">
-                        <img src="/static/salesforce.png" alt="Salesforce Logo" class="platform-logo">
+                        <img src="{{ url_for('static', filename='salesforce.png') }}" class="integration-logo" alt="Salesforce">
                         <h3>Salesforce</h3>
                         <p>Integrate Alchemy with Salesforce CRM. Sync contacts, leads, opportunities and more.</p>
                         <button class="btn btn-outline-primary" onclick="navigateToPlatform('salesforce', event)">
@@ -187,7 +187,7 @@
                 <!-- HubSpot -->
                 <div class="col-md-4">
                     <div class="platform-card hubspot" onclick="navigateToPlatform('hubspot')">
-                        <img src="/static/hubspot.png" alt="HubSpot Logo" class="platform-logo">
+                        <img src="{{ url_for('static', filename='hubspot.png') }}" class="integration-logo" alt="Hubspot">
                         <h3>HubSpot</h3>
                         <p>Connect Alchemy with HubSpot for seamless customer data synchronization.</p>
                         <button class="btn btn-outline-primary" onclick="navigateToPlatform('hubspot', event)">
@@ -199,7 +199,7 @@
                 <!-- SAP -->
                 <div class="col-md-4">
                     <div class="platform-card sap" onclick="navigateToPlatform('sap')">
-                        <img src="/static/sap.png" alt="SAP Logo" class="platform-logo">
+                        <img src="{{ url_for('static', filename='sap.png') }}" class="integration-logo" alt="SAP">
                         <h3>SAP</h3>
                         <p>Link Alchemy with SAP ERP systems to maintain consistent data across platforms.</p>
                         <button class="btn btn-outline-primary" onclick="navigateToPlatform('sap', event)">
