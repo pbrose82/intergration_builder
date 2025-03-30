@@ -86,31 +86,38 @@ class HubSpotService:
             logger.error(f"Error validating HubSpot credentials: {str(e)}")
             return False, f"Error: {str(e)}"
     
-    def get_object_types(self):
-        """
-        Get available object types from HubSpot that can be used for integration
+   def get_object_types(self):
+    """
+    Get available object types from HubSpot that can be used for integration
+    
+    Returns:
+        list: List of object types
+    """
+    try:
+        logger.info("Getting HubSpot object types")
         
-        Returns:
-            list: List of object types
-        """
-        try:
-            # HubSpot has standard objects we can use to start with
-            standard_objects = [
-                {"id": "contact", "name": "Contact", "description": "Store and manage contact details"},
-                {"id": "company", "name": "Company", "description": "Store and manage company information"},
-                {"id": "deal", "name": "Deal", "description": "Track sales opportunities"},
-                {"id": "ticket", "name": "Ticket", "description": "Track customer support requests"},
-                {"id": "product", "name": "Product", "description": "Store product information"}
-            ]
-            
-            # Log that we're using the hardcoded standard objects
-            logger.info(f"Returning {len(standard_objects)} standard object types")
-            
-            # Return the standard objects - this ensures we always have some objects even if API call fails
-            return standard_objects
-        except Exception as e:
-            logger.error(f"Error getting HubSpot object types: {str(e)}")
-            return []
+        # HubSpot has standard objects we can use to start with
+        standard_objects = [
+            {"id": "contact", "name": "Contact", "description": "Store and manage contact details"},
+            {"id": "company", "name": "Company", "description": "Store and manage company information"},
+            {"id": "deal", "name": "Deal", "description": "Track sales opportunities"},
+            {"id": "ticket", "name": "Ticket", "description": "Track customer support requests"},
+            {"id": "product", "name": "Product", "description": "Store product information"}
+        ]
+        
+        # Log that we're using the hardcoded standard objects
+        logger.info(f"Returning {len(standard_objects)} standard object types")
+        
+        # Add additional debugging
+        debug_token = self.access_token[:5] + "..." if self.access_token and len(self.access_token) > 5 else "None"
+        logger.debug(f"Using access token starting with: {debug_token}")
+        logger.debug(f"OAuth mode: {self.oauth_mode}")
+        
+        # Return the standard objects - this ensures we always have some objects even if API call fails
+        return standard_objects
+    except Exception as e:
+        logger.error(f"Error getting HubSpot object types: {str(e)}")
+        return []
     
     def get_fields_for_object(self, object_type):
         """
