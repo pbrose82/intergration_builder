@@ -194,7 +194,6 @@ function populateFieldMappings(alchemyFields, hubspotFields) {
   console.log('Field mapping UI populated successfully');
 }
 
-// Function to add a mapping row
 function addMappingRow(tableBody, alchemyField = null, platformField = null, alchemyFields, platformFields) {
   if (!tableBody) {
     console.error('Table body element not found');
@@ -207,7 +206,7 @@ function addMappingRow(tableBody, alchemyField = null, platformField = null, alc
   // Create Alchemy field cell
   const alchemyCell = document.createElement('td');
   const alchemySelect = document.createElement('select');
-  alchemySelect.className = 'form-select alchemy-field';
+  alchemySelect.className = 'form-select alchemy-field mapping-select';
   
   // Add default option
   let option = document.createElement('option');
@@ -236,7 +235,7 @@ function addMappingRow(tableBody, alchemyField = null, platformField = null, alc
   // Create platform field cell
   const platformCell = document.createElement('td');
   const platformSelect = document.createElement('select');
-  platformSelect.className = 'form-select platform-field';
+  platformSelect.className = 'form-select platform-field mapping-select';
   
   // Add default option
   option = document.createElement('option');
@@ -257,6 +256,49 @@ function addMappingRow(tableBody, alchemyField = null, platformField = null, alc
       }
       
       platformSelect.appendChild(option);
+    });
+  }
+  
+  // Set selected value if provided
+  if (platformField) {
+    platformSelect.value = platformField.identifier;
+  }
+  
+  platformCell.appendChild(platformSelect);
+  row.appendChild(platformCell);
+  
+  // Create required cell with checkbox
+  const requiredCell = document.createElement('td');
+  requiredCell.className = 'text-center';
+  
+  const requiredCheckbox = document.createElement('input');
+  requiredCheckbox.type = 'checkbox';
+  requiredCheckbox.className = 'form-check-input required-checkbox';
+  requiredCheckbox.checked = platformField && platformField.required;
+  requiredCheckbox.disabled = platformField && platformField.required;
+  
+  requiredCell.appendChild(requiredCheckbox);
+  row.appendChild(requiredCell);
+  
+  // Create action cell with delete button
+  const actionCell = document.createElement('td');
+  actionCell.className = 'text-center';
+  
+  const deleteBtn = document.createElement('button');
+  deleteBtn.className = 'btn delete-mapping';
+  deleteBtn.innerHTML = '<i class="fas fa-times"></i>';
+  deleteBtn.addEventListener('click', function() {
+    row.remove();
+  });
+  
+  actionCell.appendChild(deleteBtn);
+  row.appendChild(actionCell);
+  
+  // Add to table
+  tableBody.appendChild(row);
+  
+  // Rest of the code...
+
     });
   }
   
