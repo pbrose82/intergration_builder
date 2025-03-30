@@ -86,7 +86,8 @@ class HubSpotService:
             logger.error(f"Error validating HubSpot credentials: {str(e)}")
             return False, f"Error: {str(e)}"
     
-   def get_object_types(self):
+   # Fix the indentation in services/hubspot_service.py
+def get_object_types(self):
     """
     Get available object types from HubSpot that can be used for integration
     
