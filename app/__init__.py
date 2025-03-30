@@ -36,14 +36,15 @@ def create_app():
         app.logger.info("Troubleshooting routes registered successfully")
     except Exception as e:
         app.logger.warning(f"Could not register troubleshooting routes: {str(e)}")
-
+        
     # Import and register HubSpot debug routes
-try:
-    from app.hubspot_debug import hubspot_debug_bp
-    app.register_blueprint(hubspot_debug_bp)
-    app.logger.info("HubSpot debug routes registered successfully")
-except Exception as e:
-    app.logger.warning(f"Could not register HubSpot debug routes: {str(e)}")
+    try:
+        from app.hubspot_debug import hubspot_debug_bp
+        app.register_blueprint(hubspot_debug_bp)
+        app.logger.info("HubSpot debug routes registered successfully")
+    except Exception as e:
+        app.logger.warning(f"Could not register HubSpot debug routes: {str(e)}")
+        
     # Import and register HubSpot routes
     try:
         from app.hubspot_routes import hubspot_bp
