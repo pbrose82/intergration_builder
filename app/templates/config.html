@@ -412,6 +412,17 @@
 <div id="step3" class="step-content" style="display: none;">
     <h5 class="mb-4">Map Fields</h5>
     
+    <!-- Add this new section for Record Identifier -->
+    <div class="card p-3 mb-4 bg-light" id="recordIdentifierStep3">
+        <div class="mb-3">
+            <label for="hubspotRecordIdentifierStep3" class="form-label">HubSpot Record Identifier Field</label>
+            <input type="text" class="form-control" id="hubspotRecordIdentifierStep3" value="id" placeholder="e.g. id, hubspot_id, external_id">
+            <div class="form-text">
+                Enter the field name that will be used to identify the HubSpot record for synchronization
+            </div>
+        </div>
+    </div>
+    
     <!-- Field mappings container - This should appear before sync options -->
     <div id="fieldMappings" class="mb-4">
         <!-- Field mappings will be generated here by JavaScript -->
