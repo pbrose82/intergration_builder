@@ -101,7 +101,8 @@ def get_object_types():
                 logger.error("Missing access token for object types request")
                 return jsonify({
                     "status": "error",
-                    "message": "Missing access token"
+                    "message": "Missing access token",
+                    "object_types": []
                 }), 400
             
             # Create service with OAuth credentials - remove any whitespace
@@ -116,7 +117,8 @@ def get_object_types():
                 logger.error("Missing API key for object types request")
                 return jsonify({
                     "status": "error",
-                    "message": "Missing API key"
+                    "message": "Missing API key",
+                    "object_types": []
                 }), 400
             
             # Create service with API key - remove any whitespace
