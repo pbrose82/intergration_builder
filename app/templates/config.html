@@ -1467,6 +1467,190 @@
             });
         }
     </script>
+    <!-- Add this at the bottom of config.html -->
+<script>
+// Fallback HubSpot integration script
+console.log('Loading fallback HubSpot integration');
+
+// Function to validate HubSpot credentials
+function validateHubSpotCredentialsDirect() {
+    const accessToken = document.getElementById('hubspotApiKey').value.trim();
+    const clientSecret = document.getElementById('hubspotPortalId').value.trim();
+    
+    if (!accessToken) {
+        alert('Please enter HubSpot Access Token');
+        return;
+    }
+    
+    // Show loading state
+    const validateBtn = document.getElementById('validateHubspotBtn');
+    if (validateBtn) {
+        validateBtn.disabled = true;
+        validateBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Validating...';
+    }
+    
+    // Create direct API call (avoiding jQuery which might be missing)
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/hubspot/validate', true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    
+    xhr.onload = function() {
+        // Reset button
+        if (validateBtn) {
+            validateBtn.disabled = false;
+            validateBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Validate Credentials';
+        }
+        
+        if (xhr.status === 200) {
+            try {
+                const response = JSON.parse(xhr.responseText);
+                
+                if (response.status === 'success') {
+                    // Show success message
+                    alert('HubSpot credentials validated successfully!');
+                    
+                    // Enable fetching object types
+                    const fetchObjectsBtn = document.getElementById('fetchHubspotObjectsBtn');
+                    if (fetchObjectsBtn) {
+                        fetchObjectsBtn.disabled = false;
+                    }
+                    
+                    // Fetch object types automatically
+                    fetchHubSpotObjectTypes();
+                } else {
+                    // Show error message
+                    alert('Validation failed: ' + (response.message || 'Unknown error'));
+                }
+            } catch (e) {
+                alert('Error parsing response: ' + e);
+            }
+        } else {
+            alert('Request failed. Status: ' + xhr.status);
+        }
+    };
+    
+    xhr.onerror = function() {
+        // Reset button
+        if (validateBtn) {
+            validateBtn.disabled = false;
+            validateBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Validate Credentials';
+        }
+        
+        alert('Request failed. Network error.');
+    };
+    
+    // Send the request
+    xhr.send(JSON.stringify({
+        access_token: accessToken,
+        client_secret: clientSecret,
+        oauth_mode: true
+    }));
+}
+
+// Function to fetch HubSpot object types
+function fetchHubSpotObjectTypes() {
+    const accessToken = document.getElementById('hubspotApiKey').value.trim();
+    
+    if (!accessToken) {
+        alert('Please enter and validate your HubSpot Access Token first');
+        return;
+    }
+    
+    // Show loading state
+    const fetchBtn = document.getElementById('fetchHubspotObjectsBtn');
+    if (fetchBtn) {
+        fetchBtn.disabled = true;
+        fetchBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Fetching...';
+    }
+    
+    // Create direct API call
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/hubspot/object-types', true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    
+    xhr.onload = function() {
+        // Reset button
+        if (fetchBtn) {
+            fetchBtn.disabled = false;
+            fetchBtn.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Refresh';
+        }
+        
+        if (xhr.status === 200) {
+            try {
+                const response = JSON.parse(xhr.responseText);
+                
+                if (response.status === 'success' || response.status === 'warning') {
+                    // Store object types
+                    window.hubspotObjectTypes = response.object_types || [];
+                    
+                    // Update object type select
+                    const select = document.getElementById('hubspotObjectType');
+                    if (select) {
+                        // Clear existing options
+                        select.innerHTML = '<option value="">-- Select Object Type --</option>';
+                        
+                        // Add new options
+                        window.hubspotObjectTypes.forEach(function(obj) {
+                            const option = document.createElement('option');
+                            option.value = obj.id;
+                            option.textContent = obj.name;
+                            select.appendChild(option);
+                        });
+                        
+                        // Enable select
+                        select.disabled = false;
+                    }
+                    
+                    alert('Successfully loaded ' + window.hubspotObjectTypes.length + ' object types');
+                } else {
+                    alert('Failed to fetch object types: ' + (response.message || 'Unknown error'));
+                }
+            } catch (e) {
+                alert('Error parsing response: ' + e);
+            }
+        } else {
+            alert('Request failed. Status: ' + xhr.status);
+        }
+    };
+    
+    xhr.onerror = function() {
+        // Reset button
+        if (fetchBtn) {
+            fetchBtn.disabled = false;
+            fetchBtn.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Refresh';
+        }
+        
+        alert('Request failed. Network error.');
+    };
+    
+    // Send the request
+    xhr.send(JSON.stringify({
+        access_token: accessToken,
+        oauth_mode: true
+    }));
+}
+
+// Add event listeners when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Fallback script loaded - setting up direct event handlers');
+    
+    // Set up the validate button
+    const validateHubspotBtn = document.getElementById('validateHubspotBtn');
+    if (validateHubspotBtn) {
+        validateHubspotBtn.addEventListener('click', function() {
+            validateHubSpotCredentialsDirect();
+        });
+    }
+    
+    // Set up the fetch objects button
+    const fetchHubspotObjectsBtn = document.getElementById('fetchHubspotObjectsBtn');
+    if (fetchHubspotObjectsBtn) {
+        fetchHubspotObjectsBtn.addEventListener('click', function() {
+            fetchHubSpotObjectTypes();
+        });
+    }
+});
+</script>
     <!-- Add this before the closing </body> tag -->
 <script src="{{ url_for('static', filename='js/field-mapping.js') }}"></script>
 <script src="{{ url_for('static', filename='js/hubspot-troubleshooter.js') }}"></script>
