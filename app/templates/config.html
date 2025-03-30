@@ -179,6 +179,23 @@
             margin-bottom: 20px;
             border: 1px solid #eee;
         }
+        
+        /* Mapping row styles */
+        .mapping-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            gap: 10px;
+        }
+        
+        .btn-remove-mapping {
+            background: none;
+            border: none;
+            color: var(--alchemy-red);
+            cursor: pointer;
+            padding: 5px;
+            font-size: 16px;
+        }
     </style>
 </head>
 <body>
@@ -390,14 +407,6 @@
                         </div>
                         <div id="hubspotObjectStatus" class="alert mt-3" style="display: none;"></div>
                         
-                        <div id="hubspotRecordIdentifierContainer" class="mb-3" style="display: none;">
-                            <label for="hubspotRecordIdentifier" class="form-label">HubSpot Record Identifier Field</label>
-                            <input type="text" class="form-control" id="hubspotRecordIdentifier" placeholder="e.g. id, hubspot_id, external_id">
-                            <div class="form-text">
-                                Enter the field name that will be used to identify the HubSpot record for synchronization
-                            </div>
-                        </div>
-                        
                         <div class="mb-3">
                             <p>Fetch fields for object type: <strong id="hubspotObjectTypeLabel">None Selected</strong></p>
                             <button class="btn btn-primary" type="button" id="fetchHubspotFieldsBtn" disabled>
@@ -409,43 +418,43 @@
                 </div>
                 
                 <!-- Step 3: Field Mapping -->
-<div id="step3" class="step-content" style="display: none;">
-    <h5 class="mb-4">Map Fields</h5>
-    
-    <!-- Field mappings container -->
-    <div id="fieldMappings" class="mb-4">
-        <!-- Field mappings will be generated here by JavaScript -->
-        <div class="alert alert-info">
-            <i class="fas fa-info-circle me-2"></i>
-            Loading field mapping interface...
-        </div>
-    </div>
-    
-    <!-- Sync options -->
-    <div id="syncOptionsContainer" class="mt-4 p-3 bg-light rounded">
-        <h5 class="mb-3">Synchronization Options</h5>
-        <div class="row g-3">
-            <div class="col-md-6">
-                <label for="syncFrequency" class="form-label">Sync Frequency</label>
-                <select class="form-select" id="syncFrequency">
-                    <option value="realtime">Real-time</option>
-                    <option value="hourly">Hourly</option>
-                    <option value="daily" selected>Daily</option>
-                    <option value="weekly">Weekly</option>
-                    <option value="manual">Manual Only</option>
-                </select>
-            </div>
-            <div class="col-md-6">
-                <label for="syncDirection" class="form-label">Sync Direction</label>
-                <select class="form-select" id="syncDirection">
-                    <option value="alchemy_to_platform">Alchemy to HubSpot</option>
-                    <option value="platform_to_alchemy">HubSpot to Alchemy</option>
-                    <option value="bidirectional" selected>Bidirectional</option>
-                </select>
-            </div>
-        </div>
-    </div>
-</div>
+                <div id="step3" class="step-content" style="display: none;">
+                    <h5 class="mb-4">Map Fields</h5>
+                    
+                    <!-- Field mappings container -->
+                    <div id="fieldMappings" class="mb-4">
+                        <!-- Field mappings will be generated here by JavaScript -->
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Loading field mapping interface...
+                        </div>
+                    </div>
+                    
+                    <!-- Sync options -->
+                    <div id="syncOptionsContainer" class="mt-4 p-3 bg-light rounded">
+                        <h5 class="mb-3">Synchronization Options</h5>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="syncFrequency" class="form-label">Sync Frequency</label>
+                                <select class="form-select" id="syncFrequency">
+                                    <option value="realtime">Real-time</option>
+                                    <option value="hourly">Hourly</option>
+                                    <option value="daily" selected>Daily</option>
+                                    <option value="weekly">Weekly</option>
+                                    <option value="manual">Manual Only</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="syncDirection" class="form-label">Sync Direction</label>
+                                <select class="form-select" id="syncDirection">
+                                    <option value="alchemy_to_platform">Alchemy to {{ platform|capitalize }}</option>
+                                    <option value="platform_to_alchemy">{{ platform|capitalize }} to Alchemy</option>
+                                    <option value="bidirectional" selected>Bidirectional</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 
                 <!-- Navigation Buttons -->
                 <div class="mt-4 d-flex justify-content-between">
@@ -476,31 +485,24 @@
             <div class="copyright">© ALCHEMY CLOUD, INC. ALL RIGHTS RESERVED.</div>
         </div>
     </div>
-
-    <!-- jQuery for easier DOM manipulation -->
+    <!-- Core Libraries -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    
-    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- HubSpot Integration JavaScript -->
-    <script src="{{ url_for('static', filename='js/hubspot-integration.js') }}"></script>
+    <!-- Utility Scripts -->
+    <script src="{{ url_for('static', filename='js/integration-utils.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/step-manager.js') }}"></script>
     
-    <!-- Debug helper for troubleshooting -->
-    <script src="{{ url_for('static', filename='js/debug-helper.js') }}"></script>
+    <!-- Field Mapping -->
+    <script src="{{ url_for('static', filename='js/simplified-field-mapping.js') }}"></script>
     
-    <!-- Main JavaScript -->
     <script>
         // Global variables
-        let currentStep = 1;
-        let isAuthenticated = false;
+        window.currentStep = 1;
         window.alchemyFields = [];
         
         // Document ready
         $(document).ready(function() {
-            // Initialize UI
-            updateProgressUI();
-            
             // Set up auth method toggle
             $('input[name="authMethod"]').change(function() {
                 const method = $(this).val();
@@ -515,138 +517,124 @@
             
             // Toggle password visibility
             $('#togglePassword').click(function() {
-                togglePasswordVisibility('#alchemyPassword', this);
+                IntegrationUtils.toggleVisibility('alchemyPassword', 'togglePassword');
             });
             
             $('#toggleRefreshToken').click(function() {
-                togglePasswordVisibility('#alchemyRefreshToken', this);
+                IntegrationUtils.toggleVisibility('alchemyRefreshToken', 'toggleRefreshToken');
             });
             
             $('#toggleHubspotApiKey').click(function() {
-                togglePasswordVisibility('#hubspotApiKey', this);
+                IntegrationUtils.toggleVisibility('hubspotApiKey', 'toggleHubspotApiKey');
             });
             
             $('#toggleHubspotSecret').click(function() {
-                togglePasswordVisibility('#hubspotPortalId', this);
+                IntegrationUtils.toggleVisibility('hubspotPortalId', 'toggleHubspotSecret');
+            });
+            
+            $('#toggleSalesforceSecret').click(function() {
+                IntegrationUtils.toggleVisibility('salesforceClientSecret', 'toggleSalesforceSecret');
+            });
+            
+            $('#toggleSapSecret').click(function() {
+                IntegrationUtils.toggleVisibility('sapClientSecret', 'toggleSapSecret');
             });
             
             // Authenticate button
-            $('#authenticateBtn').click(function() {
+            $('#authenticateBtn').click(async function() {
                 const tenantId = $('#alchemyTenantId').val().trim();
                 const email = $('#alchemyEmail').val().trim();
                 const password = $('#alchemyPassword').val().trim();
                 
                 if (!tenantId || !email || !password) {
-                    showAuthStatus('error', 'Please provide all required credentials');
+                    IntegrationUtils.showStatus('authStatus', 'error', 'Please provide all required credentials');
                     return;
                 }
                 
-                // Disable button while authenticating
-                $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Authenticating...');
+                const result = await IntegrationUtils.authenticateWithAlchemy({
+                    tenantId: tenantId,
+                    email: email,
+                    password: password
+                });
                 
-                // Show authentication in progress
-                showAuthStatus('info', 'Authenticating with Alchemy...');
+                if (result.success) {
+                    // Copy tenant ID to direct form for consistency
+                    $('#alchemyTenantIdDirect').val(tenantId);
+                    
+                    // Show toast
+                    IntegrationUtils.showToast('success', 'Successfully authenticated with Alchemy');
+                }
+            });
+            
+            // Validate HubSpot button
+            $('#validateHubspotBtn').click(function() {
+                const accessToken = $('#hubspotApiKey').val().trim();
                 
-                // Make API call to backend authentication endpoint
-                $.ajax({
-                    url: '/authenticate-alchemy',
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({
-                        tenant_id: tenantId,
-                        email: email,
-                        password: password
-                    }),
-                    success: function(response) {
-                        // Re-enable button
-                        $('#authenticateBtn').prop('disabled', false).html('<i class="fas fa-sign-in-alt me-2"></i>Authenticate with Alchemy');
-                        
-                        if (response.status === 'success') {
-                            isAuthenticated = true;
-                            showAuthStatus('success', 'Authentication successful! You can proceed to the next step.');
-                            
-                            // Copy tenant ID to direct form for consistency
-                            $('#alchemyTenantIdDirect').val(tenantId);
-                            
-                            // Enable next button
-                            $('#nextBtn').prop('disabled', false);
-                            
-                            // Show toast
-                            showToast('success', 'Successfully authenticated with Alchemy');
-                        } else {
-                            showAuthStatus('error', response.message || 'Authentication failed');
-                        }
+                if (!accessToken) {
+                    IntegrationUtils.showStatus('hubspotStatus', 'error', 'Please enter HubSpot Access Token');
+                    return;
+                }
+                
+                // Show loading state
+                $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Validating...');
+                
+                // Show status
+                IntegrationUtils.showStatus('hubspotStatus', 'info', 'Validating HubSpot credentials...');
+                
+                // Make API call
+                fetch('/hubspot/validate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
                     },
-                    error: function(xhr, status, error) {
-                        // Re-enable button
-                        $('#authenticateBtn').prop('disabled', false).html('<i class="fas fa-sign-in-alt me-2"></i>Authenticate with Alchemy');
+                    body: JSON.stringify({
+                        access_token: accessToken,
+                        oauth_mode: true
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Reset button
+                    $(this).prop('disabled', false).html('<i class="fas fa-check-circle me-2"></i>Validate Credentials');
+                    
+                    if (data.status === 'success') {
+                        // Show success message
+                        IntegrationUtils.showStatus('hubspotStatus', 'success', data.message || 'Credentials validated successfully');
                         
-                        let errorMessage = 'Authentication failed';
-                        try {
-                            const response = JSON.parse(xhr.responseText);
-                            errorMessage = response.message || response.error || errorMessage;
-                        } catch (e) {
-                            errorMessage = `Error: ${error}`;
-                        }
+                        // Enable fetching object types
+                        $('#fetchHubspotObjectsBtn').prop('disabled', false);
                         
-                        showAuthStatus('error', errorMessage);
+                        // Show toast
+                        IntegrationUtils.showToast('success', 'HubSpot credentials validated successfully');
+                        
+                        // Fetch object types automatically
+                        fetchHubSpotObjectTypes();
+                    } else {
+                        // Show error message
+                        IntegrationUtils.showStatus('hubspotStatus', 'error', data.message || 'Validation failed');
+                        
+                        // Show toast
+                        IntegrationUtils.showToast('error', 'HubSpot credential validation failed');
                     }
+                })
+                .catch(error => {
+                    // Reset button
+                    $(this).prop('disabled', false).html('<i class="fas fa-check-circle me-2"></i>Validate Credentials');
+                    
+                    // Show error message
+                    IntegrationUtils.showStatus('hubspotStatus', 'error', 'Error: ' + error.message);
+                    
+                    // Show toast
+                    IntegrationUtils.showToast('error', 'Error: ' + error.message);
                 });
             });
             
-            // Next button
-            $('#nextBtn').click(function() {
-                // For now, simplified validation
-                if (currentStep === 1) {
-                    if ($('#authMethodAuto').is(':checked') && !isAuthenticated) {
-                        const authStatus = $('#authStatus');
-                        if (authStatus.is(':hidden') || !authStatus.hasClass('alert-success')) {
-                            showToast('error', 'Please authenticate first');
-                            return;
-                        }
-                    } else if ($('#authMethodToken').is(':checked')) {
-                        const tenantId = $('#alchemyTenantIdDirect').val().trim();
-                        const refreshToken = $('#alchemyRefreshToken').val().trim();
-                        
-                        if (!tenantId || !refreshToken) {
-                            showToast('error', 'Please provide tenant ID and refresh token');
-                            return;
-                        }
-                    }
-                }
-                
-                // Move to next step
-                currentStep++;
-                updateProgressUI();
-                
-                // For HubSpot integration, show additional fields in step 2
-                if (currentStep === 2 && window.location.href.includes('platform=hubspot')) {
-                    $('#hubspotObjectContainer').show();
-                }
-            });
-            
-            // Back button
-            $('#backBtn').click(function() {
-                if (currentStep > 1) {
-                    currentStep--;
-                    updateProgressUI();
-                }
-            });
-            
-            // Save button 
-            $('#saveBtn').click(function() {
-                showToast('success', 'Configuration saved successfully!');
-                setTimeout(function() {
-                    window.location.href = '/';
-                }, 2000);
-            });
-            
-            // Fetch fields button handler
+            // Fetch fields button
             $('#fetchFieldsBtn').click(function() {
                 const recordType = $('#recordTypeInput').val().trim();
                 
                 if (!recordType) {
-                    showToast('error', 'Please enter a record type');
+                    IntegrationUtils.showToast('error', 'Please enter a record type');
                     return;
                 }
                 
@@ -661,1001 +649,202 @@
                 }
                 
                 if (!tenantId) {
-                    showToast('error', 'Missing tenant ID');
+                    IntegrationUtils.showToast('error', 'Missing tenant ID');
                     return;
                 }
                 
-                // Disable button during fetch
+                // Fetch fields
+                IntegrationUtils.fetchAlchemyFields({
+                    tenantId: tenantId,
+                    refreshToken: refreshToken,
+                    recordType: recordType
+                }).then(result => {
+                    if (result.success) {
+                        // For HubSpot, we need an extra step for object selection
+                        if (window.location.href.includes('platform=hubspot')) {
+                            // Enable object type selection if not already done
+                            if ($('#hubspotObjectType').prop('disabled')) {
+                                $('#fetchHubspotObjectsBtn').prop('disabled', false);
+                                $('#hubspotObjectContainer').show();
+                            }
+                        } else {
+                            // For other platforms, proceed to next step
+                            StepManager.goToStep(3);
+                        }
+                    }
+                });
+            });
+            
+            // HubSpot object types fetch button
+            $('#fetchHubspotObjectsBtn').click(function() {
+                fetchHubSpotObjectTypes();
+            });
+            
+            // HubSpot fields fetch button
+            $('#fetchHubspotFieldsBtn').click(function() {
+                const objectType = $('#hubspotObjectType').val();
+                const accessToken = $('#hubspotApiKey').val().trim();
+                
+                if (!objectType) {
+                    IntegrationUtils.showToast('error', 'Please select a HubSpot object type');
+                    return;
+                }
+                
+                // Show loading state
                 $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Fetching Fields...');
                 
-                // Show status message
-                showRecordTypeStatus('info', 'Fetching fields for record type: ' + recordType + '...');
+                // Show status
+                IntegrationUtils.showStatus('hubspotFieldStatus', 'info', `Fetching fields for ${objectType}...`);
                 
-                // Make API call to the backend
-                $.ajax({
-                    url: '/get-alchemy-fields',
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({
-                        tenant_id: tenantId,
-                        refresh_token: refreshToken,
-                        record_type: recordType
-                    }),
-                    success: function(response) {
-                        // Re-enable button
-                        $('#fetchFieldsBtn').prop('disabled', false).html('<i class="fas fa-search me-2"></i>Fetch Fields');
-                        
-                        // Handle success
-                        if (response.status === 'success' || response.status === 'warning') {
-                            // Store fields in global variable
-                            window.alchemyFields = response.fields;
-                            
-                            // Show toast with appropriate message
-                            if (response.status === 'warning') {
-                                showToast('warning', response.message || 'Using fallback fields');
-                                showRecordTypeStatus('warning', response.message || 'Using fallback fields');
-                            } else {
-                                showToast('success', 'Successfully fetched ' + response.fields.length + ' fields');
-                                showRecordTypeStatus('success', 'Successfully fetched ' + response.fields.length + ' fields');
-                            }
-                            
-                            // For HubSpot, we need an extra step for object selection
-                            if (window.location.href.includes('platform=hubspot')) {
-                                // Enable object type selection if not already done
-                                if ($('#hubspotObjectType').prop('disabled')) {
-                                    $('#fetchHubspotObjectsBtn').prop('disabled', false);
-                                    $('#hubspotRecordIdentifierContainer').show();
-                                }
-                            } else {
-                                // For other platforms, proceed to next step
-                                currentStep++;
-                                updateProgressUI();
-                                
-                                // Populate field mapping UI
-                                populateFieldMappings(response.fields);
-                            }
-                        } else {
-                            // Handle non-success but valid response
-                            showToast('error', response.message || 'Failed to fetch fields');
-                            showRecordTypeStatus('error', response.message || 'Failed to fetch fields');
-                        }
+                // Make API call
+                fetch('/hubspot/fields', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
                     },
-                    error: function(xhr, status, error) {
-                        // Re-enable button
-                        $('#fetchFieldsBtn').prop('disabled', false).html('<i class="fas fa-search me-2"></i>Fetch Fields');
-                        
-                        // Parse error message
-                        let errorMessage = 'Failed to fetch fields';
-                        try {
-                            const response = JSON.parse(xhr.responseText);
-                            errorMessage = response.message || response.error || errorMessage;
-                        } catch (e) {
-                            errorMessage = `Error: ${error}`;
-                        }
-                        
-                        // Show error toast
-                        showToast('error', errorMessage);
-                        showRecordTypeStatus('error', errorMessage);
-                    }
-                });
-            });
-        });
-        
-        // Update progress UI based on current step
-        function updateProgressUI() {
-            // Hide all steps
-            $('.step-content').hide();
-            
-            // Show current step
-            $(`#step${currentStep}`).show();
-            
-            // Update progress bar
-            const progress = (currentStep / 3) * 100;
-            $('#progressBar').css('width', `${progress}%`);
-            $('#progressStep').text(`Step ${currentStep} of 3`);
-            
-            // Update buttons
-            if (currentStep === 3) {
-                $('#nextBtn').hide();
-                $('#saveBtn').show();
-            } else {
-                $('#nextBtn').show();
-                $('#saveBtn').hide();
-            }
-        }
-        
-        // Toggle password visibility
-        function togglePasswordVisibility(inputId, toggleButton) {
-            const input = $(inputId);
-            const type = input.attr('type') === 'password' ? 'text' : 'password';
-            input.attr('type', type);
-            
-            // Toggle icon
-            const icon = $(toggleButton).find('i');
-            if (type === 'text') {
-                icon.removeClass('fa-eye').addClass('fa-eye-slash');
-            } else {
-                icon.removeClass('fa-eye-slash').addClass('fa-eye');
-            }
-        }
-        
-        // Show authentication status
-        function showAuthStatus(type, message) {
-            const authStatus = $('#authStatus');
-            let alertClass = 'alert-info';
-            let icon = '<i class="fas fa-info-circle me-2"></i>';
-            
-            if (type === 'success') {
-                alertClass = 'alert-success';
-                icon = '<i class="fas fa-check-circle me-2"></i>';
-            } else if (type === 'error') {
-                alertClass = 'alert-danger';
-                icon = '<i class="fas fa-exclamation-circle me-2"></i>';
-            }
-            
-            authStatus.removeClass('alert-success alert-danger alert-info')
-                     .addClass(alertClass)
-                     .html(icon + message)
-                     .show();
-        }
-        
-        // Show record type status
-        function showRecordTypeStatus(type, message) {
-            const statusDiv = $('#recordTypeStatus');
-            let alertClass = 'alert-info';
-            let icon = '<i class="fas fa-info-circle me-2"></i>';
-            
-            if (type === 'success') {
-                alertClass = 'alert-success';
-                icon = '<i class="fas fa-check-circle me-2"></i>';
-            } else if (type === 'error') {
-                alertClass = 'alert-danger';
-                icon = '<i class="fas fa-exclamation-circle me-2"></i>';
-            } else if (type === 'warning') {
-                alertClass = 'alert-warning';
-                icon = '<i class="fas fa-exclamation-triangle me-2"></i>';
-            }
-            
-            statusDiv.removeClass('alert-success alert-danger alert-info alert-warning')
-                    .addClass(alertClass)
-                    .html(icon + message)
-                    .show();
-        }
-        
-        // Show toast notification
-        function showToast(type, message) {
-            const toast = $('<div>').addClass('toast');
-            
-            if (type === 'success') {
-                toast.addClass('success');
-                toast.html('<i class="fas fa-check-circle me-2"></i>' + message);
-            } else if (type === 'error') {
-                toast.addClass('error');
-                toast.html('<i class="fas fa-exclamation-circle me-2"></i>' + message);
-            } else if (type === 'warning') {
-                toast.addClass('warning');
-                toast.html('<i class="fas fa-exclamation-triangle me-2"></i>' + message);
-            } else {
-                toast.html('<i class="fas fa-info-circle me-2"></i>' + message);
-            }
-            
-            $('#toastContainer').append(toast);
-            
-            // Auto-remove after 3 seconds
-            setTimeout(function() {
-                toast.fadeOut(300, function() {
-                    $(this).remove();
-                });
-            }, 3000);
-        }
-        
-        // Add function to populate field mappings
-        function populateFieldMappings(fields) {
-            const mappingContainer = $('#fieldMappings');
-            mappingContainer.empty();
-            
-            // Get the platform name from URL 
-            const urlParams = new URLSearchParams(window.location.search);
-            const platform = urlParams.get('platform') || 'salesforce';
-            const platformCapitalized = platform.charAt(0).toUpperCase() + platform.slice(1);
-
-            // Create field mapping header
-            mappingContainer.append(`
-                <div class="alert alert-info mb-3">
-                    <i class="fas fa-info-circle me-2"></i>
-                    Map fields between Alchemy and ${platformCapitalized}
-                </div>
-            `);
-
-            // Create mapping rows
-            for (let i = 0; i < Math.min(5, fields.length); i++) {
-                const field = fields[i];
-                
-                // Create a mapping row
-                const row = $(`
-                    <div class="row mb-3 mapping-row">
-                        <div class="col-5">
-                            <select class="form-select alchemy-field">
-                                <option value="">-- Select Alchemy Field --</option>
-                            </select>
-                        </div>
-                        <div class="col-1 text-center pt-2">
-                            <i class="fas fa-arrows-alt-h"></i>
-                        </div>
-                        <div class="col-5">
-                            <select class="form-select platform-field">
-                                <option value="">-- Select ${platformCapitalized} Field --</option>
-                            </select>
-                        </div>
-                        <div class="col-1">
-                            <button class="btn btn-sm btn-outline-danger remove-mapping">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                    </div>
-                `);
-                
-                // Add Alchemy field options
-                const alchemySelect = row.find('.alchemy-field');
-                fields.forEach(f => {
-                    alchemySelect.append(`<option value="${f.identifier}">${f.name || f.identifier}</option>`);
-                });
-                
-                // Pre-select the current field
-                alchemySelect.val(field.identifier);
-                
-                // Add platform-specific field options
-                const platformSelect = row.find('.platform-field');
-                
-                // Define platform-specific fields
-                let platformFields = [];
-                
-                if (platform === 'salesforce') {
-                    platformFields = [
-                        {id: 'name', name: 'Name'},
-                        {id: 'description', name: 'Description'},
-                        {id: 'status', name: 'Status'},
-                        {id: 'owner', name: 'Owner'},
-                        {id: 'created_date', name: 'Created Date'},
-                        {id: 'modified_date', name: 'Modified Date'}
-                    ];
-                } else if (platform === 'hubspot') {
-                    platformFields = [
-                        {id: 'firstname', name: 'First Name'},
-                        {id: 'lastname', name: 'Last Name'},
-                        {id: 'email', name: 'Email'},
-                        {id: 'phone', name: 'Phone Number'},
-                        {id: 'company', name: 'Company Name'},
-                        {id: 'website', name: 'Website'}
-                    ];
-                    
-                    // If we have HubSpot fields loaded, use them instead
-                    if (window.hubspotFields && window.hubspotFields.length) {
-                        platformFields = window.hubspotFields;
-                    }
-                } else if (platform === 'sap') {
-                    platformFields = [
-                        {id: 'material_number', name: 'Material Number'},
-                        {id: 'description', name: 'Description'},
-                        {id: 'material_type', name: 'Material Type'},
-                        {id: 'plant', name: 'Plant'},
-                        {id: 'storage_location', name: 'Storage Location'},
-                        {id: 'batch', name: 'Batch'}
-                    ];
-                }
-                
-                platformFields.forEach(f => {
-                    const fieldId = f.identifier || f.id;
-                    const fieldName = f.name;
-                    platformSelect.append(`<option value="${fieldId}">${fieldName}</option>`);
-                });
-                
-                // Add remove button handler
-                row.find('.remove-mapping').click(function() {
-                    row.remove();
-                });
-                
-                // Add to container
-                mappingContainer.append(row);
-            }
-
-            // Add button to add more mappings
-            mappingContainer.append(`
-                <button type="button" class="btn btn-outline-primary" id="addMappingBtn">
-                    <i class="fas fa-plus me-2"></i>Add Field Mapping
-                </button>
-            `);
-
-            // Add event handler for the add mapping button
-            $('#addMappingBtn').click(function() {
-                // Clone the first mapping row
-                const newRow = $('.mapping-row').first().clone();
-                
-                // Reset selections
-                newRow.find('select').val('');
-                
-                // Insert before the add button
-                $(this).before(newRow);
-                
-                // Re-attach remove button handler
-                newRow.find('.remove-mapping').click(function() {
-                    newRow.remove();
-                });
-            });
-        }
-    </script>
-    
-    <!-- Fallback script in case jQuery fails - uses direct DOM methods for critical functionality -->
-    <script>
-        // This script serves as a fallback for the authentication buttons
-        // in case jQuery or other scripts fail to load or execute properly
-        
-        // Run this code after DOM is fully loaded
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Fallback script loaded - setting up direct event handlers');
-            
-            // Set up direct event handler for authentication button
-            const authenticateBtn = document.getElementById('authenticateBtn');
-            if (authenticateBtn) {
-                authenticateBtn.addEventListener('click', function() {
-                    console.log('Auth button clicked (direct handler)');
-                    const tenantId = document.getElementById('alchemyTenantId').value.trim();
-                    const email = document.getElementById('alchemyEmail').value.trim();
-                    const password = document.getElementById('alchemyPassword').value.trim();
-                    
-                    if (!tenantId || !email || !password) {
-                        showDirectAuthStatus('error', 'Please provide all required credentials');
-                        return;
-                    }
-                    
-                    // Disable button and show loading state
-                    authenticateBtn.disabled = true;
-                    authenticateBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Authenticating...';
-                    
-                    // Show authentication in progress
-                    showDirectAuthStatus('info', 'Authenticating with Alchemy...');
-                    
-                    // Use fetch API for the request
-                    fetch('/authenticate-alchemy', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            tenant_id: tenantId,
-                            email: email,
-                            password: password
-                        })
+                    body: JSON.stringify({
+                        access_token: accessToken,
+                        object_type: objectType,
+                        oauth_mode: true
                     })
-                    .then(response => response.json())
-                    .then(data => {
-                        // Re-enable button
-                        authenticateBtn.disabled = false;
-                        authenticateBtn.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i>Authenticate with Alchemy';
-                        
-                        if (data.status === 'success') {
-                            window.isAuthenticated = true;
-                            showDirectAuthStatus('success', 'Authentication successful! You can proceed to the next step.');
-                            
-                            // Copy tenant ID to direct form for consistency
-                            const directTenantInput = document.getElementById('alchemyTenantIdDirect');
-                            if (directTenantInput) {
-                                directTenantInput.value = tenantId;
-                            }
-                            
-                            // Enable next button
-                            const nextBtn = document.getElementById('nextBtn');
-                            if (nextBtn) {
-                                nextBtn.disabled = false;
-                            }
-                            
-                            // Show toast
-                            showDirectToast('success', 'Successfully authenticated with Alchemy');
-                        } else {
-                            showDirectAuthStatus('error', data.message || 'Authentication failed');
-                        }
-                    })
-                    .catch(error => {
-                        // Re-enable button
-                        authenticateBtn.disabled = false;
-                        authenticateBtn.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i>Authenticate with Alchemy';
-                        
-                        showDirectAuthStatus('error', 'Error: ' + error.message);
-                    });
-                });
-            }
-            
-            // Set up direct event handler for back button
-            const backBtn = document.getElementById('backBtn');
-            if (backBtn) {
-                backBtn.addEventListener('click', function() {
-                    console.log('Back button clicked (direct handler)');
-                    const currentStepElement = document.getElementById('progressStep');
-                    let currentStep = 1;
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Reset button
+                    $(this).prop('disabled', false).html('<i class="fas fa-list me-2"></i>Fetch Fields');
                     
-                    if (currentStepElement) {
-                        const stepText = currentStepElement.textContent;
-                        const match = stepText.match(/Step (\d+) of/);
-                        if (match && match[1]) {
-                            currentStep = parseInt(match[1]);
-                        }
-                    }
-                    
-                    if (currentStep > 1) {
-                        // Go back one step
-                        const newStep = currentStep - 1;
-                        console.log(`Moving from step ${currentStep} to step ${newStep}`);
+                    if (data.status === 'success' || data.status === 'warning') {
+                        // Store the fields
+                        window.hubspotFields = data.fields || [];
+                        console.log('HubSpot fields loaded:', window.hubspotFields);
                         
-                        // Hide all steps
-                        document.querySelectorAll('.step-content').forEach(step => {
-                            step.style.display = 'none';
-                        });
+                        // Show status message
+                        IntegrationUtils.showStatus(
+                            'hubspotFieldStatus',
+                            data.status === 'warning' ? 'warning' : 'success',
+                            data.message || `Found ${window.hubspotFields.length} fields`
+                        );
                         
-                        // Show the new step
-                        const stepToShow = document.getElementById(`step${newStep}`);
-                        if (stepToShow) {
-                            stepToShow.style.display = 'block';
-                        }
+                        // Move to Step 3
+                        StepManager.goToStep(3);
                         
-                        // Update progress bar
-                        const progressBar = document.getElementById('progressBar');
-                        if (progressBar) {
-                            progressBar.style.width = `${(newStep / 3) * 100}%`;
-                        }
-                        
-                        // Update step text
-                        if (currentStepElement) {
-                            currentStepElement.textContent = `Step ${newStep} of 3`;
-                        }
-                        
-                        // Update buttons
-                        const nextBtn = document.getElementById('nextBtn');
-                        const saveBtn = document.getElementById('saveBtn');
-                        
-                        if (nextBtn && saveBtn) {
-                            nextBtn.style.display = 'inline-block';
-                            saveBtn.style.display = 'none';
-                        }
-                        
-                        // Update global variable if it exists
-                        if (typeof window.currentStep !== 'undefined') {
-                            window.currentStep = newStep;
-                        }
-                    }
-                });
-            }
-            
-            // Set up direct event handler for fetch fields button
-            const fetchFieldsBtn = document.getElementById('fetchFieldsBtn');
-            if (fetchFieldsBtn) {
-                fetchFieldsBtn.addEventListener('click', function() {
-                    console.log('Fetch fields button clicked (direct handler)');
-                    const recordType = document.getElementById('recordTypeInput').value.trim();
-                    
-                    if (!recordType) {
-                        showDirectToast('error', 'Please enter a record type');
-                        return;
-                    }
-                    
-                    // Determine which credentials to use based on the authentication method
-                    let tenantId, refreshToken;
-                    const authMethodAuto = document.getElementById('authMethodAuto');
-                    
-                    if (authMethodAuto && authMethodAuto.checked) {
-                        tenantId = document.getElementById('alchemyTenantId').value.trim();
-                        refreshToken = "session"; // Use token from session
+                        // Show toast
+                        IntegrationUtils.showToast('success', `Successfully fetched ${window.hubspotFields.length} HubSpot fields`);
                     } else {
-                        tenantId = document.getElementById('alchemyTenantIdDirect').value.trim();
-                        refreshToken = document.getElementById('alchemyRefreshToken').value.trim();
-                    }
-                    
-                    if (!tenantId) {
-                        showDirectToast('error', 'Missing tenant ID');
-                        return;
-                    }
-                    
-                    // Disable button during fetch
-                    fetchFieldsBtn.disabled = true;
-                    fetchFieldsBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Fetching Fields...';
-                    
-                    // Show status message
-                    const recordTypeStatus = document.getElementById('recordTypeStatus');
-                    if (recordTypeStatus) {
-                        recordTypeStatus.className = 'alert alert-info mt-3';
-                        recordTypeStatus.innerHTML = '<i class="fas fa-info-circle me-2"></i>Fetching fields for record type: ' + recordType + '...';
-                        recordTypeStatus.style.display = 'block';
-                    }
-                    
-                    // Use fetch API for the request
-                    fetch('/get-alchemy-fields', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            tenant_id: tenantId,
-                            refresh_token: refreshToken,
-                            record_type: recordType
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        // Re-enable button
-                        fetchFieldsBtn.disabled = false;
-                        fetchFieldsBtn.innerHTML = '<i class="fas fa-search me-2"></i>Fetch Fields';
-                        
-                        // Store fields globally
-                        window.alchemyFields = data.fields || [];
-                        
-                        if (data.status === 'success' || data.status === 'warning') {
-                            // Show appropriate status message
-                            if (data.status === 'warning') {
-                                if (recordTypeStatus) {
-                                    recordTypeStatus.className = 'alert alert-warning mt-3';
-                                    recordTypeStatus.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>' + (data.message || 'Using fallback fields');
-                                }
-                                showDirectToast('warning', data.message || 'Using fallback fields');
-                            } else {
-                                if (recordTypeStatus) {
-                                    recordTypeStatus.className = 'alert alert-success mt-3';
-                                    recordTypeStatus.innerHTML = '<i class="fas fa-check-circle me-2"></i>Successfully fetched ' + data.fields.length + ' fields';
-                                }
-                                showDirectToast('success', 'Successfully fetched ' + data.fields.length + ' fields');
-                            }
-                            
-                            // Check if on HubSpot platform
-                            const isHubSpot = window.location.href.includes('platform=hubspot');
-                            if (isHubSpot) {
-                                // Show HubSpot specific container
-                                const hubspotObjectContainer = document.getElementById('hubspotObjectContainer');
-                                if (hubspotObjectContainer) {
-                                    hubspotObjectContainer.style.display = 'block';
-                                }
-                                
-                                // Enable object type selection
-                                const fetchHubspotObjectsBtn = document.getElementById('fetchHubspotObjectsBtn');
-                                if (fetchHubspotObjectsBtn) {
-                                    fetchHubspotObjectsBtn.disabled = false;
-                                }
-                                
-                                // Show record identifier field
-                                const hubspotRecordIdentifierContainer = document.getElementById('hubspotRecordIdentifierContainer');
-                                if (hubspotRecordIdentifierContainer) {
-                                    hubspotRecordIdentifierContainer.style.display = 'block';
-                                }
-                            } else {
-                                // For other platforms, move to step 3
-                                const step2 = document.getElementById('step2');
-                                const step3 = document.getElementById('step3');
-                                if (step2 && step3) {
-                                    step2.style.display = 'none';
-                                    step3.style.display = 'block';
-                                    
-                                    // Update progress indicator
-                                    const progressBar = document.getElementById('progressBar');
-                                    const progressStep = document.getElementById('progressStep');
-                                    
-                                    if (progressBar) progressBar.style.width = '100%';
-                                    if (progressStep) progressStep.textContent = 'Step 3 of 3';
-                                    
-                                    // Update buttons
-                                    const nextBtn = document.getElementById('nextBtn');
-                                    const saveBtn = document.getElementById('saveBtn');
-                                    
-                                    if (nextBtn) nextBtn.style.display = 'none';
-                                    if (saveBtn) saveBtn.style.display = 'inline-block';
-                                    
-                                    // Update global step
-                                    if (typeof window.currentStep !== 'undefined') {
-                                        window.currentStep = 3;
-                                    }
-                                    
-                                    // Generate field mappings
-                                    if (typeof populateFieldMappings === 'function') {
-                                        populateFieldMappings(data.fields);
-                                    }
-                                }
-                            }
-                        } else {
-                            // Show error message
-                            if (recordTypeStatus) {
-                                recordTypeStatus.className = 'alert alert-danger mt-3';
-                                recordTypeStatus.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>' + (data.message || 'Failed to fetch fields');
-                            }
-                            showDirectToast('error', data.message || 'Failed to fetch fields');
-                        }
-                    })
-                    .catch(error => {
-                        // Re-enable button
-                        fetchFieldsBtn.disabled = false;
-                        fetchFieldsBtn.innerHTML = '<i class="fas fa-search me-2"></i>Fetch Fields';
-                        
                         // Show error message
-                        if (recordTypeStatus) {
-                            recordTypeStatus.className = 'alert alert-danger mt-3';
-                            recordTypeStatus.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Error: ' + error.message;
-                        }
-                        showDirectToast('error', 'Error: ' + error.message);
-                    });
-                });
-            }
-            
-            // Direct event handler for HubSpot validate button
-            const validateHubspotBtn = document.getElementById('validateHubspotBtn');
-            if (validateHubspotBtn) {
-                validateHubspotBtn.addEventListener('click', function() {
-                    console.log('Validate HubSpot button clicked (direct handler)');
-                    validateHubSpotCredentialsDirect();
-                });
-            }
-            
-            // Set up toggle buttons for password visibility
-            setupPasswordToggles();
-        });
-
-        // Direct implementation of showAuthStatus function
-        function showDirectAuthStatus(type, message) {
-            const authStatus = document.getElementById('authStatus');
-            if (!authStatus) return;
-            
-            let alertClass = 'alert-info';
-            let icon = '<i class="fas fa-info-circle me-2"></i>';
-            
-            if (type === 'success') {
-                alertClass = 'alert-success';
-                icon = '<i class="fas fa-check-circle me-2"></i>';
-            } else if (type === 'error') {
-                alertClass = 'alert-danger';
-                icon = '<i class="fas fa-exclamation-circle me-2"></i>';
-            }
-            
-            authStatus.className = 'alert ' + alertClass + ' mt-3';
-            authStatus.innerHTML = icon + message;
-            authStatus.style.display = 'block';
-        }
-        
-        // Direct implementation of showToast function
-        function showDirectToast(type, message) {
-            const toastContainer = document.getElementById('toastContainer');
-            if (!toastContainer) return;
-            
-            const toast = document.createElement('div');
-            toast.className = 'toast';
-            
-            let icon = '<i class="fas fa-info-circle me-2"></i>';
-            
-            if (type === 'success') {
-                toast.classList.add('success');
-                icon = '<i class="fas fa-check-circle me-2"></i>';
-            } else if (type === 'error') {
-                toast.classList.add('error');
-                icon = '<i class="fas fa-exclamation-circle me-2"></i>';
-            } else if (type === 'warning') {
-                toast.classList.add('warning');
-                icon = '<i class="fas fa-exclamation-triangle me-2"></i>';
-            }
-            
-            toast.innerHTML = icon + message;
-            toastContainer.appendChild(toast);
-            
-            // Auto-remove after 3 seconds
-            setTimeout(function() {
-                toast.style.opacity = '0';
-                toast.style.transition = 'opacity 0.3s';
-                setTimeout(function() {
-                    if (toast.parentNode) {
-                        toast.parentNode.removeChild(toast);
-                    }
-                }, 300);
-            }, 3000);
-        }
-        
-        // Setup password toggle buttons
-        function setupPasswordToggles() {
-            const toggles = [
-                { buttonId: 'togglePassword', inputId: 'alchemyPassword' },
-                { buttonId: 'toggleRefreshToken', inputId: 'alchemyRefreshToken' },
-                { buttonId: 'toggleHubspotApiKey', inputId: 'hubspotApiKey' },
-                { buttonId: 'toggleHubspotSecret', inputId: 'hubspotPortalId' },
-                { buttonId: 'toggleSalesforceSecret', inputId: 'salesforceClientSecret' },
-                { buttonId: 'toggleSapSecret', inputId: 'sapClientSecret' }
-            ];
-            
-            toggles.forEach(function(item) {
-                const toggleBtn = document.getElementById(item.buttonId);
-                const inputField = document.getElementById(item.inputId);
-                
-                if (toggleBtn && inputField) {
-                    toggleBtn.addEventListener('click', function() {
-                        const type = inputField.type === 'password' ? 'text' : 'password';
-                        inputField.type = type;
+                        IntegrationUtils.showStatus('hubspotFieldStatus', 'error', data.message || 'Failed to fetch fields');
                         
-                        const icon = toggleBtn.querySelector('i');
-                        if (icon) {
-                            if (type === 'text') {
-                                icon.classList.remove('fa-eye');
-                                icon.classList.add('fa-eye-slash');
-                            } else {
-                                icon.classList.remove('fa-eye-slash');
-                                icon.classList.add('fa-eye');
-                            }
-                        }
-                    });
-                }
+                        // Show toast
+                        IntegrationUtils.showToast('error', 'Failed to fetch HubSpot fields');
+                    }
+                })
+                .catch(error => {
+                    // Reset button
+                    $(this).prop('disabled', false).html('<i class="fas fa-list me-2"></i>Fetch Fields');
+                    
+                    // Show error message
+                    IntegrationUtils.showStatus('hubspotFieldStatus', 'error', 'Error: ' + error.message);
+                    
+                    // Show toast
+                    IntegrationUtils.showToast('error', 'Error: ' + error.message);
+                });
             });
-        }
+            
+            // Object type change handler
+            $('#hubspotObjectType').change(function() {
+                const selectedValue = $(this).val();
+                const selectedText = $(this).find('option:selected').text();
+                
+                // Update label
+                $('#hubspotObjectTypeLabel').text(selectedValue ? selectedText : 'None Selected');
+                
+                // Enable/disable fields button
+                $('#fetchHubspotFieldsBtn').prop('disabled', !selectedValue);
+            });
+        });
         
-        // Direct implementation of validateHubSpotCredentials
-        function validateHubSpotCredentialsDirect() {
-            const accessToken = document.getElementById('hubspotApiKey').value.trim();
-            const clientSecret = document.getElementById('hubspotPortalId').value.trim();
-            const hubspotStatus = document.getElementById('hubspotStatus');
+        // Function to fetch HubSpot object types
+        function fetchHubSpotObjectTypes() {
+            const accessToken = $('#hubspotApiKey').val().trim();
             
             if (!accessToken) {
-                if (hubspotStatus) {
-                    hubspotStatus.className = 'alert alert-danger mt-3';
-                    hubspotStatus.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Please enter HubSpot Access Token';
-                    hubspotStatus.style.display = 'block';
-                }
-                showDirectToast('error', 'Please enter HubSpot Access Token');
+                IntegrationUtils.showToast('error', 'Please enter HubSpot Access Token');
                 return;
             }
             
+            const fetchBtn = $('#fetchHubspotObjectsBtn');
+            
             // Show loading state
-            const validateBtn = document.getElementById('validateHubspotBtn');
-            if (validateBtn) {
-                validateBtn.disabled = true;
-                validateBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Validating...';
-            }
+            fetchBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Fetching...');
             
             // Show status
-            if (hubspotStatus) {
-                hubspotStatus.className = 'alert alert-info mt-3';
-                hubspotStatus.innerHTML = '<i class="fas fa-info-circle me-2"></i>Validating HubSpot credentials...';
-                hubspotStatus.style.display = 'block';
-            }
+            IntegrationUtils.showStatus('hubspotObjectStatus', 'info', 'Fetching HubSpot object types...');
             
-            // Make API request
-            fetch('/hubspot/validate', {
+            // Make API call
+            fetch('/hubspot/object-types', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     access_token: accessToken,
-                    client_secret: clientSecret,
                     oauth_mode: true
                 })
             })
             .then(response => response.json())
             .then(data => {
                 // Reset button
-                if (validateBtn) {
-                    validateBtn.disabled = false;
-                    validateBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Validate Credentials';
-                }
+                fetchBtn.prop('disabled', false).html('<i class="fas fa-sync-alt me-2"></i>Refresh');
                 
-                if (data.status === 'success') {
+                if (data.status === 'success' || data.status === 'warning') {
+                    // Store object types
+                    window.hubspotObjectTypes = data.object_types || [];
+                    
+                    // Update object type select
+                    const select = $('#hubspotObjectType');
+                    
+                    // Clear existing options
+                    select.html('<option value="">-- Select Object Type --</option>');
+                    
+                    // Add new options
+                    $.each(window.hubspotObjectTypes, function(i, obj) {
+                        select.append($('<option>', {
+                            value: obj.id,
+                            text: obj.name
+                        }));
+                    });
+                    
+                    // Enable select
+                    select.prop('disabled', false);
+                    
                     // Show success message
-                    if (hubspotStatus) {
-                        hubspotStatus.className = 'alert alert-success mt-3';
-                        hubspotStatus.innerHTML = '<i class="fas fa-check-circle me-2"></i>' + data.message;
-                    }
-                    showDirectToast('success', 'HubSpot credentials validated successfully');
+                    IntegrationUtils.showStatus(
+                        'hubspotObjectStatus',
+                        data.status === 'warning' ? 'warning' : 'success',
+                        data.message || `Found ${window.hubspotObjectTypes.length} object types`
+                    );
+                    
+                    // Show toast
+                    IntegrationUtils.showToast('success', `Successfully loaded ${window.hubspotObjectTypes.length} HubSpot object types`);
                 } else {
                     // Show error message
-                    if (hubspotStatus) {
-                        hubspotStatus.className = 'alert alert-danger mt-3';
-                        hubspotStatus.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>' + (data.message || 'Validation failed');
-                    }
-                    showDirectToast('error', data.message || 'HubSpot credential validation failed');
+                    IntegrationUtils.showStatus('hubspotObjectStatus', 'error', data.message || 'Failed to fetch object types');
+                    
+                    // Show toast
+                    IntegrationUtils.showToast('error', 'Failed to fetch HubSpot object types');
                 }
             })
             .catch(error => {
                 // Reset button
-                if (validateBtn) {
-                    validateBtn.disabled = false;
-                    validateBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Validate Credentials';
-                }
+                fetchBtn.prop('disabled', false).html('<i class="fas fa-sync-alt me-2"></i>Refresh');
                 
                 // Show error message
-                if (hubspotStatus) {
-                    hubspotStatus.className = 'alert alert-danger mt-3';
-                    hubspotStatus.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Error: ' + error.message;
-                }
-                showDirectToast('error', 'Error: ' + error.message);
+                IntegrationUtils.showStatus('hubspotObjectStatus', 'error', 'Error: ' + error.message);
+                
+                // Show toast
+                IntegrationUtils.showToast('error', 'Error: ' + error.message);
             });
         }
     </script>
-    <!-- Add this at the bottom of config.html -->
-<script>
-// Fallback HubSpot integration script
-console.log('Loading fallback HubSpot integration');
-
-// Function to validate HubSpot credentials
-function validateHubSpotCredentialsDirect() {
-    const accessToken = document.getElementById('hubspotApiKey').value.trim();
-    const clientSecret = document.getElementById('hubspotPortalId').value.trim();
-    
-    if (!accessToken) {
-        alert('Please enter HubSpot Access Token');
-        return;
-    }
-    
-    // Show loading state
-    const validateBtn = document.getElementById('validateHubspotBtn');
-    if (validateBtn) {
-        validateBtn.disabled = true;
-        validateBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Validating...';
-    }
-    
-    // Create direct API call (avoiding jQuery which might be missing)
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', '/hubspot/validate', true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    
-    xhr.onload = function() {
-        // Reset button
-        if (validateBtn) {
-            validateBtn.disabled = false;
-            validateBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Validate Credentials';
-        }
-        
-        if (xhr.status === 200) {
-            try {
-                const response = JSON.parse(xhr.responseText);
-                
-                if (response.status === 'success') {
-                    // Show success message
-                    alert('HubSpot credentials validated successfully!');
-                    
-                    // Enable fetching object types
-                    const fetchObjectsBtn = document.getElementById('fetchHubspotObjectsBtn');
-                    if (fetchObjectsBtn) {
-                        fetchObjectsBtn.disabled = false;
-                    }
-                    
-                    // Fetch object types automatically
-                    fetchHubSpotObjectTypes();
-                } else {
-                    // Show error message
-                    alert('Validation failed: ' + (response.message || 'Unknown error'));
-                }
-            } catch (e) {
-                alert('Error parsing response: ' + e);
-            }
-        } else {
-            alert('Request failed. Status: ' + xhr.status);
-        }
-    };
-    
-    xhr.onerror = function() {
-        // Reset button
-        if (validateBtn) {
-            validateBtn.disabled = false;
-            validateBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Validate Credentials';
-        }
-        
-        alert('Request failed. Network error.');
-    };
-    
-    // Send the request
-    xhr.send(JSON.stringify({
-        access_token: accessToken,
-        client_secret: clientSecret,
-        oauth_mode: true
-    }));
-}
-
-// Function to fetch HubSpot object types
-function fetchHubSpotObjectTypes() {
-    const accessToken = document.getElementById('hubspotApiKey').value.trim();
-    
-    if (!accessToken) {
-        alert('Please enter and validate your HubSpot Access Token first');
-        return;
-    }
-    
-    // Show loading state
-    const fetchBtn = document.getElementById('fetchHubspotObjectsBtn');
-    if (fetchBtn) {
-        fetchBtn.disabled = true;
-        fetchBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Fetching...';
-    }
-    
-    // Create direct API call
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', '/hubspot/object-types', true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    
-    xhr.onload = function() {
-        // Reset button
-        if (fetchBtn) {
-            fetchBtn.disabled = false;
-            fetchBtn.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Refresh';
-        }
-        
-        if (xhr.status === 200) {
-            try {
-                const response = JSON.parse(xhr.responseText);
-                
-                if (response.status === 'success' || response.status === 'warning') {
-                    // Store object types
-                    window.hubspotObjectTypes = response.object_types || [];
-                    
-                    // Update object type select
-                    const select = document.getElementById('hubspotObjectType');
-                    if (select) {
-                        // Clear existing options
-                        select.innerHTML = '<option value="">-- Select Object Type --</option>';
-                        
-                        // Add new options
-                        window.hubspotObjectTypes.forEach(function(obj) {
-                            const option = document.createElement('option');
-                            option.value = obj.id;
-                            option.textContent = obj.name;
-                            select.appendChild(option);
-                        });
-                        
-                        // Enable select
-                        select.disabled = false;
-                    }
-                    
-                    alert('Successfully loaded ' + window.hubspotObjectTypes.length + ' object types');
-                } else {
-                    alert('Failed to fetch object types: ' + (response.message || 'Unknown error'));
-                }
-            } catch (e) {
-                alert('Error parsing response: ' + e);
-            }
-        } else {
-            alert('Request failed. Status: ' + xhr.status);
-        }
-    };
-    
-    xhr.onerror = function() {
-        // Reset button
-        if (fetchBtn) {
-            fetchBtn.disabled = false;
-            fetchBtn.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Refresh';
-        }
-        
-        alert('Request failed. Network error.');
-    };
-    
-    // Send the request
-    xhr.send(JSON.stringify({
-        access_token: accessToken,
-        oauth_mode: true
-    }));
-}
-
-// Add event listeners when the page loads
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Fallback script loaded - setting up direct event handlers');
-    
-    // Set up the validate button
-    const validateHubspotBtn = document.getElementById('validateHubspotBtn');
-    if (validateHubspotBtn) {
-        validateHubspotBtn.addEventListener('click', function() {
-            validateHubSpotCredentialsDirect();
-        });
-    }
-    
-    // Set up the fetch objects button
-    const fetchHubspotObjectsBtn = document.getElementById('fetchHubspotObjectsBtn');
-    if (fetchHubspotObjectsBtn) {
-        fetchHubspotObjectsBtn.addEventListener('click', function() {
-            fetchHubSpotObjectTypes();
-        });
-    }
-});
-</script>
-    <!-- Add this before the closing </body> tag -->
-<script src="{{ url_for('static', filename='js/field-mapping.js') }}"></script>
-<script src="{{ url_for('static', filename='js/hubspot-troubleshooter.js') }}"></script>
-<script src="{{ url_for('static', filename='js/hubspot-fix.js') }}"></script>
-<script src="{{ url_for('static', filename='js/integration-helper.js') }}"></script>
-<script src="/static/js/simplified-field-mapping.js"></script>
 </body>
 </html>
