@@ -271,50 +271,7 @@ function addMappingRow(tableBody, alchemyField = null, platformField = null, alc
   actionCell.className = 'text-center';
   
   const deleteBtn = document.createElement('button');
-  deleteBtn.className = 'btn delete-mapping';
-  deleteBtn.innerHTML = '<i class="fas fa-times"></i>';
-  deleteBtn.addEventListener('click', function() {
-    row.remove();
-  });
-  
-  actionCell.appendChild(deleteBtn);
-  row.appendChild(actionCell);
-  
-  // Add to table
-  tableBody.appendChild(row);
-  
-  // Rest of the code...
-
-    });
-  }
-  
-  // Set selected value if provided
-  if (platformField) {
-    platformSelect.value = platformField.identifier;
-  }
-  
-  platformCell.appendChild(platformSelect);
-  row.appendChild(platformCell);
-  
-  // Create required cell with checkbox
-  const requiredCell = document.createElement('td');
-  requiredCell.className = 'text-center';
-  
-  const requiredCheckbox = document.createElement('input');
-  requiredCheckbox.type = 'checkbox';
-  requiredCheckbox.className = 'form-check-input';
-  requiredCheckbox.checked = platformField && platformField.required;
-  requiredCheckbox.disabled = platformField && platformField.required;
-  
-  requiredCell.appendChild(requiredCheckbox);
-  row.appendChild(requiredCell);
-  
-  // Create action cell with delete button
-  const actionCell = document.createElement('td');
-  actionCell.className = 'text-center';
-  
-  const deleteBtn = document.createElement('button');
-  deleteBtn.className = 'btn btn-sm btn-outline-danger';
+  deleteBtn.className = 'btn btn-sm btn-outline-danger delete-mapping';
   deleteBtn.innerHTML = '<i class="fas fa-times"></i>';
   deleteBtn.addEventListener('click', function() {
     row.remove();
