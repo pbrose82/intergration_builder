@@ -17,9 +17,9 @@ function populateFieldMappings(alchemyFields, hubspotFields) {
   // Clear existing content
   mappingContainer.innerHTML = '';
   
-  // Add header
+  // Add header with improved styling
   const headerHtml = `
-    <div class="alert alert-info mb-3">
+    <div class="mapping-info">
       <i class="fas fa-info-circle me-2"></i>
       Map fields between Alchemy and the selected platform
     </div>
@@ -68,21 +68,27 @@ function populateFieldMappings(alchemyFields, hubspotFields) {
   // Store platform fields globally for later use
   window.platformFields = platformFields;
   
-  // Create table for mappings
+  // Create table for mappings with improved styling
   const tableHtml = `
-    <table class="table table-striped">
-      <thead>
-        <tr>
-          <th>Alchemy Field</th>
-          <th>${IntegrationUtils.capitalize(platform)} Field</th>
-          <th width="80">Required</th>
-          <th width="80">Actions</th>
-        </tr>
-      </thead>
-      <tbody id="mappingsTableBody">
-        <!-- Mapping rows will be added here -->
-      </tbody>
-    </table>
+    <div class="mapping-container">
+      <table class="mapping-table">
+        <thead>
+          <tr>
+            <th>Alchemy Field</th>
+            <th>${IntegrationUtils.capitalize(platform)} Field</th>
+            <th width="100" class="text-center">Required</th>
+            <th width="80" class="text-center">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="mappingsTableBody">
+          <!-- Mapping rows will be added here -->
+        </tbody>
+      </table>
+      
+      <button type="button" id="addMappingBtn" class="add-mapping-btn mt-3">
+        <i class="fas fa-plus me-2"></i>Add Field Mapping
+      </button>
+    </div>
   `;
   
   mappingContainer.innerHTML += tableHtml;
@@ -166,25 +172,6 @@ function populateFieldMappings(alchemyFields, hubspotFields) {
     mappingCount++;
   }
   
-  // Add 'Add Mapping' button
-  const addButtonHtml = `
-    <div class="text-end mt-3">
-      <button id="addMappingBtn" class="btn btn-outline-primary">
-        <i class="fas fa-plus me-2"></i>Add Mapping
-      </button>
-    </div>
-  `;
-  
-  mappingContainer.innerHTML += addButtonHtml;
-  
-  // Attach event handler for add button
-  const addMappingBtn = document.getElementById('addMappingBtn');
-  if (addMappingBtn) {
-    addMappingBtn.addEventListener('click', function() {
-      addMappingRow(tableBody, null, null, alchemyFields, platformFields);
-    });
-  }
-  
   // Add sync options if they're hidden
   const syncOptionsContainer = document.getElementById('syncOptionsContainer');
   if (syncOptionsContainer && syncOptionsContainer.style.display === 'none') {
@@ -193,7 +180,6 @@ function populateFieldMappings(alchemyFields, hubspotFields) {
   
   console.log('Field mapping UI populated successfully');
 }
-
 function addMappingRow(tableBody, alchemyField = null, platformField = null, alchemyFields, platformFields) {
   if (!tableBody) {
     console.error('Table body element not found');
