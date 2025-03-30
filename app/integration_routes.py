@@ -102,7 +102,9 @@ def save_integration():
                 'access_token': hs_config.get('access_token'),
                 'client_secret': hs_config.get('client_secret'),
                 'object_type': hs_config.get('object_type'),
-                'record_identifier': hs_config.get('record_identifier', 'id')  # Add record identifier with default
+                # System now uses standard identifiers for record matching
+                # Default to 'id' as the identifier field unless explicitly specified
+                'record_identifier': hs_config.get('record_identifier', 'id')
             }
             
             # Log the HubSpot config
@@ -122,11 +124,25 @@ def save_integration():
             'sync_config': sync_config
         }
         
+        # Process field mappings to ensure consistent format
+        processed_mappings = []
+        for mapping in field_mappings:
+            processed_mapping = {
+                'alchemy_field': mapping.get('alchemy_field'),
+                'platform_field': mapping.get('platform_field', mapping.get('hubspot_field', mapping.get('salesforce_field', mapping.get('sap_field'))))
+            }
+            
+            # Include required flag if present
+            if 'required' in mapping:
+                processed_mapping['required'] = mapping['required']
+                
+            processed_mappings.append(processed_mapping)
+        
         # Store as JSON in the database
         # In a production app, you'd use proper encryption for sensitive values
         integration.field_mappings = json.dumps({
             'config': full_config,
-            'mappings': field_mappings
+            'mappings': processed_mappings
         })
         
         # Save to database
