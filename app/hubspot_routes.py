@@ -1,6 +1,4 @@
-"""
-Routes for HubSpot integration with OAuth support
-"""
+# app/hubspot_routes.py (updated)
 from flask import Blueprint, request, jsonify, current_app
 from services.hubspot_service import get_hubspot_service
 import logging
