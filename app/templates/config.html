@@ -487,23 +487,204 @@
     </div>
 
     <!-- Core Libraries -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <!-- Utility Scripts -->
-    <!-- Fix the order of loading -->
-    <script src="{{ url_for('static', filename='js/integration-utils.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/auth-button-fix.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/debug-helper.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/step-manager.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/simplified-field-mapping.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-    
-    <!-- Field Mapping -->
-    <script src="{{ url_for('static', filename='js/simplified-field-mapping.js') }}"></script>
-    
-    <!-- Main Coordination Script -->
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-</body>
-</html>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Debug script - add directly inline to avoid path issues -->
+<script>
+console.log('Inline debug script loaded');
+// Register a click handler on all buttons to debug
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('DOM loaded, attaching debug handlers');
+  const buttons = document.querySelectorAll('button');
+  buttons.forEach(button => {
+    console.log(`Found button: ${button.id || 'unnamed'}, Text: ${button.innerText}`);
+    button.addEventListener('click', function(e) {
+      console.log(`Button clicked: ${this.id || 'unnamed'}`);
+    });
+  });
+});
+</script>
+
+<!-- Direct authentication fix -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('Auth button fix script loaded');
+  
+  // Fix Alchemy authentication button
+  const authenticateBtn = document.getElementById('authenticateBtn');
+  if (authenticateBtn) {
+    console.log('Found Alchemy authenticate button:', authenticateBtn);
+    authenticateBtn.onclick = function() {
+      console.log('Authenticate button clicked!');
+      const tenantId = document.getElementById('alchemyTenantId')?.value?.trim();
+      const email = document.getElementById('alchemyEmail')?.value?.trim();
+      const password = document.getElementById('alchemyPassword')?.value?.trim();
+      
+      if (!tenantId || !email || !password) {
+        alert('Please fill in all Alchemy credentials');
+        return;
+      }
+      
+      console.log('Authentication with:', { tenantId, email });
+      
+      // Show loading state
+      authenticateBtn.disabled = true;
+      authenticateBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Authenticating...';
+      
+      // Show status
+      const authStatus = document.getElementById('authStatus');
+      if (authStatus) {
+        authStatus.className = 'alert alert-info mt-3';
+        authStatus.innerHTML = '<i class="fas fa-info-circle me-2"></i>Authenticating with Alchemy...';
+        authStatus.style.display = 'block';
+      }
+      
+      // Call API
+      fetch('/authenticate-alchemy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          tenant_id: tenantId,
+          email: email,
+          password: password
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log('Authentication response:', data);
+        
+        // Reset button
+        authenticateBtn.disabled = false;
+        authenticateBtn.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i>Authenticate with Alchemy';
+        
+        if (data.status === 'success') {
+          // Show success status
+          if (authStatus) {
+            authStatus.className = 'alert alert-success mt-3';
+            authStatus.innerHTML = '<i class="fas fa-check-circle me-2"></i>Authentication successful!';
+          }
+          
+          // Keep tenant ID in sync across inputs
+          const directTenantInput = document.getElementById('alchemyTenantIdDirect');
+          if (directTenantInput) {
+            directTenantInput.value = tenantId;
+          }
+        } else {
+          // Show error status
+          if (authStatus) {
+            authStatus.className = 'alert alert-danger mt-3';
+            authStatus.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>' + 
+              (data.message || 'Authentication failed');
+          }
+        }
+      })
+      .catch(error => {
+        console.error('Authentication error:', error);
+        
+        // Reset button
+        authenticateBtn.disabled = false;
+        authenticateBtn.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i>Authenticate with Alchemy';
+        
+        // Show error
+        if (authStatus) {
+          authStatus.className = 'alert alert-danger mt-3';
+          authStatus.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Error: ' + error.message;
+        }
+      });
+    };
+  } else {
+    console.warn('Authenticate button not found');
+  }
+  
+  // Fix HubSpot validation button
+  const validateHubspotBtn = document.getElementById('validateHubspotBtn');
+  if (validateHubspotBtn) {
+    console.log('Found HubSpot validate button:', validateHubspotBtn);
+    validateHubspotBtn.onclick = function() {
+      console.log('Validate HubSpot button clicked!');
+      const accessToken = document.getElementById('hubspotApiKey')?.value?.trim();
+      const clientSecret = document.getElementById('hubspotPortalId')?.value?.trim();
+      
+      if (!accessToken) {
+        alert('Please enter HubSpot access token');
+        return;
+      }
+      
+      console.log('Validating HubSpot with token:', accessToken.substring(0, 3) + '...');
+      
+      // Show loading state
+      validateHubspotBtn.disabled = true;
+      validateHubspotBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Validating...';
+      
+      // Show status
+      const hubspotStatus = document.getElementById('hubspotStatus');
+      if (hubspotStatus) {
+        hubspotStatus.className = 'alert alert-info mt-3';
+        hubspotStatus.innerHTML = '<i class="fas fa-info-circle me-2"></i>Validating HubSpot credentials...';
+        hubspotStatus.style.display = 'block';
+      }
+      
+      // Call API
+      fetch('/hubspot/validate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          access_token: accessToken,
+          client_secret: clientSecret,
+          oauth_mode: true
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log('Validation response:', data);
+        
+        // Reset button
+        validateHubspotBtn.disabled = false;
+        validateHubspotBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Validate Credentials';
+        
+        if (data.status === 'success') {
+          // Show success status
+          if (hubspotStatus) {
+            hubspotStatus.className = 'alert alert-success mt-3';
+            hubspotStatus.innerHTML = '<i class="fas fa-check-circle me-2"></i>' + 
+              (data.message || 'Credentials validated successfully');
+          }
+        } else {
+          // Show error status
+          if (hubspotStatus) {
+            hubspotStatus.className = 'alert alert-danger mt-3';
+            hubspotStatus.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>' + 
+              (data.message || 'Validation failed');
+          }
+        }
+      })
+      .catch(error => {
+        console.error('Validation error:', error);
+        
+        // Reset button
+        validateHubspotBtn.disabled = false;
+        validateHubspotBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Validate Credentials';
+        
+        // Show error
+        if (hubspotStatus) {
+          hubspotStatus.className = 'alert alert-danger mt-3';
+          hubspotStatus.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Error: ' + error.message;
+        }
+      });
+    };
+  } else {
+    console.warn('HubSpot validate button not found');
+  }
+});
+</script>
+
+<!-- Try loading your regular scripts after the inline fixes -->
+<script src="/static/js/integration-utils.js"></script>
+<script src="/static/js/step-manager.js"></script>
+<script src="/static/js/simplified-field-mapping.js"></script>
+<script src="/static/js/main.js"></script>
