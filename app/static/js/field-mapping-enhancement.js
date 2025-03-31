@@ -1,14 +1,11 @@
 /**
- * Enhanced field mapping script with typeahead search
- * 
- * This script updates the field mapping functionality to:
- * 1. Properly maintain all fields between steps
- * 2. Add typeahead search to field select elements
+ * Enhanced field mapping layout with better spacing and organization
+ * This script improves the field mapping UI with a cleaner layout and exactly 5 initial fields
  */
 
-// Function to populate field mappings with all available fields
-function populateFieldMappings(alchemyFields, platformFields) {
-  console.log('Populating field mappings with Alchemy fields:', alchemyFields?.length || 0);
+// Modify populateFieldMappings function to improve layout and start with exactly 5 fields
+function enhancedPopulateFieldMappings(alchemyFields, platformFields) {
+  console.log('Populating improved field mappings with Alchemy fields:', alchemyFields?.length || 0);
   console.log('Platform fields:', platformFields?.length || 0);
   
   // Get the container for field mappings
@@ -21,12 +18,23 @@ function populateFieldMappings(alchemyFields, platformFields) {
   // Clear existing content
   mappingContainer.innerHTML = '';
   
-  // Add header with improved styling
+  // Add improved header with field counts
   const headerHtml = `
-    <div class="mapping-info">
-      <i class="fas fa-info-circle me-2"></i>
-      Map fields between Alchemy and the selected platform
-      <small class="d-block mt-2">${alchemyFields?.length || 0} Alchemy fields and ${platformFields?.length || 0} platform fields available. Use the search box to quickly find fields.</small>
+    <div class="mapping-info mb-4">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <i class="fas fa-exchange-alt me-2"></i>
+          <strong>Field Mapping</strong>
+          <span class="text-muted ms-2">Connect data between systems</span>
+        </div>
+        <div>
+          <span class="badge bg-primary me-2">${alchemyFields?.length || 0} Alchemy Fields</span>
+          <span class="badge bg-secondary">${platformFields?.length || 0} ${detectPlatform().charAt(0).toUpperCase() + detectPlatform().slice(1)} Fields</span>
+        </div>
+      </div>
+      <p class="text-muted mt-2 mb-0">
+        <small>Use the search box to quickly find fields from either system. Map the fields that should be synchronized.</small>
+      </p>
     </div>
   `;
   mappingContainer.innerHTML += headerHtml;
@@ -51,8 +59,6 @@ function populateFieldMappings(alchemyFields, platformFields) {
       platformFieldsToUse = [
         {identifier: 'name', name: 'Name'},
         {identifier: 'account', name: 'Account'},
-        {identifier: 'opportunity', name: 'Opportunity'},
-        {identifier: 'contact', name: 'Contact'},
         {identifier: 'email', name: 'Email'},
         {identifier: 'phone', name: 'Phone'}
       ];
@@ -61,8 +67,6 @@ function populateFieldMappings(alchemyFields, platformFields) {
         {identifier: 'material', name: 'Material'},
         {identifier: 'vendor', name: 'Vendor'},
         {identifier: 'purchase_order', name: 'Purchase Order'},
-        {identifier: 'delivery', name: 'Delivery'},
-        {identifier: 'invoice', name: 'Invoice'},
         {identifier: 'customer', name: 'Customer'}
       ];
     }
@@ -73,24 +77,28 @@ function populateFieldMappings(alchemyFields, platformFields) {
   // Store platform fields globally for later use
   window.platformFields = platformFieldsToUse;
   
-  // Create table for mappings with improved styling
+  // Create improved table for mappings
   const tableHtml = `
-    <div class="mapping-container">
-      <table class="mapping-table">
-        <thead>
-          <tr>
-            <th>Alchemy Field</th>
-            <th>${IntegrationUtils.capitalize(platform)} Field</th>
-            <th width="100" class="text-center">Required</th>
-            <th width="80" class="text-center">Actions</th>
-          </tr>
-        </thead>
-        <tbody id="mappingsTableBody">
-          <!-- Mapping rows will be added here -->
-        </tbody>
-      </table>
-      
-      <button type="button" id="addMappingBtn" class="add-mapping-btn mt-3">
+    <div class="mapping-container card shadow-sm mb-4">
+      <div class="card-body p-0">
+        <table class="mapping-table table table-hover mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Alchemy Field</th>
+              <th>${IntegrationUtils.capitalize(platform)} Field</th>
+              <th width="100" class="text-center">Required</th>
+              <th width="80" class="text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="mappingsTableBody">
+            <!-- Mapping rows will be added here -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+    <div class="d-flex justify-content-center mb-4">
+      <button type="button" id="addMappingBtn" class="btn btn-outline-primary">
         <i class="fas fa-plus me-2"></i>Add Field Mapping
       </button>
     </div>
@@ -102,14 +110,10 @@ function populateFieldMappings(alchemyFields, platformFields) {
   // Generate automatic mappings based on field name similarity
   const commonFieldMappings = [
     {alchemyPattern: ['name', 'Name'], platformPattern: ['name', 'Name']},
-    {alchemyPattern: ['id', 'ID', 'Id', 'identifier'], platformPattern: ['id', 'ID', 'Id']},
     {alchemyPattern: ['firstName', 'first_name', 'firstname'], platformPattern: ['firstname', 'firstName']},
     {alchemyPattern: ['lastName', 'last_name', 'lastname'], platformPattern: ['lastname', 'lastName']},
     {alchemyPattern: ['email', 'Email'], platformPattern: ['email', 'Email']},
-    {alchemyPattern: ['phone', 'Phone'], platformPattern: ['phone', 'Phone']},
-    {alchemyPattern: ['address', 'Address'], platformPattern: ['address', 'Address']},
-    {alchemyPattern: ['description', 'Description'], platformPattern: ['description', 'Description']},
-    {alchemyPattern: ['company', 'Company'], platformPattern: ['company', 'Company']}
+    {alchemyPattern: ['phone', 'Phone'], platformPattern: ['phone', 'Phone']}
   ];
   
   // Keep track of used fields
@@ -117,8 +121,10 @@ function populateFieldMappings(alchemyFields, platformFields) {
   const usedPlatformFields = new Set();
   let mappingCount = 0;
   
-  // Add auto-mapped fields
-  commonFieldMappings.forEach(mapping => {
+  // Add auto-mapped fields (limit to 5 total)
+  for (let i = 0; i < commonFieldMappings.length && mappingCount < 5; i++) {
+    const mapping = commonFieldMappings[i];
+    
     // Find matching Alchemy field that isn't already used
     const alchemyField = alchemyFields?.find(field => 
       mapping.alchemyPattern.some(pattern => 
@@ -137,15 +143,17 @@ function populateFieldMappings(alchemyFields, platformFields) {
     
     // Add row if both fields found
     if (alchemyField && platformField) {
-      addMappingRowWithTypeahead(tableBody, alchemyField, platformField, alchemyFields, platformFieldsToUse);
+      addEnhancedMappingRow(tableBody, alchemyField, platformField, alchemyFields, platformFieldsToUse);
       usedAlchemyFields.add(alchemyField.identifier);
       usedPlatformFields.add(platformField.identifier);
       mappingCount++;
     }
-  });
+  }
   
-  // Add required fields from platform if not already mapped
-  platformFieldsToUse.forEach(platformField => {
+  // Add required fields from platform if not already mapped (limit to 5 total)
+  for (let i = 0; i < platformFieldsToUse.length && mappingCount < 5; i++) {
+    const platformField = platformFieldsToUse[i];
+    
     if (platformField.required && !usedPlatformFields.has(platformField.identifier)) {
       // Find best matching Alchemy field
       const alchemyField = alchemyFields?.find(field => 
@@ -159,21 +167,21 @@ function populateFieldMappings(alchemyFields, platformFields) {
       
       // Add mapping row
       if (alchemyField) {
-        addMappingRowWithTypeahead(tableBody, alchemyField, platformField, alchemyFields, platformFieldsToUse);
+        addEnhancedMappingRow(tableBody, alchemyField, platformField, alchemyFields, platformFieldsToUse);
         usedAlchemyFields.add(alchemyField.identifier);
       } else {
         // If no match, just add with empty Alchemy field
-        addMappingRowWithTypeahead(tableBody, null, platformField, alchemyFields, platformFieldsToUse);
+        addEnhancedMappingRow(tableBody, null, platformField, alchemyFields, platformFieldsToUse);
       }
       
       usedPlatformFields.add(platformField.identifier);
       mappingCount++;
     }
-  });
+  }
   
-  // Ensure we have at least 3 rows
-  while (mappingCount < 3) {
-    addMappingRowWithTypeahead(tableBody, null, null, alchemyFields, platformFieldsToUse);
+  // Add additional empty rows until we have exactly 5
+  while (mappingCount < 5) {
+    addEnhancedMappingRow(tableBody, null, null, alchemyFields, platformFieldsToUse);
     mappingCount++;
   }
   
@@ -181,21 +189,54 @@ function populateFieldMappings(alchemyFields, platformFields) {
   const addMappingBtn = document.getElementById('addMappingBtn');
   if (addMappingBtn) {
     addMappingBtn.addEventListener('click', function() {
-      addMappingRowWithTypeahead(tableBody, null, null, alchemyFields, platformFieldsToUse);
+      addEnhancedMappingRow(tableBody, null, null, alchemyFields, platformFieldsToUse);
     });
   }
   
   // Add sync options if they're hidden
   const syncOptionsContainer = document.getElementById('syncOptionsContainer');
-  if (syncOptionsContainer && syncOptionsContainer.style.display === 'none') {
+  if (syncOptionsContainer) {
+    // Update sync options UI for better appearance
+    syncOptionsContainer.innerHTML = `
+      <div class="card shadow-sm">
+        <div class="card-header bg-light">
+          <h5 class="mb-0"><i class="fas fa-cogs me-2"></i>Synchronization Options</h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label for="syncFrequency" class="form-label">Sync Frequency</label>
+              <select class="form-select" id="syncFrequency">
+                <option value="realtime">Real-time</option>
+                <option value="hourly">Hourly</option>
+                <option value="daily" selected>Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="manual">Manual Only</option>
+              </select>
+              <div class="form-text">How often should data be synchronized</div>
+            </div>
+            <div class="col-md-6">
+              <label for="syncDirection" class="form-label">Sync Direction</label>
+              <select class="form-select" id="syncDirection">
+                <option value="alchemy_to_platform">Alchemy to ${platform.charAt(0).toUpperCase() + platform.slice(1)}</option>
+                <option value="platform_to_alchemy">${platform.charAt(0).toUpperCase() + platform.slice(1)} to Alchemy</option>
+                <option value="bidirectional" selected>Bidirectional</option>
+              </select>
+              <div class="form-text">Which direction should data flow</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    
     syncOptionsContainer.style.display = 'block';
   }
   
-  console.log('Field mapping UI populated successfully');
+  console.log('Enhanced field mapping UI populated successfully with 5 fields');
 }
 
-// Function to add a mapping row with typeahead functionality
-function addMappingRowWithTypeahead(tableBody, alchemyField = null, platformField = null, alchemyFields, platformFields) {
+// Function to add a mapping row with typeahead functionality (improved layout)
+function addEnhancedMappingRow(tableBody, alchemyField = null, platformField = null, alchemyFields, platformFields) {
   if (!tableBody) {
     console.error('Table body element not found');
     return;
@@ -206,10 +247,11 @@ function addMappingRowWithTypeahead(tableBody, alchemyField = null, platformFiel
   
   // Create Alchemy field cell with typeahead
   const alchemyCell = document.createElement('td');
+  alchemyCell.className = 'ps-3';
   const alchemyFieldContainer = document.createElement('div');
   alchemyFieldContainer.className = 'field-typeahead-container';
   
-  // Add HTML for typeahead
+  // Add HTML for improved typeahead
   alchemyFieldContainer.innerHTML = `
     <div class="typeahead-control">
       <input type="text" class="form-control alchemy-search" placeholder="Search Alchemy fields..." autocomplete="off">
@@ -218,8 +260,8 @@ function addMappingRowWithTypeahead(tableBody, alchemyField = null, platformFiel
           <option value="">-- Select Alchemy Field --</option>
           ${alchemyFields?.map(field => `<option value="${field.identifier}">${field.name || field.identifier}</option>`).join('') || ''}
         </select>
-        <span class="typeahead-selected"></span>
-        <button type="button" class="typeahead-toggle-btn"><i class="fas fa-chevron-down"></i></button>
+        <span class="typeahead-selected text-muted">Select Alchemy field...</span>
+        <button type="button" class="typeahead-toggle-btn"><i class="fas fa-search"></i></button>
       </div>
       <div class="typeahead-dropdown" style="display: none;">
         <div class="typeahead-dropdown-content">
@@ -237,7 +279,7 @@ function addMappingRowWithTypeahead(tableBody, alchemyField = null, platformFiel
   const platformFieldContainer = document.createElement('div');
   platformFieldContainer.className = 'field-typeahead-container';
   
-  // Add HTML for typeahead
+  // Add HTML for improved typeahead
   platformFieldContainer.innerHTML = `
     <div class="typeahead-control">
       <input type="text" class="form-control platform-search" placeholder="Search ${IntegrationUtils.capitalize(detectPlatform())} fields..." autocomplete="off">
@@ -250,8 +292,8 @@ function addMappingRowWithTypeahead(tableBody, alchemyField = null, platformFiel
             return `<option value="${field.identifier}" ${dataRequired}>${field.name || field.identifier}${requiredText}</option>`;
           }).join('') || ''}
         </select>
-        <span class="typeahead-selected"></span>
-        <button type="button" class="typeahead-toggle-btn"><i class="fas fa-chevron-down"></i></button>
+        <span class="typeahead-selected text-muted">Select ${IntegrationUtils.capitalize(detectPlatform())} field...</span>
+        <button type="button" class="typeahead-toggle-btn"><i class="fas fa-search"></i></button>
       </div>
       <div class="typeahead-dropdown" style="display: none;">
         <div class="typeahead-dropdown-content">
@@ -306,6 +348,7 @@ function addMappingRowWithTypeahead(tableBody, alchemyField = null, platformFiel
   if (alchemyField) {
     alchemySelect.value = alchemyField.identifier;
     alchemySelected.textContent = alchemyField.name || alchemyField.identifier;
+    alchemySelected.classList.remove('text-muted');
   }
   
   // Set up typeahead functionality for platform field
@@ -320,17 +363,27 @@ function addMappingRowWithTypeahead(tableBody, alchemyField = null, platformFiel
   if (platformField) {
     platformSelect.value = platformField.identifier;
     platformSelected.textContent = platformField.name + (platformField.required ? ' (Required)' : '');
+    platformSelected.classList.remove('text-muted');
   }
   
   // Helper function to set up typeahead for a field
   function setupTypeahead(searchInput, select, dropdown, dropdownContent, selectedSpan, toggleBtn, fields) {
-    // Toggle dropdown on button click
-    toggleBtn.addEventListener('click', function() {
+    // Toggle dropdown on button click or input group click
+    toggleBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
       dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
       if (dropdown.style.display === 'block') {
         searchInput.focus();
         populateDropdown('', fields, dropdownContent, select, selectedSpan, dropdown);
       }
+    });
+    
+    // Also open dropdown when clicking the input group
+    const inputGroup = toggleBtn.closest('.typeahead-input-group');
+    inputGroup.addEventListener('click', function() {
+      dropdown.style.display = 'block';
+      searchInput.focus();
+      populateDropdown('', fields, dropdownContent, select, selectedSpan, dropdown);
     });
     
     // Handle search input
@@ -345,7 +398,8 @@ function addMappingRowWithTypeahead(tableBody, alchemyField = null, platformFiel
     
     // Close dropdown when clicking outside
     document.addEventListener('click', function(e) {
-      if (!searchInput.contains(e.target) && !dropdown.contains(e.target) && !toggleBtn.contains(e.target)) {
+      if (!searchInput.contains(e.target) && !dropdown.contains(e.target) && 
+          !toggleBtn.contains(e.target) && !inputGroup.contains(e.target)) {
         dropdown.style.display = 'none';
       }
     });
@@ -353,6 +407,11 @@ function addMappingRowWithTypeahead(tableBody, alchemyField = null, platformFiel
     // Update dropdown content and handle selection
     function populateDropdown(searchText, fields, dropdownContent, select, selectedSpan, dropdown) {
       dropdownContent.innerHTML = '';
+      
+      if (!fields || fields.length === 0) {
+        dropdownContent.innerHTML = '<div class="typeahead-no-results">No fields available</div>';
+        return;
+      }
       
       const filteredFields = fields.filter(field => {
         const fieldName = (field.name || field.identifier || '').toLowerCase();
@@ -370,13 +429,14 @@ function addMappingRowWithTypeahead(tableBody, alchemyField = null, platformFiel
       filteredFields.forEach(field => {
         const item = document.createElement('div');
         item.className = 'typeahead-item';
-        const requiredText = field.required ? ' (Required)' : '';
-        item.textContent = field.name || field.identifier + requiredText;
+        const requiredText = field.required ? ' <span class="required-field">*</span>' : '';
+        item.innerHTML = (field.name || field.identifier) + requiredText;
         item.dataset.value = field.identifier;
         
         item.addEventListener('click', function() {
           select.value = field.identifier;
-          selectedSpan.textContent = field.name || field.identifier + requiredText;
+          selectedSpan.innerHTML = (field.name || field.identifier) + requiredText;
+          selectedSpan.classList.remove('text-muted');
           dropdown.style.display = 'none';
           searchInput.value = '';
           
@@ -397,16 +457,16 @@ function addMappingRowWithTypeahead(tableBody, alchemyField = null, platformFiel
   // Add change handler for platform field to update required checkbox
   platformSelect.addEventListener('change', function() {
     const selectedOption = this.options[this.selectedIndex];
-    const isRequired = selectedOption.hasAttribute('data-required');
+    const isRequired = selectedOption && selectedOption.hasAttribute('data-required');
     
     requiredCheckbox.checked = isRequired;
     requiredCheckbox.disabled = isRequired;
   });
 }
 
-// Function to fix Step 3 display issues
-function fixStep3Display() {
-  console.log('Fixing Step 3 display');
+// Function to fix Step 3 display issues with enhanced layout
+function enhancedFixStep3Display() {
+  console.log('Fixing Step 3 display with enhanced layout');
   
   // Make sure field mappings container is visible
   const fieldMappings = document.getElementById('fieldMappings');
@@ -414,27 +474,129 @@ function fixStep3Display() {
     fieldMappings.style.display = 'block';
   }
   
-  // If we have Alchemy fields but no mapping table, populate it
+  // If we have Alchemy fields but no mapping table, populate it with enhanced layout
   if (window.alchemyFields && window.alchemyFields.length > 0) {
     const mappingsTableBody = document.getElementById('mappingsTableBody');
     if (!mappingsTableBody || mappingsTableBody.children.length === 0) {
-      // Very important: Make sure we use ALL fields
-      populateFieldMappings(window.alchemyFields, window.platformFields || window.hubspotFields || []);
+      // Use enhanced layout with exactly 5 fields
+      enhancedPopulateFieldMappings(window.alchemyFields, window.platformFields || window.hubspotFields || []);
     }
   }
   
-  // Make sure sync options are visible
+  // Make sure sync options are visible with enhanced styling
   const syncOptionsContainer = document.getElementById('syncOptionsContainer');
   if (syncOptionsContainer) {
     syncOptionsContainer.style.display = 'block';
   }
   
-  // Add CSS for typeahead
-  addTypeaheadStyles();
+  // Add improved CSS styles
+  addEnhancedMappingStyles();
 }
 
-// Function to get mapped fields for saving
-function getFieldMappings() {
+// Function to add enhanced styles
+function addEnhancedMappingStyles() {
+  // Check if styles already exist
+  if (document.getElementById('enhanced-mapping-styles')) {
+    return;
+  }
+  
+  const styleElement = document.createElement('style');
+  styleElement.id = 'enhanced-mapping-styles';
+  styleElement.textContent = `
+    /* Enhanced mapping container styles */
+    .mapping-container {
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    
+    .mapping-info {
+      background-color: #f8f9fa;
+      border-left: 4px solid #0047BB;
+      padding: 15px;
+      border-radius: 4px;
+    }
+    
+    /* Table styling improvements */
+    .mapping-table th {
+      font-weight: 600;
+      padding: 12px 8px;
+    }
+    
+    .mapping-table td {
+      padding: 12px 8px;
+      vertical-align: middle;
+    }
+    
+    /* Improved typeahead styles */
+    .typeahead-input-group {
+      height: 38px;
+      transition: all 0.2s ease;
+    }
+    
+    .typeahead-input-group:hover {
+      border-color: #0047BB;
+    }
+    
+    .typeahead-toggle-btn {
+      color: #0047BB;
+    }
+    
+    .typeahead-item {
+      transition: all 0.15s ease;
+    }
+    
+    /* Badge styles */
+    .badge {
+      font-weight: 500;
+      padding: 5px 8px;
+    }
+    
+    /* Delete button styling */
+    .delete-mapping {
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    /* Add field button */
+    #addMappingBtn {
+      border-style: dashed;
+      padding: 8px 20px;
+      font-weight: 500;
+    }
+    
+    /* Required field indicator */
+    .required-field {
+      color: #dc3545;
+      font-weight: bold;
+    }
+  `;
+  
+  document.head.appendChild(styleElement);
+}
+
+// Function to detect platform
+function detectPlatform() {
+  const url = window.location.href;
+  if (url.includes('platform=hubspot')) {
+    return 'hubspot';
+  } else if (url.includes('platform=salesforce')) {
+    return 'salesforce';
+  } else if (url.includes('platform=sap')) {
+    return 'sap';
+  }
+  return 'unknown';
+}
+
+// Override the existing functions with our enhanced versions
+window.populateFieldMappings = enhancedPopulateFieldMappings;
+window.fixStep3Display = enhancedFixStep3Display;
+
+// Override getFieldMappings to ensure it works with our enhanced layout
+window.getFieldMappings = function() {
   const mappings = [];
   const rows = document.querySelectorAll('.mapping-row');
   
@@ -453,142 +615,23 @@ function getFieldMappings() {
   });
   
   return mappings;
-}
-
-// Function to add typeahead styles to the document
-function addTypeaheadStyles() {
-  // Check if styles already exist
-  if (document.getElementById('typeahead-styles')) {
-    return;
-  }
-  
-  const styleElement = document.createElement('style');
-  styleElement.id = 'typeahead-styles';
-  styleElement.textContent = `
-    .field-typeahead-container {
-      position: relative;
-      width: 100%;
-    }
-    
-    .typeahead-control {
-      position: relative;
-      width: 100%;
-    }
-    
-    .typeahead-input-group {
-      display: flex;
-      width: 100%;
-      align-items: center;
-      border: 1px solid #dee2e6;
-      border-radius: 4px;
-      padding: 8px 12px;
-      background-color: white;
-    }
-    
-    .typeahead-selected {
-      flex-grow: 1;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    
-    .typeahead-toggle-btn {
-      background: none;
-      border: none;
-      color: #6c757d;
-      padding: 0 0 0 8px;
-      cursor: pointer;
-    }
-    
-    .typeahead-dropdown {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      width: 100%;
-      max-height: 300px;
-      overflow-y: auto;
-      background-color: white;
-      border: 1px solid #dee2e6;
-      border-radius: 4px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-      z-index: 1000;
-      margin-top: 4px;
-    }
-    
-    .typeahead-dropdown-content {
-      padding: 4px 0;
-    }
-    
-    .typeahead-item {
-      padding: 8px 12px;
-      cursor: pointer;
-    }
-    
-    .typeahead-item:hover {
-      background-color: #e9ecef;
-    }
-    
-    .typeahead-no-results {
-      padding: 8px 12px;
-      color: #6c757d;
-      font-style: italic;
-    }
-    
-    .platform-search, .alchemy-search {
-      display: block;
-      width: 100%;
-      padding: 8px 12px;
-      border: 1px solid #dee2e6;
-      border-radius: 4px;
-      margin-bottom: 5px;
-    }
-  `;
-  
-  document.head.appendChild(styleElement);
-}
-
-// Function to detect which platform is being used
-function detectPlatform() {
-  const url = window.location.href;
-  if (url.includes('platform=hubspot')) {
-    return 'hubspot';
-  } else if (url.includes('platform=salesforce')) {
-    return 'salesforce';
-  } else if (url.includes('platform=sap')) {
-    return 'sap';
-  }
-  return 'unknown';
-}
-
-// Override the existing functions with our enhanced versions
-window.populateFieldMappings = populateFieldMappings;
-window.fixStep3Display = fixStep3Display;
-window.getFieldMappings = getFieldMappings;
+};
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('Enhanced field mapping script with typeahead loaded');
+  console.log('Enhanced field mapping script with improved layout loaded');
   
-  // Add the typeahead styles
-  addTypeaheadStyles();
+  // Add the enhanced styles
+  addEnhancedMappingStyles();
   
-  // Attach to saveBtn click to use our save function
-  const saveBtn = document.getElementById('saveBtn');
-  if (saveBtn) {
-    saveBtn.addEventListener('click', window.saveIntegration || function(){
-      console.error('saveIntegration function not found');
-    });
-  }
-  
-  // Override step3 initialization if needed
+  // Make sure Step 3 uses the enhanced layout
   const originalStepChanged = document.dispatchEvent;
   document.dispatchEvent = function(event) {
     if (event.type === 'stepChanged' && event.detail && event.detail.step === 3) {
-      setTimeout(fixStep3Display, 50); // Ensure our improved version runs
+      setTimeout(enhancedFixStep3Display, 50);
     }
     return originalStepChanged.apply(this, arguments);
   };
 });
 
-// Fix for integration_routes.py
-console.log("Field mapping enhancement loaded successfully");
+console.log("Improved field mapping layout loaded successfully");
