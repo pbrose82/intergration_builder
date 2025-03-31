@@ -1,11 +1,11 @@
-// Exact Alchemy Cloud sidebar injector script
+// Refined Alchemy Cloud sidebar injector script
 document.addEventListener('DOMContentLoaded', function() {
   // Create the sidebar HTML with correct structure
   const sidebarHTML = `
     <div class="alchemy-sidebar">
-      <!-- Logo Section -->
-      <div class="sidebar-logo-container">
-        <img src="/static/alchemy-white-logo.svg" alt="Alchemy" class="sidebar-logo" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MCA1MCIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik00MC4yNSwxNS41bDEzLjEsMjguMWMtNC42LTIuMS0xMC4xLTMuMS0xNS42LTMuMWMtNS41LDAtMTAuOSwxLTE1LjUsM0wzNi41LDE1YzAuNC0wLjksMS4zLTEsMS44LTAuMyBDMzkuMiwxNS4yLDM5LjgsMTUuMiw0MC4yNSwxNS41eiIvPjxwYXRoIGQ9Ik00MCwxNi40NWwtMTIuMSwyNmMzLjEtMC43LDYuMy0xLjEsOS43LTEuMWM0LjcsMCw4LjksMC43LDEyLjMsMS43TDQwLDE2LjQ1eiIvPjwvc3ZnPg=='">
+      <!-- Top Alchemy text instead of logo -->
+      <div class="sidebar-header">
+        <div class="alchemy-text">Alchemy</div>
       </div>
       
       <!-- INTEGRATIONS Label -->
@@ -40,12 +40,11 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
   `;
   
-  // Create the CSS for the sidebar - exactly matching the screenshot
+  // Create the CSS for the sidebar - refined based on feedback
   const sidebarCSS = `
     :root {
       --alchemy-blue: #0047CC;
       --alchemy-sidebar-width: 240px;
-      --alchemy-sidebar-collapsed-width: 60px;
     }
     
     body {
@@ -65,14 +64,15 @@ document.addEventListener('DOMContentLoaded', function() {
       bottom: 0;
       z-index: 1000;
       border-right: 1px solid rgba(255, 255, 255, 0.1);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
     
     .header, .container {
       width: 100%;
     }
     
-    /* Logo section */
-    .sidebar-logo-container {
+    /* Alchemy text header */
+    .sidebar-header {
       display: flex;
       justify-content: center;
       align-items: center;
@@ -80,14 +80,16 @@ document.addEventListener('DOMContentLoaded', function() {
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
     
-    .sidebar-logo {
-      width: 60px;
-      height: auto;
+    .alchemy-text {
+      color: white;
+      font-size: 24px;
+      font-weight: 500;
     }
     
     /* Section title */
     .sidebar-section-title {
-      color: rgba(255, 255, 255, 0.7);
+      color: white;
+      opacity: 0.8;
       font-size: 13px;
       font-weight: 500;
       letter-spacing: 1px;
@@ -133,8 +135,8 @@ document.addEventListener('DOMContentLoaded', function() {
     /* Footer with copyright */
     .sidebar-footer {
       padding: 15px;
-      color: rgba(255, 255, 255, 0.6);
-      font-size: 12px;
+      color: white;
+      font-size: 11px;
       text-align: center;
       margin-top: auto;
     }
@@ -201,4 +203,19 @@ document.addEventListener('DOMContentLoaded', function() {
       document.body.classList.toggle('sidebar-visible');
     });
   }
+  
+  // Helper function to adjust container positioning
+  function adjustMainContent() {
+    const container = document.querySelector('.container');
+    if (container) {
+      container.style.width = 'calc(100% - var(--alchemy-sidebar-width))';
+      container.style.marginLeft = 'var(--alchemy-sidebar-width)';
+    }
+  }
+  
+  // Execute adjustments
+  adjustMainContent();
+  
+  // Watch for future content changes
+  window.addEventListener('resize', adjustMainContent);
 });
