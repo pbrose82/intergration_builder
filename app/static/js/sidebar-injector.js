@@ -1,47 +1,50 @@
-// This script injects the sidebar into existing pages
+// Accurate Alchemy Cloud sidebar injector script
 document.addEventListener('DOMContentLoaded', function() {
-  // Create the sidebar HTML
+  // Create the sidebar HTML with correct structure
   const sidebarHTML = `
     <div class="alchemy-sidebar">
-      <div class="sidebar-header">
-        <img src="/static/Alchemy-logo.svg" alt="Alchemy Cloud" class="sidebar-logo">
-        <button class="sidebar-toggle" id="sidebarToggle">
-          <i class="fas fa-bars"></i>
-        </button>
+      <!-- Logo Section at Top -->
+      <div class="sidebar-logo-section">
+        <svg class="sidebar-logo" width="150" height="40" viewBox="0 0 120 40">
+          <path d="M15.8,9.2c0.2-0.4,0.8-0.4,1,0c0,0,8.6,17.5,10.4,21.6c-3.1-1.6-6.9-2.5-11-2.5c-4,0-7.7,0.9-10.7,2.4C4.2,25.7,15.8,9.2,15.8,9.2" fill="#ffffff"/>
+          <path d="M39.1,22.7h-9.6l4.8-10.8L39.1,22.7z M48.7,33.1L35.5,4l-1-1.8h-0.4c-0.3,0-0.8,0.3-1,0.6l-18.8,30.3c-0.2,0.4-0.1,0.7,0,1.1c0.2,0.3,0.5,0.5,0.9,0.5h3c0.6,0,1.1-0.4,1.2-0.8c0.4-1,0.9-1.9,1.3-2.9c0.4-0.9,0.8-1.8,1.2-2.7h13.4l2.5,5.6c0.2,0.5,0.7,0.8,1.2,0.8h3c0.4,0,0.8-0.2,0.9-0.5C48.9,33.8,48.9,33.4,48.7,33.1L48.7,33.1z" fill="#ffffff"/>
+        </svg>
+        <div class="sidebar-section-title">INTEGRATIONS</div>
       </div>
       
+      <!-- Navigation Links -->
       <div class="sidebar-content">
         <nav class="sidebar-nav">
+          <!-- Home link -->
           <a href="/" class="nav-item">
             <i class="fas fa-home"></i>
             <span class="nav-text">Home</span>
           </a>
           
-          <!-- Integration Section -->
-          <div class="nav-section">
-            <div class="section-header">
-              <span>Integrations</span>
-            </div>
-            
-            <a href="/" class="nav-item">
-              <i class="fas fa-exchange-alt"></i>
-              <span class="nav-text">Manage Integrations</span>
-            </a>
-            
-            <a href="/select-platform.html" class="nav-item">
-              <i class="fas fa-plug"></i>
-              <span class="nav-text">Select Platform</span>
-            </a>
-          </div>
+          <!-- Integration Links -->
+          <a href="/" class="nav-item active">
+            <i class="fas fa-exchange-alt"></i>
+            <span class="nav-text">Manage Integrations</span>
+          </a>
+          
+          <a href="/select-platform.html" class="nav-item">
+            <i class="fas fa-plug"></i>
+            <span class="nav-text">Select Platform</span>
+          </a>
         </nav>
+      </div>
+      
+      <!-- Footer with copyright -->
+      <div class="sidebar-footer">
+        <div class="copyright">© Alchemy Cloud, Inc. All Rights Reserved.</div>
       </div>
     </div>
   `;
   
-  // Create the CSS for the sidebar
+  // Create the CSS for the sidebar - with more accurate colors and styling
   const sidebarCSS = `
     :root {
-      --alchemy-blue: #0047BB;
+      --alchemy-blue: #0046C3;  /* More accurate blue color */
       --alchemy-sidebar-width: 240px;
       --alchemy-sidebar-collapsed-width: 60px;
     }
@@ -68,7 +71,6 @@ document.addEventListener('DOMContentLoaded', function() {
       z-index: 1000;
       transition: width 0.3s ease;
       overflow-x: hidden;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     }
     
     body.sidebar-collapsed .alchemy-sidebar {
@@ -80,37 +82,37 @@ document.addEventListener('DOMContentLoaded', function() {
       transition: width 0.3s ease;
     }
     
-    /* Sidebar Header */
-    .sidebar-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+    /* Logo section */
+    .sidebar-logo-section {
       padding: 16px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
     
     .sidebar-logo {
-      height: 30px;
-      transition: opacity 0.3s ease;
+      margin-bottom: 24px;
+    }
+    
+    .sidebar-section-title {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 1px;
+    }
+    
+    body.sidebar-collapsed .sidebar-logo-section {
+      padding: 16px 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
     
     body.sidebar-collapsed .sidebar-logo {
-      opacity: 0;
+      transform: scale(0.7);
+      margin-bottom: 10px;
     }
     
-    .sidebar-toggle {
-      background: none;
-      border: none;
-      color: white;
-      font-size: 16px;
-      cursor: pointer;
-      padding: 5px;
-      border-radius: 3px;
-      transition: background-color 0.2s ease;
-    }
-    
-    .sidebar-toggle:hover {
-      background-color: rgba(255, 255, 255, 0.1);
+    body.sidebar-collapsed .sidebar-section-title {
+      display: none;
     }
     
     /* Sidebar Content */
@@ -124,25 +126,24 @@ document.addEventListener('DOMContentLoaded', function() {
     /* Navigation Items */
     .sidebar-nav {
       padding: 10px 0;
-      flex: 1;
     }
     
     .nav-item {
       display: flex;
       align-items: center;
-      padding: 10px 16px;
+      padding: 12px 16px;
       color: rgba(255, 255, 255, 0.9);
       text-decoration: none;
       transition: background-color 0.2s ease;
       white-space: nowrap;
       overflow: hidden;
-      margin: 2px 5px;
-      border-radius: 4px;
+      border-left: 3px solid transparent;
     }
     
     .nav-item:hover, .nav-item.active {
-      background-color: rgba(255, 255, 255, 0.1);
+      background-color: rgba(255, 255, 255, 0.08);
       color: white;
+      border-left: 3px solid white;
     }
     
     .nav-item i {
@@ -156,24 +157,18 @@ document.addEventListener('DOMContentLoaded', function() {
       display: none;
     }
     
-    /* Section Styles */
-    .nav-section {
-      margin-top: 15px;
-    }
-    
-    .section-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 16px;
-      font-size: 12px;
-      text-transform: uppercase;
+    /* Footer with copyright */
+    .sidebar-footer {
+      padding: 16px;
       color: rgba(255, 255, 255, 0.7);
-      letter-spacing: 0.5px;
+      font-size: 12px;
+      text-align: center;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
     }
     
-    body.sidebar-collapsed .section-header span {
-      display: none;
+    body.sidebar-collapsed .sidebar-footer {
+      padding: 10px 0;
+      font-size: 0;  /* Hide text when collapsed */
     }
     
     /* Fix for footer */
@@ -193,12 +188,9 @@ document.addEventListener('DOMContentLoaded', function() {
         width: var(--alchemy-sidebar-collapsed-width);
       }
       
-      .sidebar-logo {
-        opacity: 0;
-      }
-      
       .nav-text, 
-      .section-header span {
+      .sidebar-section-title,
+      .copyright {
         display: none;
       }
       
@@ -210,14 +202,10 @@ document.addEventListener('DOMContentLoaded', function() {
         width: var(--alchemy-sidebar-width);
       }
       
-      body.sidebar-expanded .sidebar-logo,
       body.sidebar-expanded .nav-text,
-      body.sidebar-expanded .section-header span {
+      body.sidebar-expanded .sidebar-section-title,
+      body.sidebar-expanded .copyright {
         display: block;
-      }
-      
-      body.sidebar-expanded .sidebar-logo {
-        opacity: 1;
       }
     }
   `;
@@ -231,31 +219,6 @@ document.addEventListener('DOMContentLoaded', function() {
   const sidebarElement = document.createElement('div');
   sidebarElement.innerHTML = sidebarHTML;
   document.body.insertBefore(sidebarElement.firstElementChild, document.body.firstChild);
-  
-  // Set up toggle functionality
-  const sidebarToggle = document.getElementById('sidebarToggle');
-  if (sidebarToggle) {
-    sidebarToggle.addEventListener('click', function() {
-      document.body.classList.toggle('sidebar-collapsed');
-      
-      // On mobile, toggle expanded class
-      if (window.innerWidth <= 768) {
-        document.body.classList.toggle('sidebar-expanded');
-      }
-      
-      // Save preference
-      localStorage.setItem(
-        'alchemy-sidebar-collapsed', 
-        document.body.classList.contains('sidebar-collapsed')
-      );
-    });
-  }
-  
-  // Check for saved preference
-  const sidebarCollapsed = localStorage.getItem('alchemy-sidebar-collapsed') === 'true';
-  if (sidebarCollapsed) {
-    document.body.classList.add('sidebar-collapsed');
-  }
   
   // Set active menu item
   const currentPath = window.location.pathname;
