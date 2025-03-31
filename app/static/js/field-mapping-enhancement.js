@@ -1,9 +1,9 @@
 /**
  * Enhanced field mapping layout with better spacing and organization
- * This script improves the field mapping UI with a cleaner layout and exactly 5 initial fields
+ * This script improves the field mapping UI with a cleaner layout and properly aligned columns
  */
 
-// Modify populateFieldMappings function to improve layout and start with exactly 5 fields
+// Modify populateFieldMappings function to improve layout and fix column alignment
 function enhancedPopulateFieldMappings(alchemyFields, platformFields) {
   console.log('Populating improved field mappings with Alchemy fields:', alchemyFields?.length || 0);
   console.log('Platform fields:', platformFields?.length || 0);
@@ -77,17 +77,17 @@ function enhancedPopulateFieldMappings(alchemyFields, platformFields) {
   // Store platform fields globally for later use
   window.platformFields = platformFieldsToUse;
   
-  // Create improved table for mappings
+  // Create improved table for mappings with fixed column layout
   const tableHtml = `
     <div class="mapping-container card shadow-sm mb-4">
       <div class="card-body p-0">
         <table class="mapping-table table table-hover mb-0">
           <thead class="table-light">
             <tr>
-              <th class="ps-3">Alchemy Field</th>
-              <th>${IntegrationUtils.capitalize(platform)} Field</th>
-              <th width="100" class="text-center">Required</th>
-              <th width="80" class="text-center">Actions</th>
+              <th class="ps-3" style="width: 40%">Alchemy Field</th>
+              <th style="width: 40%">${IntegrationUtils.capitalize(platform)} Field</th>
+              <th style="width: 10%" class="text-center">Required</th>
+              <th style="width: 10%" class="text-center">Actions</th>
             </tr>
           </thead>
           <tbody id="mappingsTableBody">
@@ -235,7 +235,7 @@ function enhancedPopulateFieldMappings(alchemyFields, platformFields) {
   console.log('Enhanced field mapping UI populated successfully with 5 fields');
 }
 
-// Function to add a mapping row with typeahead functionality (improved layout)
+// Improved function to add a mapping row with dropdown selector instead of always-visible search
 function addEnhancedMappingRow(tableBody, alchemyField = null, platformField = null, alchemyFields, platformFields) {
   if (!tableBody) {
     console.error('Table body element not found');
@@ -245,70 +245,68 @@ function addEnhancedMappingRow(tableBody, alchemyField = null, platformField = n
   const row = document.createElement('tr');
   row.className = 'mapping-row';
   
-  // Create Alchemy field cell with typeahead
+  // Create Alchemy field cell with improved selector
   const alchemyCell = document.createElement('td');
   alchemyCell.className = 'ps-3';
-  const alchemyFieldContainer = document.createElement('div');
-  alchemyFieldContainer.className = 'field-typeahead-container';
   
-  // Add HTML for improved typeahead
-  alchemyFieldContainer.innerHTML = `
-    <div class="typeahead-control">
-      <input type="text" class="form-control alchemy-search" placeholder="Search Alchemy fields..." autocomplete="off">
-      <div class="typeahead-input-group">
-        <select class="form-select alchemy-field mapping-select" style="display: none;">
-          <option value="">-- Select Alchemy Field --</option>
-          ${alchemyFields?.map(field => `<option value="${field.identifier}">${field.name || field.identifier}</option>`).join('') || ''}
-        </select>
-        <span class="typeahead-selected text-muted">Select Alchemy field...</span>
-        <button type="button" class="typeahead-toggle-btn"><i class="fas fa-search"></i></button>
+  const alchemyFieldSelector = document.createElement('div');
+  alchemyFieldSelector.className = 'dropdown-select alchemy-field-selector';
+  alchemyFieldSelector.innerHTML = `
+    <div class="selected-item form-control d-flex justify-content-between align-items-center">
+      <span class="selected-text">${alchemyField ? (alchemyField.name || alchemyField.identifier) : 'Select Alchemy field...'}</span>
+      <i class="fas fa-chevron-down"></i>
+    </div>
+    <input type="hidden" class="alchemy-field mapping-select" value="${alchemyField ? alchemyField.identifier : ''}">
+    <div class="dropdown-menu" style="display:none;">
+      <div class="dropdown-search p-2">
+        <input type="text" class="form-control form-control-sm" placeholder="Search Alchemy fields...">
       </div>
-      <div class="typeahead-dropdown" style="display: none;">
-        <div class="typeahead-dropdown-content">
-          <!-- Dropdown options will be populated dynamically -->
-        </div>
+      <div class="dropdown-items">
+        <div class="dropdown-item" data-value="">-- Select Alchemy Field --</div>
+        ${alchemyFields?.map(field => 
+          `<div class="dropdown-item" data-value="${field.identifier}">${field.name || field.identifier}</div>`
+        ).join('') || ''}
       </div>
     </div>
   `;
   
-  alchemyCell.appendChild(alchemyFieldContainer);
+  alchemyCell.appendChild(alchemyFieldSelector);
   row.appendChild(alchemyCell);
   
-  // Create platform field cell with typeahead
+  // Create platform field cell with improved selector
   const platformCell = document.createElement('td');
-  const platformFieldContainer = document.createElement('div');
-  platformFieldContainer.className = 'field-typeahead-container';
   
-  // Add HTML for improved typeahead
-  platformFieldContainer.innerHTML = `
-    <div class="typeahead-control">
-      <input type="text" class="form-control platform-search" placeholder="Search ${IntegrationUtils.capitalize(detectPlatform())} fields..." autocomplete="off">
-      <div class="typeahead-input-group">
-        <select class="form-select platform-field mapping-select" style="display: none;">
-          <option value="">-- Select ${IntegrationUtils.capitalize(detectPlatform())} Field --</option>
-          ${platformFields?.map(field => {
-            const requiredText = field.required ? ' (Required)' : '';
-            const dataRequired = field.required ? 'data-required="true"' : '';
-            return `<option value="${field.identifier}" ${dataRequired}>${field.name || field.identifier}${requiredText}</option>`;
-          }).join('') || ''}
-        </select>
-        <span class="typeahead-selected text-muted">Select ${IntegrationUtils.capitalize(detectPlatform())} field...</span>
-        <button type="button" class="typeahead-toggle-btn"><i class="fas fa-search"></i></button>
+  const platformFieldSelector = document.createElement('div');
+  platformFieldSelector.className = 'dropdown-select platform-field-selector';
+  platformFieldSelector.innerHTML = `
+    <div class="selected-item form-control d-flex justify-content-between align-items-center">
+      <span class="selected-text">${platformField ? (platformField.name || platformField.identifier) : 'Select Platform field...'}</span>
+      <i class="fas fa-chevron-down"></i>
+    </div>
+    <input type="hidden" class="platform-field mapping-select" value="${platformField ? platformField.identifier : ''}">
+    <div class="dropdown-menu" style="display:none;">
+      <div class="dropdown-search p-2">
+        <input type="text" class="form-control form-control-sm" placeholder="Search Platform fields...">
       </div>
-      <div class="typeahead-dropdown" style="display: none;">
-        <div class="typeahead-dropdown-content">
-          <!-- Dropdown options will be populated dynamically -->
-        </div>
+      <div class="dropdown-items">
+        <div class="dropdown-item" data-value="">-- Select Platform Field --</div>
+        ${platformFields?.map(field => {
+          const requiredIcon = field.required ? ' <span class="required-icon text-danger">*</span>' : '';
+          return `<div class="dropdown-item ${field.required ? 'required-field' : ''}" data-value="${field.identifier}" data-required="${field.required ? 'true' : 'false'}">${field.name || field.identifier}${requiredIcon}</div>`;
+        }).join('') || ''}
       </div>
     </div>
   `;
   
-  platformCell.appendChild(platformFieldContainer);
+  platformCell.appendChild(platformFieldSelector);
   row.appendChild(platformCell);
   
-  // Create required cell with checkbox
+  // Create required cell with checkbox - centered in cell
   const requiredCell = document.createElement('td');
-  requiredCell.className = 'text-center';
+  requiredCell.className = 'text-center align-middle';
+  
+  const requiredWrapper = document.createElement('div');
+  requiredWrapper.className = 'd-flex justify-content-center';
   
   const requiredCheckbox = document.createElement('input');
   requiredCheckbox.type = 'checkbox';
@@ -316,12 +314,16 @@ function addEnhancedMappingRow(tableBody, alchemyField = null, platformField = n
   requiredCheckbox.checked = platformField && platformField.required;
   requiredCheckbox.disabled = platformField && platformField.required;
   
-  requiredCell.appendChild(requiredCheckbox);
+  requiredWrapper.appendChild(requiredCheckbox);
+  requiredCell.appendChild(requiredWrapper);
   row.appendChild(requiredCell);
   
-  // Create action cell with delete button
+  // Create action cell with delete button - centered
   const actionCell = document.createElement('td');
-  actionCell.className = 'text-center';
+  actionCell.className = 'text-center align-middle';
+  
+  const deleteWrapper = document.createElement('div');
+  deleteWrapper.className = 'd-flex justify-content-center';
   
   const deleteBtn = document.createElement('button');
   deleteBtn.className = 'btn btn-sm btn-outline-danger delete-mapping';
@@ -330,137 +332,119 @@ function addEnhancedMappingRow(tableBody, alchemyField = null, platformField = n
     row.remove();
   });
   
-  actionCell.appendChild(deleteBtn);
+  deleteWrapper.appendChild(deleteBtn);
+  actionCell.appendChild(deleteWrapper);
   row.appendChild(actionCell);
   
   // Add to table
   tableBody.appendChild(row);
   
-  // Set up typeahead functionality for Alchemy field
-  const alchemySelect = alchemyCell.querySelector('.alchemy-field');
-  const alchemySearchInput = alchemyCell.querySelector('.alchemy-search');
-  const alchemyDropdown = alchemyCell.querySelector('.typeahead-dropdown');
-  const alchemyDropdownContent = alchemyCell.querySelector('.typeahead-dropdown-content');
-  const alchemySelected = alchemyCell.querySelector('.typeahead-selected');
-  const alchemyToggleBtn = alchemyCell.querySelector('.typeahead-toggle-btn');
+  // Set up dropdown functionality
+  setupDropdownSelect(alchemyFieldSelector, alchemyFields);
+  setupDropdownSelect(platformFieldSelector, platformFields, function(selectedValue, isRequired) {
+    requiredCheckbox.checked = isRequired === 'true';
+    requiredCheckbox.disabled = isRequired === 'true';
+  });
+}
+
+// Function to set up dropdown select behavior
+function setupDropdownSelect(container, fieldsList, onSelectCallback) {
+  if (!container) return;
   
-  // Set initial selected value if provided
-  if (alchemyField) {
-    alchemySelect.value = alchemyField.identifier;
-    alchemySelected.textContent = alchemyField.name || alchemyField.identifier;
-    alchemySelected.classList.remove('text-muted');
-  }
+  const selectedItem = container.querySelector('.selected-item');
+  const selectedText = container.querySelector('.selected-text');
+  const hiddenInput = container.querySelector('input[type="hidden"]');
+  const dropdownMenu = container.querySelector('.dropdown-menu');
+  const searchInput = container.querySelector('.dropdown-search input');
+  const dropdownItems = container.querySelector('.dropdown-items');
   
-  // Set up typeahead functionality for platform field
-  const platformSelect = platformCell.querySelector('.platform-field');
-  const platformSearchInput = platformCell.querySelector('.platform-search');
-  const platformDropdown = platformCell.querySelector('.typeahead-dropdown');
-  const platformDropdownContent = platformCell.querySelector('.typeahead-dropdown-content');
-  const platformSelected = platformCell.querySelector('.typeahead-selected');
-  const platformToggleBtn = platformCell.querySelector('.typeahead-toggle-btn');
-  
-  // Set initial selected value if provided
-  if (platformField) {
-    platformSelect.value = platformField.identifier;
-    platformSelected.textContent = platformField.name + (platformField.required ? ' (Required)' : '');
-    platformSelected.classList.remove('text-muted');
-  }
-  
-  // Helper function to set up typeahead for a field
-  function setupTypeahead(searchInput, select, dropdown, dropdownContent, selectedSpan, toggleBtn, fields) {
-    // Toggle dropdown on button click or input group click
-    toggleBtn.addEventListener('click', function(e) {
-      e.stopPropagation();
-      dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
-      if (dropdown.style.display === 'block') {
+  // Toggle dropdown when clicking the selected item
+  selectedItem.addEventListener('click', function(e) {
+    e.stopPropagation();
+    
+    // Close all other open dropdowns
+    document.querySelectorAll('.dropdown-menu').forEach(menu => {
+      if (menu !== dropdownMenu) {
+        menu.style.display = 'none';
+      }
+    });
+    
+    // Toggle this dropdown
+    if (dropdownMenu.style.display === 'none') {
+      dropdownMenu.style.display = 'block';
+      if (searchInput) {
         searchInput.focus();
-        populateDropdown('', fields, dropdownContent, select, selectedSpan, dropdown);
+        searchInput.value = '';
+        filterDropdownItems('', dropdownItems);
       }
-    });
-    
-    // Also open dropdown when clicking the input group
-    const inputGroup = toggleBtn.closest('.typeahead-input-group');
-    inputGroup.addEventListener('click', function() {
-      dropdown.style.display = 'block';
-      searchInput.focus();
-      populateDropdown('', fields, dropdownContent, select, selectedSpan, dropdown);
-    });
-    
-    // Handle search input
-    searchInput.addEventListener('focus', function() {
-      dropdown.style.display = 'block';
-      populateDropdown(this.value, fields, dropdownContent, select, selectedSpan, dropdown);
-    });
-    
-    searchInput.addEventListener('input', function() {
-      populateDropdown(this.value, fields, dropdownContent, select, selectedSpan, dropdown);
-    });
-    
-    // Close dropdown when clicking outside
-    document.addEventListener('click', function(e) {
-      if (!searchInput.contains(e.target) && !dropdown.contains(e.target) && 
-          !toggleBtn.contains(e.target) && !inputGroup.contains(e.target)) {
-        dropdown.style.display = 'none';
-      }
-    });
-    
-    // Update dropdown content and handle selection
-    function populateDropdown(searchText, fields, dropdownContent, select, selectedSpan, dropdown) {
-      dropdownContent.innerHTML = '';
-      
-      if (!fields || fields.length === 0) {
-        dropdownContent.innerHTML = '<div class="typeahead-no-results">No fields available</div>';
-        return;
-      }
-      
-      const filteredFields = fields.filter(field => {
-        const fieldName = (field.name || field.identifier || '').toLowerCase();
-        const fieldId = (field.identifier || '').toLowerCase();
-        const searchLower = searchText.toLowerCase();
-        
-        return fieldName.includes(searchLower) || fieldId.includes(searchLower);
-      });
-      
-      if (filteredFields.length === 0) {
-        dropdownContent.innerHTML = '<div class="typeahead-no-results">No fields match your search</div>';
-        return;
-      }
-      
-      filteredFields.forEach(field => {
-        const item = document.createElement('div');
-        item.className = 'typeahead-item';
-        const requiredText = field.required ? ' <span class="required-field">*</span>' : '';
-        item.innerHTML = (field.name || field.identifier) + requiredText;
-        item.dataset.value = field.identifier;
-        
-        item.addEventListener('click', function() {
-          select.value = field.identifier;
-          selectedSpan.innerHTML = (field.name || field.identifier) + requiredText;
-          selectedSpan.classList.remove('text-muted');
-          dropdown.style.display = 'none';
-          searchInput.value = '';
-          
-          // Trigger change event on the select
-          const changeEvent = new Event('change', { bubbles: true });
-          select.dispatchEvent(changeEvent);
-        });
-        
-        dropdownContent.appendChild(item);
-      });
+    } else {
+      dropdownMenu.style.display = 'none';
     }
+  });
+  
+  // Set up search filtering
+  if (searchInput) {
+    searchInput.addEventListener('input', function() {
+      filterDropdownItems(this.value, dropdownItems);
+    });
+    
+    // Prevent clicks in search from closing dropdown
+    searchInput.addEventListener('click', function(e) {
+      e.stopPropagation();
+    });
   }
   
-  // Set up typeahead for both fields
-  setupTypeahead(alchemySearchInput, alchemySelect, alchemyDropdown, alchemyDropdownContent, alchemySelected, alchemyToggleBtn, alchemyFields || []);
-  setupTypeahead(platformSearchInput, platformSelect, platformDropdown, platformDropdownContent, platformSelected, platformToggleBtn, platformFields || []);
+  // Handle item selection
+  const items = container.querySelectorAll('.dropdown-item');
+  items.forEach(item => {
+    item.addEventListener('click', function(e) {
+      e.stopPropagation();
+      
+      const value = this.getAttribute('data-value');
+      const isRequired = this.getAttribute('data-required');
+      const text = this.innerText;
+      
+      selectedText.textContent = value ? text : 'Select field...';
+      hiddenInput.value = value;
+      
+      // Update UI
+      if (value) {
+        selectedItem.classList.add('has-value');
+      } else {
+        selectedItem.classList.remove('has-value');
+      }
+      
+      // Close dropdown
+      dropdownMenu.style.display = 'none';
+      
+      // Call callback if provided
+      if (typeof onSelectCallback === 'function') {
+        onSelectCallback(value, isRequired);
+      }
+    });
+  });
   
-  // Add change handler for platform field to update required checkbox
-  platformSelect.addEventListener('change', function() {
-    const selectedOption = this.options[this.selectedIndex];
-    const isRequired = selectedOption && selectedOption.hasAttribute('data-required');
+  // Close dropdown when clicking outside
+  document.addEventListener('click', function() {
+    dropdownMenu.style.display = 'none';
+  });
+}
+
+// Filter dropdown items based on search text
+function filterDropdownItems(searchText, container) {
+  if (!container) return;
+  
+  const items = container.querySelectorAll('.dropdown-item');
+  const lowercaseSearch = searchText.toLowerCase();
+  
+  items.forEach(item => {
+    const text = item.textContent.toLowerCase();
     
-    requiredCheckbox.checked = isRequired;
-    requiredCheckbox.disabled = isRequired;
+    if (item.getAttribute('data-value') === '' || text.includes(lowercaseSearch)) {
+      item.style.display = '';
+    } else {
+      item.style.display = 'none';
+    }
   });
 }
 
@@ -527,22 +511,64 @@ function addEnhancedMappingStyles() {
       vertical-align: middle;
     }
     
-    /* Improved typeahead styles */
-    .typeahead-input-group {
-      height: 38px;
+    /* Dropdown Select styling */
+    .dropdown-select {
+      position: relative;
+    }
+    
+    .selected-item {
+      cursor: pointer;
+      user-select: none;
       transition: all 0.2s ease;
     }
     
-    .typeahead-input-group:hover {
+    .selected-item:hover {
       border-color: #0047BB;
     }
     
-    .typeahead-toggle-btn {
-      color: #0047BB;
+    .selected-item.has-value {
+      background-color: #f8f9fa;
     }
     
-    .typeahead-item {
-      transition: all 0.15s ease;
+    .dropdown-menu {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      width: 100%;
+      z-index: 1000;
+      background-color: white;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    .dropdown-search {
+      border-bottom: 1px solid #eee;
+    }
+    
+    .dropdown-items {
+      max-height: 250px;
+      overflow-y: auto;
+    }
+    
+    .dropdown-item {
+      padding: 8px 12px;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+    
+    .dropdown-item:hover {
+      background-color: #e9ecef;
+    }
+    
+    .dropdown-item.required-field {
+      font-weight: 500;
+    }
+    
+    .required-icon {
+      font-weight: bold;
     }
     
     /* Badge styles */
@@ -566,12 +592,6 @@ function addEnhancedMappingStyles() {
       border-style: dashed;
       padding: 8px 20px;
       font-weight: 500;
-    }
-    
-    /* Required field indicator */
-    .required-field {
-      color: #dc3545;
-      font-weight: bold;
     }
   `;
   
@@ -601,14 +621,14 @@ window.getFieldMappings = function() {
   const rows = document.querySelectorAll('.mapping-row');
   
   rows.forEach(function(row) {
-    const alchemySelect = row.querySelector('.alchemy-field');
-    const platformSelect = row.querySelector('.platform-field');
+    const alchemyInput = row.querySelector('.alchemy-field');
+    const platformInput = row.querySelector('.platform-field');
     const requiredCheckbox = row.querySelector('input[type="checkbox"]');
     
-    if (alchemySelect && platformSelect && alchemySelect.value && platformSelect.value) {
+    if (alchemyInput && platformInput && alchemyInput.value && platformInput.value) {
       mappings.push({
-        alchemy_field: alchemySelect.value,
-        platform_field: platformSelect.value,
+        alchemy_field: alchemyInput.value,
+        platform_field: platformInput.value,
         required: requiredCheckbox ? requiredCheckbox.checked : false
       });
     }
