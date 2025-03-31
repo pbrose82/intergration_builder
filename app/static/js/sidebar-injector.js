@@ -1,198 +1,185 @@
-/* 
-  Updated Alchemy Cloud Sidebar Injector Script
-  - Collapsible sidebar
-  - Hamburger on left
-  - Lighter "Alchemy Cloud"
-  - Copyright at bottom
-  - No boxes
-  - Only icons on collapse
-*/
+// Improved Alchemy Cloud sidebar injector script
+// Includes collapsing sidebar, simplified design, and brand-aligned style
 
-document.addEventListener('DOMContentLoaded', function () {
-  const sidebarHTML = \`
-    <div class="alchemy-sidebar expanded">
+document.addEventListener('DOMContentLoaded', function() {
+  // Sidebar HTML
+  const sidebarHTML = `
+    <div class="alchemy-sidebar">
       <div class="sidebar-header">
-        <button class="collapse-btn" aria-label="Collapse Sidebar">
-          <span class="arrow-left"></span>
-        </button>
-        <span class="alchemy-title">Alchemy Cloud</span>
+        <div class="alchemy-text">Alchemy Cloud</div>
+        <button class="collapse-button" aria-label="Collapse sidebar"></button>
       </div>
+
       <div class="sidebar-section-title">INTEGRATIONS</div>
-      <nav class="sidebar-nav">
-        <a href="/" class="nav-item">
-          <i class="nav-icon home-icon"></i>
-          <span class="nav-text">Home</span>
-        </a>
-        <a href="/" class="nav-item">
-          <span class="nav-text">Manage Integrations</span>
-        </a>
-        <a href="/select-platform.html" class="nav-item">
-          <i class="nav-icon platform-icon"></i>
-          <span class="nav-text">Select Platform</span>
-        </a>
-      </nav>
-      <div class="sidebar-footer">
-        © Alchemy Cloud, Inc. All Rights Reserved.
+      <div class="sidebar-content">
+        <nav class="sidebar-nav">
+          <a href="/" class="nav-item">
+            <span class="nav-text">Home</span>
+          </a>
+          <a href="/" class="nav-item">
+            <span class="nav-text">Manage Integrations</span>
+          </a>
+          <a href="/select-platform.html" class="nav-item">
+            <span class="nav-text">Select Platform</span>
+          </a>
+        </nav>
       </div>
-      <div class="expand-btn hidden" aria-label="Expand Sidebar">
-        <span class="arrow-right"></span>
+
+      <div class="sidebar-collapsible-section">
+        <div class="section-header">
+          <i class="section-icon"></i>
+          <span>Alchemy Cloud</span>
+          <i class="chevron-down"></i>
+        </div>
       </div>
     </div>
-  \`;
+  `;
 
-  const sidebarCSS = \`
+  // Sidebar CSS
+  const sidebarCSS = `
     :root {
-      --sidebar-width: 256px;
-      --sidebar-collapsed-width: 60px;
       --alchemy-blue: #0047CC;
+      --alchemy-sidebar-width: 256px;
     }
 
     body {
-      padding-left: var(--sidebar-width);
+      padding-left: var(--alchemy-sidebar-width);
       transition: padding-left 0.3s ease;
     }
 
     .alchemy-sidebar {
-      position: fixed;
-      top: 0;
-      bottom: 0;
-      left: 0;
+      width: var(--alchemy-sidebar-width);
       background-color: var(--alchemy-blue);
       color: white;
-      width: var(--sidebar-width);
       display: flex;
       flex-direction: column;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      position: fixed;
+      left: 0;
+      top: 0;
+      bottom: 0;
       z-index: 1000;
-      overflow: hidden;
-      transition: width 0.3s ease;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      overflow-y: auto;
+      transition: transform 0.3s ease;
     }
 
     .alchemy-sidebar.collapsed {
-      width: var(--sidebar-collapsed-width);
+      transform: translateX(-100%);
     }
 
     .sidebar-header {
       display: flex;
+      justify-content: space-between;
       align-items: center;
       padding: 16px;
-      gap: 8px;
     }
 
-    .alchemy-title {
-      font-size: 20px;
+    .alchemy-text {
+      color: white;
+      font-size: 24px;
       font-weight: 400;
     }
 
-    .collapse-btn, .expand-btn {
+    .collapse-button {
       background: none;
       border: none;
       color: white;
+      font-size: 18px;
       cursor: pointer;
-    }
-
-    .arrow-left::before {
-      content: '\25C0';
-    }
-
-    .arrow-right::before {
-      content: '\25B6';
-    }
-
-    .expand-btn {
-      margin: auto 0 16px 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .expand-btn.hidden {
-      display: none;
+      width: 24px;
+      height: 24px;
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath d='M64 64h384v32H64zm0 160h384v32H64zm0 160h384v32H64z'/%3E%3C/svg%3E");
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath d='M64 64h384v32H64zm0 160h384v32H64zm0 160h384v32H64z'/%3E%3C/svg%3E");
+      background-color: white;
+      mask-size: contain;
+      -webkit-mask-size: contain;
+      mask-repeat: no-repeat;
+      -webkit-mask-repeat: no-repeat;
+      mask-position: center;
+      -webkit-mask-position: center;
     }
 
     .sidebar-section-title {
-      padding: 12px 16px;
-      font-size: 12px;
+      color: white;
+      font-size: 14px;
       font-weight: 600;
       letter-spacing: 1px;
-    }
-
-    .sidebar-nav {
-      flex-grow: 1;
+      padding: 12px 16px;
     }
 
     .nav-item {
       display: flex;
       align-items: center;
       padding: 12px 16px;
-      text-decoration: none;
       color: white;
+      text-decoration: none;
       font-size: 16px;
     }
 
+    .nav-item:hover, .nav-item.active {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
     .nav-icon {
-      width: 20px;
-      height: 20px;
+      display: none;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      font-size: 14px;
+      color: white;
+      font-weight: 400;
+      cursor: pointer;
+    }
+
+    .section-icon {
+      width: 16px;
+      height: 16px;
       margin-right: 12px;
       background-color: white;
-      mask-size: contain;
-      mask-repeat: no-repeat;
-      mask-position: center;
     }
 
-    .home-icon {
-      mask-image: url('data:image/svg+xml;base64,...');
+    .chevron-down {
+      width: 12px;
+      height: 12px;
+      margin-left: auto;
+      background-color: white;
     }
+  `;
 
-    .platform-icon {
-      mask-image: url('data:image/svg+xml;base64,...');
-    }
+  // Inject CSS
+  const styleElement = document.createElement('style');
+  styleElement.textContent = sidebarCSS;
+  document.head.appendChild(styleElement);
 
-    .sidebar-footer {
-      font-size: 12px;
-      padding: 12px 16px;
-      text-align: center;
-      color: white;
-      border-top: 1px solid rgba(255,255,255,0.2);
-    }
+  // Inject sidebar
+  const sidebarElement = document.createElement('div');
+  sidebarElement.innerHTML = sidebarHTML;
+  document.body.insertBefore(sidebarElement.firstElementChild, document.body.firstChild);
 
-    .alchemy-sidebar.collapsed .nav-text,
-    .alchemy-sidebar.collapsed .alchemy-title,
-    .alchemy-sidebar.collapsed .sidebar-section-title,
-    .alchemy-sidebar.collapsed .sidebar-footer {
-      display: none;
-    }
-
-    .alchemy-sidebar.collapsed .expand-btn {
-      display: flex;
-    }
-
-    .alchemy-sidebar.expanded .expand-btn {
-      display: none;
-    }
-  \`;
-
-  const styleEl = document.createElement('style');
-  styleEl.textContent = sidebarCSS;
-  document.head.appendChild(styleEl);
-
-  const container = document.createElement('div');
-  container.innerHTML = sidebarHTML;
-  document.body.insertBefore(container.firstElementChild, document.body.firstChild);
-
-  const sidebar = document.querySelector('.alchemy-sidebar');
-  const collapseBtn = sidebar.querySelector('.collapse-btn');
-  const expandBtn = sidebar.querySelector('.expand-btn');
-
-  collapseBtn.addEventListener('click', () => {
-    sidebar.classList.remove('expanded');
-    sidebar.classList.add('collapsed');
-    document.body.style.paddingLeft = '60px';
+  // Collapsible section functionality (basic)
+  document.querySelectorAll('.section-header').forEach(header => {
+    header.addEventListener('click', function() {
+      const items = this.nextElementSibling;
+      if (items) items.classList.toggle('active');
+    });
   });
 
-  expandBtn.addEventListener('click', () => {
-    sidebar.classList.remove('collapsed');
-    sidebar.classList.add('expanded');
-    document.body.style.paddingLeft = '256px';
+  // Highlight current nav item
+  const currentPath = window.location.pathname;
+  document.querySelectorAll('.nav-item').forEach(item => {
+    const href = item.getAttribute('href');
+    if (href === currentPath || (currentPath.includes(href) && href !== '/')) {
+      item.classList.add('active');
+    }
+  });
+
+  // Collapsing the entire sidebar
+  const collapseBtn = document.querySelector('.collapse-button');
+  collapseBtn.addEventListener('click', function() {
+    document.querySelector('.alchemy-sidebar').classList.toggle('collapsed');
+    document.body.classList.toggle('sidebar-collapsed');
   });
 });
