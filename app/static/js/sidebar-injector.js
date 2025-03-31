@@ -33,25 +33,6 @@ document.addEventListener('DOMContentLoaded', function() {
         </nav>
       </div>
       
-      <!-- Collapsible sections like in original UI (non-functional) -->
-      <div class="sidebar-collapsible-section">
-        <div class="section-header">
-          <i class="section-icon"></i>
-          <span>Alchemy Support</span>
-          <i class="chevron-down"></i>
-        </div>
-        <div class="section-items">
-          <a href="#" class="nav-item submenu-item">Admin Feedback</a>
-        </div>
-      </div>
-      
-      <div class="sidebar-collapsible-section">
-        <div class="section-header">
-          <i class="section-icon"></i>
-          <span>Customer Success</span>
-          <i class="chevron-down"></i>
-        </div>
-      </div>
       
       <!-- Footer with copyright -->
       <div class="sidebar-footer">
