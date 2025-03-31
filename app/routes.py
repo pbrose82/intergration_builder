@@ -11,6 +11,8 @@ import requests
 import json
 from datetime import datetime
 import traceback
+from flask import render_template, current_app, redirect, url_for
+
 
 # Create blueprint
 main_bp = Blueprint('main', __name__)
@@ -70,6 +72,23 @@ def get_record_types():
             "message": f"Unexpected error: {str(e)}",
             "recordTypes": []
         }), 500
+
+@main_bp.route('/select-platform.html')
+def select_platform_html():
+    """
+    Render the platform selection page with HTML extension
+    """
+    current_app.logger.info("Rendering platform selection page")
+    return render_template('platform_select.html')
+
+# Fixed - separate function names for GET and POST handlers
+@main_bp.route('/select-platform', methods=['GET'])
+def select_platform_get():
+    """
+    Render the platform selection page without HTML extension (GET method)
+    """
+    current_app.logger.info("Redirecting to platform selection page")
+    return render_template('platform_select.html')
 
 @main_bp.route('/get-alchemy-fields', methods=['POST'])
 def get_fields():
@@ -136,12 +155,11 @@ def get_fields():
             "fields": []
         }), 500
 
-
-
+# Fixed - renamed to avoid conflicts
 @main_bp.route('/select-platform', methods=['POST'])
-def select_platform():
+def handle_platform_selection():
     """
-    Handle platform selection form submission
+    Handle platform selection form submission (POST method)
     """
     platform = request.form.get('platform')
     

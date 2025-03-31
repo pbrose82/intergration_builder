@@ -1,0 +1,248 @@
+/* Enhanced Field Mapping Interface Styles */
+
+/* Main container styles */
+.mapping-container {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  margin-bottom: 20px;
+  background-color: white;
+  overflow: hidden;
+}
+
+/* Info section with better styling */
+.mapping-info {
+  background-color: #f8f9fa;
+  border-left: 4px solid #0047BB;
+  padding: 16px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+
+/* Table styling improvements */
+.mapping-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 0;
+}
+
+.mapping-table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: #495057;
+  padding: 12px 16px;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.mapping-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #eee;
+  vertical-align: middle;
+}
+
+.mapping-row {
+  transition: background-color 0.2s ease;
+}
+
+.mapping-row:hover {
+  background-color: #f5f9ff;
+}
+
+.mapping-row:last-child td {
+  border-bottom: none;
+}
+
+/* Typeahead field improvements */
+.field-typeahead-container {
+  position: relative;
+  width: 100%;
+}
+
+.typeahead-control {
+  position: relative;
+  width: 100%;
+}
+
+.typeahead-input-group {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 10px 14px;
+  background-color: white;
+  min-height: 44px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.typeahead-input-group:hover {
+  border-color: #0047BB;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.typeahead-selected {
+  flex-grow: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #333;
+  font-weight: 500;
+}
+
+.typeahead-toggle-btn {
+  background: none;
+  border: none;
+  color: #0047BB;
+  padding: 0 0 0 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.typeahead-toggle-btn:hover {
+  color: #003a9b;
+}
+
+.typeahead-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  max-height: 300px;
+  overflow-y: auto;
+  background-color: white;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 1000;
+  margin-top: 4px;
+}
+
+.typeahead-dropdown-content {
+  padding: 6px 0;
+}
+
+.typeahead-item {
+  padding: 10px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid #f5f5f5;
+  transition: all 0.15s;
+}
+
+.typeahead-item:hover {
+  background-color: #e9f2ff;
+}
+
+.typeahead-item:last-child {
+  border-bottom: none;
+}
+
+.typeahead-no-results {
+  padding: 14px;
+  color: #6c757d;
+  font-style: italic;
+  text-align: center;
+}
+
+.platform-search, .alchemy-search {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  margin-bottom: 6px;
+  transition: all 0.2s;
+}
+
+.platform-search:focus, .alchemy-search:focus {
+  border-color: #0047BB;
+  box-shadow: 0 0 0 0.2rem rgba(0, 71, 187, 0.25);
+  outline: 0;
+}
+
+/* Improved delete button styling */
+.delete-mapping {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: white;
+  border: 1px solid #dc3545;
+  color: #dc3545;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.delete-mapping:hover {
+  background-color: #dc3545;
+  color: white;
+}
+
+/* Add mapping button styling */
+#addMappingBtn {
+  border: 2px dashed #0047BB;
+  padding: 10px 20px;
+  font-weight: 500;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+#addMappingBtn:hover {
+  background-color: #e7f0ff;
+}
+
+/* Required field checkbox styling */
+.required-checkbox {
+  width: 18px;
+  height: 18px;
+}
+
+/* Required field indicator */
+.required-field {
+  color: #dc3545;
+  font-size: 18px;
+  font-weight: bold;
+  vertical-align: middle;
+  margin-left: 4px;
+}
+
+/* Better styling for sync options */
+#syncOptionsContainer .card {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+#syncOptionsContainer .card-header {
+  padding: 14px 20px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #eee;
+}
+
+#syncOptionsContainer .card-body {
+  padding: 20px;
+}
+
+#syncOptionsContainer .form-label {
+  font-weight: 500;
+  color: #495057;
+}
+
+#syncOptionsContainer .form-select {
+  padding: 10px 14px;
+  border-radius: 6px;
+  height: auto;
+}
+
+#syncOptionsContainer .form-text {
+  color: #6c757d;
+  margin-top: 6px;
+}
+
+/* Badge styling */
+.badge {
+  font-weight: 500;
+  padding: 5px 8px;
+  border-radius: 6px;
+}

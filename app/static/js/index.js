@@ -1,7 +1,7 @@
 /**
  * Main index page JavaScript file
  * Handles integration listing and management
- * With improved debugging and event handling
+ * With improved debugging and error handling
  */
 
 // Enable debug logging
@@ -42,17 +42,27 @@ document.addEventListener('DOMContentLoaded', function() {
             debugLog('Add Integration button clicked');
             event.preventDefault(); // Prevent default button behavior
             
-            // Directly navigate to the selection page
-            debugLog('Navigating to platform selection page');
-            window.location.href = '/select-platform.html';
+            // Try different URLs in case one fails
+            try {
+                // First try with direct href modification for better reliability
+                window.location.href = '/config.html?platform=hubspot';
+                
+                // Fallback options - these won't execute if the above works
+                setTimeout(function() {
+                    debugLog('Trying fallback navigation', 'warning');
+                    try {
+                        window.location = '/select-platform.html';
+                    } catch(e) {
+                        debugLog('Fallback 1 failed, trying fallback 2', 'error');
+                        window.location.replace('/select-platform');
+                    }
+                }, 100);
+            } catch (error) {
+                debugLog(`Navigation error: ${error.message}`, 'error');
+                // Ultimate fallback - direct to HubSpot config
+                window.location.href = '/config.html?platform=hubspot';
+            }
         });
-        
-        // Add direct inline onclick handler as backup
-        addIntegrationBtn.onclick = function() {
-            debugLog('Add Integration button onclick triggered');
-            window.location.href = '/select-platform.html';
-            return false; // Prevent default
-        };
     } else {
         debugLog('Add Integration button not found', 'warning');
     }
@@ -66,8 +76,8 @@ document.addEventListener('DOMContentLoaded', function() {
             debugLog('Add First Integration button clicked');
             event.preventDefault();
             
-            debugLog('Navigating to platform selection page');
-            window.location.href = '/select-platform.html';
+            debugLog('Navigating directly to HubSpot configuration');
+            window.location.href = '/config.html?platform=hubspot';
         });
     }
     
@@ -131,7 +141,7 @@ function displayIntegrations(integrations) {
                     <i class="fas fa-plug fa-3x text-muted mb-3"></i>
                     <h4>No Integrations Yet</h4>
                     <p class="text-muted">You haven't created any integrations yet. Click the button below to get started.</p>
-                    <a href="/select-platform.html" class="btn btn-primary mt-3" id="addFirstIntegrationBtn">
+                    <a href="/config.html?platform=hubspot" class="btn btn-primary mt-3" id="addFirstIntegrationBtn">
                         <i class="fas fa-plus me-2"></i>Create Integration
                     </a>
                 </div>
@@ -144,7 +154,7 @@ function displayIntegrations(integrations) {
             addFirstIntegrationBtn.addEventListener('click', function(event) {
                 debugLog('Add First Integration button clicked');
                 event.preventDefault(); // Prevent default anchor behavior
-                window.location.href = '/select-platform.html';
+                window.location.href = '/config.html?platform=hubspot';
             });
         }
         
