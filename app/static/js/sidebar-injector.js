@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', function() {
       </div>
 
       <div class="sidebar-footer">
-        © Alchemy Cloud, Inc.
+        © Alchemy Cloud, Inc. All Rights Reserved.
       </div>
     </div>
 
@@ -62,8 +62,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     .alchemy-sidebar.collapsed {
-      transform: translateX(-100%);
+      width: 56px;
     }
+
+body.sidebar-collapsed {
+  padding-left: 56px;
+}
+
 
     .sidebar-header {
       display: flex;
