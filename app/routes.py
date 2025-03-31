@@ -72,7 +72,15 @@ def get_record_types():
             "message": f"Unexpected error: {str(e)}",
             "recordTypes": []
         }), 500
-
+        
+@main_bp.route('/view-integration.html')
+def view_integration_html():
+    """
+    Render the view integration page
+    """
+    integration_id = request.args.get('id')
+    return render_template('view-integration.html', integration_id=integration_id)
+    
 @main_bp.route('/select-platform.html')
 def select_platform_html():
     """
