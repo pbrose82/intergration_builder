@@ -25,6 +25,7 @@
             display: flex;
             flex-direction: column;
             margin: 0;
+            padding-bottom: 0;  /* Remove padding-bottom */
         }
         
         /* Header styles */
@@ -149,12 +150,12 @@
         /* Footer styles */
         .footer {
             background-color: white;
-            position: fixed;
-            bottom: 0;
+            position: relative;  /* Changed from absolute to relative */
             width: 100%;
             padding: 15px 0;
             border-top: 1px solid rgba(0, 0, 0, 0.08);
             text-align: center;
+            margin-top: auto;  /* Push to the bottom of flex container */
         }
         
         .footer-content {
@@ -174,6 +175,10 @@
             color: var(--alchemy-grey);
             font-size: 12px;
             font-weight: 500;
+        }
+          .container {
+            flex: 1 0 auto;  /* Allow the container to grow and push footer down */
+            padding-bottom: 2rem;  /* Add some space before the footer */
         }
         
         /* Toast for notifications */
