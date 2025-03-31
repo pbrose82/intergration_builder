@@ -247,32 +247,32 @@ const StepManager = {
   /**
    * Attach event handlers to navigation buttons
    */
-  // In step-manager.js, update the setupEventHandlers function:
-setupEventHandlers: function() {
-  const nextBtn = document.getElementById('nextBtn');
-  const backBtn = document.getElementById('backBtn');
-  
-  if (nextBtn) {
-    nextBtn.addEventListener('click', () => this.goToNextStep());
+  setupEventHandlers: function() {
+    const nextBtn = document.getElementById('nextBtn');
+    const backBtn = document.getElementById('backBtn');
+    
+    if (nextBtn) {
+      nextBtn.addEventListener('click', () => this.goToNextStep());
+    }
+    
+    if (backBtn) {
+      backBtn.addEventListener('click', () => {
+        // If we're on step 1, go back to platform selection
+        if (this.currentStep === 1) {
+          window.location.href = '/select-platform.html';
+        } 
+        // If we're on step 3, we want to go back to step 2
+        else if (this.currentStep === 3) {
+          this.goToStep(2);
+        }
+        // Otherwise just go to the previous step
+        else {
+          this.goToPreviousStep();
+        }
+      });
+    }
   }
-  
-  if (backBtn) {
-    backBtn.addEventListener('click', () => {
-      // If we're on step 1, go back to platform selection
-      if (this.currentStep === 1) {
-        window.location.href = '/select-platform.html';
-      } 
-      // If we're on step 3, we want to go back to step 2
-      else if (this.currentStep === 3) {
-        this.goToStep(2);
-      }
-      // Otherwise just go to the previous step
-      else {
-        this.goToPreviousStep();
-      }
-    });
-  }
-}
+};  // <-- Closing the StepManager object literal properly
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
