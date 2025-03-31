@@ -527,22 +527,21 @@ function saveIntegration() {
   });
 }
 
-// Attach to DOM Ready
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('Simplified field mapping script loaded');
-  
-  // Attach to saveBtn click to use our save function
-  const saveBtn = document.getElementById('saveBtn');
-  if (saveBtn) {
-    saveBtn.addEventListener('click', saveIntegration);
-  }
-  
-  // Create a global event listener for step changes
-  document.addEventListener('stepChanged', function(e) {
-    if (e.detail && e.detail.step === 3) {
-      fixStep3Display();
-    }
-  });
+    console.log('Simplified field mapping script loaded');
+    
+    // REMOVE OR COMMENT OUT THESE LINES:
+    // const saveBtn = document.getElementById('saveBtn');
+    // if (saveBtn) {
+    //     saveBtn.addEventListener('click', saveIntegration);
+    // }
+    
+    // Create a global event listener for step changes
+    document.addEventListener('stepChanged', function(e) {
+        if (e.detail && e.detail.step === 3) {
+            fixStep3Display();
+        }
+    });
 });
 
 // Make functions globally available
