@@ -1,0 +1,137 @@
+/* Field Mapping Typeahead Styles */
+.field-typeahead-container {
+  position: relative;
+  width: 100%;
+}
+
+.typeahead-control {
+  position: relative;
+  width: 100%;
+}
+
+.typeahead-input-group {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 8px 12px;
+  background-color: white;
+  min-height: 38px;
+  cursor: pointer;
+}
+
+.typeahead-input-group:hover {
+  border-color: #bbb;
+}
+
+.typeahead-selected {
+  flex-grow: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #333;
+}
+
+.typeahead-toggle-btn {
+  background: none;
+  border: none;
+  color: #6c757d;
+  padding: 0 0 0 8px;
+  cursor: pointer;
+}
+
+.typeahead-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  max-height: 300px;
+  overflow-y: auto;
+  background-color: white;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  z-index: 1000;
+  margin-top: 4px;
+}
+
+.typeahead-dropdown-content {
+  padding: 4px 0;
+}
+
+.typeahead-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #f8f9fa;
+}
+
+.typeahead-item:hover {
+  background-color: #e9ecef;
+}
+
+.typeahead-no-results {
+  padding: 12px;
+  color: #6c757d;
+  font-style: italic;
+  text-align: center;
+}
+
+.platform-search, .alchemy-search {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  margin-bottom: 5px;
+}
+
+.platform-search:focus, .alchemy-search:focus {
+  border-color: #0047BB;
+  box-shadow: 0 0 0 0.2rem rgba(0, 71, 187, 0.25);
+  outline: 0;
+}
+
+/* Make the mapping container scrollable when many fields are added */
+.mapping-container {
+  max-height: 600px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Improved field mapping row styles */
+.mapping-row {
+  transition: all 0.2s ease;
+}
+
+.mapping-row:hover {
+  background-color: #f9f9fa;
+}
+
+/* Badge styling for field count */
+.field-count-badge {
+  background-color: #0047BB;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-left: 6px;
+}
+
+/* Field type indicators */
+.field-type-indicator {
+  font-size: 11px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background-color: #e9ecef;
+  color: #495057;
+  margin-left: 5px;
+}
+
+/* Required field indicator */
+.required-field {
+  color: #dc3545;
+  margin-left: 4px;
+  font-weight: bold;
+}
